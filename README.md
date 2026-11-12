@@ -111,12 +111,31 @@ See "PRD.md" (./PRD.md) for the product requirements and "AGENTS.md" (./AGENTS.m
 
 🛠️ Development
 
-Development instructions and setup requirements will be added as the project foundation is established.
+Requirements: Node.js >= 20.9 (`.nvmrc` pins 24) and npm >= 10. No global CLI
+tools are needed.
+
+```bash
+npm install
+npm run dev        # http://localhost:3000
+```
+
+Quality gates, run in this order before a pull request:
+
+```bash
+npm run lint
+npm run typecheck
+npm test
+npm run build
+```
+
+See `docs/development.md` for the full workflow, Android/Termux notes, and the
+known limitations of this environment.
 
 Before contributing, read:
 
 1. "PRD.md" (./PRD.md)
 2. "AGENTS.md" (./AGENTS.md)
+3. "docs/development.md" (./docs/development.md)
 
 ❤️ Support the Project
 

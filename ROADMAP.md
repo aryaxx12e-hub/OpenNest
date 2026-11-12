@@ -6,6 +6,11 @@ Project status: Pre-development
 Current milestone: Foundation
 Last updated: November 2026
 
+Phase 0 foundation is complete except for the storage interfaces, which are
+deferred to Stage B where they can be designed against real usage rather than in
+advance. The interface shell, design tokens, localization, and quality gates are
+in place.
+
 Roadmap items represent development goals, not guaranteed release dates.
 
 Development Principles
@@ -23,16 +28,16 @@ Phase 0: Foundation
 
 Goal: Establish a maintainable project foundation.
 
-- [ ] Initialize Git repository.
-- [ ] Initialize Next.js with TypeScript.
-- [ ] Configure Tailwind CSS.
-- [ ] Establish application directory structure.
-- [ ] Configure ESLint and formatting.
-- [ ] Establish design tokens and UI foundations.
-- [ ] Implement Indonesian and English localization.
+- [x] Initialize Git repository.
+- [x] Initialize Next.js with TypeScript.
+- [x] Configure Tailwind CSS.
+- [x] Establish application directory structure.
+- [x] Configure ESLint and formatting.
+- [x] Establish design tokens and UI foundations.
+- [x] Implement Indonesian and English localization.
 - [ ] Define storage interfaces.
-- [ ] Configure testing infrastructure.
-- [ ] Document development workflow.
+- [x] Configure testing infrastructure.
+- [x] Document development workflow.
 
 Completion criteria: The application starts successfully, its foundation is documented, and basic checks pass.
 

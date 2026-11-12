@@ -1,0 +1,11 @@
+# Pre-existing prose maintained by hand (no code fences to normalize)
+/AGENTS.md
+/PRD.md
+/README.md
+/ROADMAP.md
+/LICENSE
+
+# Generated and vendored output
+.next/
+node_modules/
+coverage/

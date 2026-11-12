@@ -1,0 +1,12 @@
+{
+  "name": "@opennest/localization",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "react": "19.3.1"
+  }
+}

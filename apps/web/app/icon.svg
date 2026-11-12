@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="OpenNest">
+  <rect width="64" height="64" rx="16" fill="#1f4d3a" />
+  <path
+    d="M32 15c-9.4 0-17 7.6-17 17s7.6 17 17 17 17-7.6 17-17-7.6-17-17-17Zm0 7.5A9.5 9.5 0 1 1 22.5 32 9.5 9.5 0 0 1 32 22.5Z"
+    fill="#faf8f3"
+  />
+</svg>
