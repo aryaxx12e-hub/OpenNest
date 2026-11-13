@@ -5,7 +5,7 @@
   "description": "Your digital life. Your rules. An open-source, local-first personal digital workspace.",
   "license": "AGPL-3.0-only",
   "engines": {
-    "node": ">=20.9.0"
+    "node": ">=24.0.0"
   },
   "workspaces": [
     "apps/*",
@@ -18,8 +18,10 @@
     "lint": "node scripts/eslint.mjs .",
     "format": "node scripts/prettier.mjs --write .",
     "format:check": "node scripts/prettier.mjs --check .",
-    "typecheck": "node scripts/next.mjs typegen && node scripts/tsc.mjs --noEmit",
-    "test": "node scripts/vitest.mjs run",
+    "typecheck": "node scripts/next.mjs typegen && node scripts/tsc.mjs --noEmit && node scripts/tsc-packages.mjs",
+    "typecheck:packages": "node scripts/tsc-packages.mjs",
+    "check:browser-graph": "node scripts/check-browser-graph.mjs",
+    "test": "node scripts/check-browser-graph.mjs && node scripts/vitest.mjs run",
     "test:watch": "node scripts/vitest.mjs"
   },
   "devDependencies": {

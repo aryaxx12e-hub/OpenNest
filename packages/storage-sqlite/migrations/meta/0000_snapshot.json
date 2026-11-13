@@ -1,0 +1,605 @@
+{
+  "version": "6",
+  "dialect": "sqlite",
+  "id": "ef6efd1f-38ef-4757-bcc0-7f2e84fead4b",
+  "prevId": "00000000-0000-0000-0000-000000000000",
+  "tables": {
+    "file_tags": {
+      "name": "file_tags",
+      "columns": {
+        "file_id": {
+          "name": "file_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tag_id": {
+          "name": "tag_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "file_tags_tag_idx": {
+          "name": "file_tags_tag_idx",
+          "columns": ["tag_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "file_tags_file_id_files_id_fk": {
+          "name": "file_tags_file_id_files_id_fk",
+          "tableFrom": "file_tags",
+          "tableTo": "files",
+          "columnsFrom": ["file_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "file_tags_tag_id_tags_id_fk": {
+          "name": "file_tags_tag_id_tags_id_fk",
+          "tableFrom": "file_tags",
+          "tableTo": "tags",
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "file_tags_file_id_tag_id_pk": {
+          "columns": ["file_id", "tag_id"],
+          "name": "file_tags_file_id_tag_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "files": {
+      "name": "files",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "folder_id": {
+          "name": "folder_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "mime_type": {
+          "name": "mime_type",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "size_bytes": {
+          "name": "size_bytes",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": 0
+        },
+        "blob_key": {
+          "name": "blob_key",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "checksum": {
+          "name": "checksum",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "files_workspace_idx": {
+          "name": "files_workspace_idx",
+          "columns": ["workspace_id"],
+          "isUnique": false
+        },
+        "files_workspace_folder_idx": {
+          "name": "files_workspace_folder_idx",
+          "columns": ["workspace_id", "folder_id"],
+          "isUnique": false
+        },
+        "files_workspace_created_idx": {
+          "name": "files_workspace_created_idx",
+          "columns": ["workspace_id", "created_at"],
+          "isUnique": false
+        },
+        "files_workspace_updated_idx": {
+          "name": "files_workspace_updated_idx",
+          "columns": ["workspace_id", "updated_at"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "files_workspace_id_workspaces_id_fk": {
+          "name": "files_workspace_id_workspaces_id_fk",
+          "tableFrom": "files",
+          "tableTo": "workspaces",
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "files_folder_id_folders_id_fk": {
+          "name": "files_folder_id_folders_id_fk",
+          "tableFrom": "files",
+          "tableTo": "folders",
+          "columnsFrom": ["folder_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "folders": {
+      "name": "folders",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "parent_id": {
+          "name": "parent_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "folders_workspace_idx": {
+          "name": "folders_workspace_idx",
+          "columns": ["workspace_id"],
+          "isUnique": false
+        },
+        "folders_workspace_parent_idx": {
+          "name": "folders_workspace_parent_idx",
+          "columns": ["workspace_id", "parent_id"],
+          "isUnique": false
+        },
+        "folders_workspace_created_idx": {
+          "name": "folders_workspace_created_idx",
+          "columns": ["workspace_id", "created_at"],
+          "isUnique": false
+        },
+        "folders_workspace_updated_idx": {
+          "name": "folders_workspace_updated_idx",
+          "columns": ["workspace_id", "updated_at"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "folders_workspace_id_workspaces_id_fk": {
+          "name": "folders_workspace_id_workspaces_id_fk",
+          "tableFrom": "folders",
+          "tableTo": "workspaces",
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "folders_parent_id_folders_id_fk": {
+          "name": "folders_parent_id_folders_id_fk",
+          "tableFrom": "folders",
+          "tableTo": "folders",
+          "columnsFrom": ["parent_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "note_links": {
+      "name": "note_links",
+      "columns": {
+        "source_note_id": {
+          "name": "source_note_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "target_note_id": {
+          "name": "target_note_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "note_links_target_idx": {
+          "name": "note_links_target_idx",
+          "columns": ["target_note_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "note_links_source_note_id_notes_id_fk": {
+          "name": "note_links_source_note_id_notes_id_fk",
+          "tableFrom": "note_links",
+          "tableTo": "notes",
+          "columnsFrom": ["source_note_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "note_links_target_note_id_notes_id_fk": {
+          "name": "note_links_target_note_id_notes_id_fk",
+          "tableFrom": "note_links",
+          "tableTo": "notes",
+          "columnsFrom": ["target_note_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "note_links_source_note_id_target_note_id_pk": {
+          "columns": ["source_note_id", "target_note_id"],
+          "name": "note_links_source_note_id_target_note_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "note_tags": {
+      "name": "note_tags",
+      "columns": {
+        "note_id": {
+          "name": "note_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "tag_id": {
+          "name": "tag_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "note_tags_tag_idx": {
+          "name": "note_tags_tag_idx",
+          "columns": ["tag_id"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "note_tags_note_id_notes_id_fk": {
+          "name": "note_tags_note_id_notes_id_fk",
+          "tableFrom": "note_tags",
+          "tableTo": "notes",
+          "columnsFrom": ["note_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "note_tags_tag_id_tags_id_fk": {
+          "name": "note_tags_tag_id_tags_id_fk",
+          "tableFrom": "note_tags",
+          "tableTo": "tags",
+          "columnsFrom": ["tag_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {
+        "note_tags_note_id_tag_id_pk": {
+          "columns": ["note_id", "tag_id"],
+          "name": "note_tags_note_id_tag_id_pk"
+        }
+      },
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "notes": {
+      "name": "notes",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "folder_id": {
+          "name": "folder_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "title": {
+          "name": "title",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "content": {
+          "name": "content",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": "''"
+        },
+        "pinned": {
+          "name": "pinned",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false,
+          "default": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "notes_workspace_idx": {
+          "name": "notes_workspace_idx",
+          "columns": ["workspace_id"],
+          "isUnique": false
+        },
+        "notes_workspace_folder_idx": {
+          "name": "notes_workspace_folder_idx",
+          "columns": ["workspace_id", "folder_id"],
+          "isUnique": false
+        },
+        "notes_workspace_created_idx": {
+          "name": "notes_workspace_created_idx",
+          "columns": ["workspace_id", "created_at"],
+          "isUnique": false
+        },
+        "notes_workspace_updated_idx": {
+          "name": "notes_workspace_updated_idx",
+          "columns": ["workspace_id", "updated_at"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "notes_workspace_id_workspaces_id_fk": {
+          "name": "notes_workspace_id_workspaces_id_fk",
+          "tableFrom": "notes",
+          "tableTo": "workspaces",
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "notes_folder_id_folders_id_fk": {
+          "name": "notes_folder_id_folders_id_fk",
+          "tableFrom": "notes",
+          "tableTo": "folders",
+          "columnsFrom": ["folder_id"],
+          "columnsTo": ["id"],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "tags": {
+      "name": "tags",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "workspace_id": {
+          "name": "workspace_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "color": {
+          "name": "color",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {
+        "tags_workspace_name_uq": {
+          "name": "tags_workspace_name_uq",
+          "columns": ["workspace_id", "name"],
+          "isUnique": true
+        },
+        "tags_workspace_created_idx": {
+          "name": "tags_workspace_created_idx",
+          "columns": ["workspace_id", "created_at"],
+          "isUnique": false
+        }
+      },
+      "foreignKeys": {
+        "tags_workspace_id_workspaces_id_fk": {
+          "name": "tags_workspace_id_workspaces_id_fk",
+          "tableFrom": "tags",
+          "tableTo": "workspaces",
+          "columnsFrom": ["workspace_id"],
+          "columnsTo": ["id"],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    },
+    "workspaces": {
+      "name": "workspaces",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "text",
+          "primaryKey": true,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "name": {
+          "name": "name",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "created_at": {
+          "name": "created_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        },
+        "updated_at": {
+          "name": "updated_at",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": true,
+          "autoincrement": false
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "checkConstraints": {}
+    }
+  },
+  "views": {},
+  "enums": {},
+  "_meta": {
+    "schemas": {},
+    "tables": {},
+    "columns": {}
+  },
+  "internal": {
+    "indexes": {}
+  }
+}

@@ -63,6 +63,9 @@ Stage B — Core Architecture
 - Define domain models.
 - Define storage interfaces.
 - Implement IndexedDB adapter.
+- Implement SQLite adapter (approved for Stage B: PRD sections 8 and 9 require it).
+  Its migrations are gated by B4: prove the migrator through `node:sqlite` before
+  building on it.
 - Implement repository layer.
 - Implement validation.
 - Implement error handling.

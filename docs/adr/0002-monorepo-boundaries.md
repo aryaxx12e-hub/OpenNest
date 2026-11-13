@@ -1,8 +1,15 @@
 # ADR 0002: npm workspaces with source-only packages
 
-- Status: Accepted
+- Status: Accepted, partly superseded by ADR 0003
 - Date: 2026-11-12
 - Context: Foundation Stage A
+
+> **Superseded in part by [ADR 0003](0003-storage-ports-and-adapters.md).**
+> The decision to use npm workspaces with source-only packages still stands.
+> Only the forward-looking package list at the end of "Consequences" is
+> superseded: `database`, `storage`, `search`, and `shared` are not created, and
+> Stage B ships `core`, `validation`, `storage-dexie`, `storage-sqlite`, and
+> `storage-conformance` instead. This file is left as historical record.
 
 ## Context
 

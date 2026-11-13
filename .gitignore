@@ -49,6 +49,9 @@ Thumbs.db
 *.sqlite3
 *.db
 
+# Runtime data (database and blob roots created by the app)
+data/
+
 # Temporary files
 *.tmp
 *.temp

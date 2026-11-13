@@ -6,7 +6,7 @@ OpenNest is an open-source personal digital workspace designed to help people or
 
 Built around privacy-first and local-first principles, OpenNest aims to give users control over their digital information without forcing them into subscriptions, accounts, or cloud-dependent workflows.
 
-Status: Pre-development · Early planning
+Status: Pre-development · Core architecture complete
 
 🌱 Our Vision
 
@@ -98,7 +98,7 @@ Contribution guidelines will be published as development progresses.
 
 The project will evolve incrementally.
 
-- [ ] Foundation and project architecture
+- [x] Foundation and project architecture
 - [ ] Core UI and application shell
 - [ ] Personal Digital Library
 - [ ] Notes and knowledge organization
@@ -111,7 +111,7 @@ See "PRD.md" (./PRD.md) for the product requirements and "AGENTS.md" (./AGENTS.m
 
 🛠️ Development
 
-Requirements: Node.js >= 20.9 (`.nvmrc` pins 24) and npm >= 10. No global CLI
+Requirements: Node.js >= 24.0.0 (`.nvmrc` pins 24) and npm >= 10. No global CLI
 tools are needed.
 
 ```bash
@@ -165,7 +165,7 @@ OpenNest adalah ruang kerja digital pribadi berbasis open-source yang dirancang 
 
 Dibangun dengan prinsip privacy-first dan local-first, OpenNest bertujuan memberikan kendali penuh kepada pengguna atas informasi digital mereka tanpa ketergantungan wajib pada langganan, akun, atau layanan cloud.
 
-Status: Pra-pengembangan · Tahap perencanaan awal
+Status: Pra-pengembangan · Arsitektur inti selesai
 
 🌱 Visi Kami
 

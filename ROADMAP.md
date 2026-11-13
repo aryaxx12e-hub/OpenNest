@@ -3,13 +3,13 @@ OpenNest Roadmap 🪺
 This document outlines the planned development direction of OpenNest.
 
 Project status: Pre-development
-Current milestone: Foundation
+Current milestone: Core architecture complete
 Last updated: November 2026
 
-Phase 0 foundation is complete except for the storage interfaces, which are
-deferred to Stage B where they can be designed against real usage rather than in
-advance. The interface shell, design tokens, localization, and quality gates are
-in place.
+Phase 0 foundation is complete. Stage B added the domain core, validation, and
+both storage adapters; the storage interfaces are defined and covered by the
+shared conformance suite. Stage C (MVP features) is the next milestone and has
+not started.
 
 Roadmap items represent development goals, not guaranteed release dates.
 
@@ -35,7 +35,7 @@ Goal: Establish a maintainable project foundation.
 - [x] Configure ESLint and formatting.
 - [x] Establish design tokens and UI foundations.
 - [x] Implement Indonesian and English localization.
-- [ ] Define storage interfaces.
+- [x] Define storage interfaces.
 - [x] Configure testing infrastructure.
 - [x] Document development workflow.
 
