@@ -5,6 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createMemoryStorage, type IsoDate } from "@opennest/core";
 import { LocaleProvider } from "@opennest/localization";
 
+import { readNoteDraft, writeNoteDraft } from "@/lib/autosave/draft-journal";
 import { AppDataProvider, useAppData } from "@/lib/data/app-data-provider";
 import { buildBackup } from "@/lib/data/backup";
 import { createAppServices, sha256Hex } from "@/lib/data/services";
@@ -242,6 +243,61 @@ describe("BackupPanel", () => {
 
     expect((await services.note.list(workspace.id, {})).total).toBe(2);
     expect(mounted.container.textContent).not.toContain("Backup restored.");
+  });
+
+  it("clears recovery drafts after a successful restore", async () => {
+    const { storage, workspace } = await createSeed();
+    const built = await buildBackup(storage, workspace.id, { now: () => AT });
+    writeNoteDraft(window.localStorage, {
+      version: 1,
+      workspaceId: "workspace-1",
+      noteId: "note-1",
+      title: "Draft title",
+      content: "Unsaved content",
+      baseUpdatedAt: AT,
+      savedAt: Date.now(),
+    });
+
+    const mounted = mount(storage);
+
+    await settle();
+    await chooseFile(mounted.container, built.text);
+    await act(async () => {
+      buttonByText(mounted.container, "Replace data").click();
+    });
+    await settle();
+
+    expect(mounted.container.textContent).toContain("Backup restored.");
+    expect(readNoteDraft(window.localStorage, "workspace-1", "note-1")).toBeNull();
+  });
+
+  it("reports a draft clear failure without hiding the restore success", async () => {
+    const { storage, workspace } = await createSeed();
+    const built = await buildBackup(storage, workspace.id, { now: () => AT });
+    writeNoteDraft(window.localStorage, {
+      version: 1,
+      workspaceId: "workspace-1",
+      noteId: "note-1",
+      title: "Draft title",
+      content: "Unsaved content",
+      baseUpdatedAt: AT,
+      savedAt: Date.now(),
+    });
+    vi.spyOn(window.localStorage, "removeItem").mockImplementationOnce(() => {
+      throw new Error("blocked");
+    });
+
+    const mounted = mount(storage);
+
+    await settle();
+    await chooseFile(mounted.container, built.text);
+    await act(async () => {
+      buttonByText(mounted.container, "Replace data").click();
+    });
+    await settle();
+
+    expect(mounted.container.textContent).toContain("Backup restored.");
+    expect(mounted.container.textContent).toContain("Draft data could not be cleared.");
   });
 
   it("reports a restore failure without claiming success", async () => {

@@ -44,7 +44,7 @@ MVP capabilities:
 - [x] File upload and organization
 - [x] Folders and tags
 - [x] Document preview for supported formats
-- [x] Markdown notes with autosave
+- [x] Markdown notes with autosave and draft recovery
 - [x] Local search
 - [x] Data export and restore from a local backup
 - [x] Offline-ready Progressive Web App (PWA)

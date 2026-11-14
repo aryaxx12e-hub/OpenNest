@@ -412,6 +412,55 @@ async function run() {
       0
     );
 
+    await page.goto(`${server.base}/notes`, { waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Notes", exact: true }).waitFor();
+
+    const updateNoteTitle = `Update save note ${unique}`;
+    const updateNoteContent = `Saved before update ${unique}`;
+    const unsavedContent = `Unsaved before update ${unique}`;
+
+    await page.getByRole("button", { name: "New note" }).first().click();
+    await page.waitForURL(/\/notes\/[^/]+$/);
+    await page.getByRole("textbox", { name: "Note title" }).fill(updateNoteTitle);
+    await page
+      .getByRole("textbox", { name: "Write" })
+      .fill(`# ${updateNoteTitle}\n\n${updateNoteContent}`);
+    await page.getByText("Saved", { exact: true }).waitFor({ timeout: 5000 });
+
+    await writeFile(swPath, `${originalSw}\n// ${unique}\n// dirty ${unique}\n`, "utf8");
+
+    await page.evaluate(async () => {
+      const registration = await navigator.serviceWorker.getRegistration();
+
+      await registration?.update();
+    });
+
+    await page
+      .getByText("A new version is ready.", { exact: true })
+      .waitFor({ timeout: 30000 });
+
+    await page.getByRole("textbox", { name: "Write" }).fill(unsavedContent);
+    await page.getByText("Unsaved changes", { exact: true }).waitFor({ timeout: 5000 });
+
+    await page.getByRole("button", { name: "Refresh" }).click();
+    await page.getByRole("textbox", { name: "Note title" }).waitFor({
+      timeout: 20000,
+    });
+    await page.waitForFunction(
+      (marker) => {
+        const textarea = document.querySelector('textarea[aria-label="Write"]');
+
+        return textarea instanceof HTMLTextAreaElement && textarea.value === marker;
+      },
+      unsavedContent,
+      { timeout: 10000 }
+    );
+
+    assert.equal(
+      await page.getByText("A new version is ready.", { exact: true }).count(),
+      0
+    );
+
     const unexpectedErrors = errors.filter(
       (message) =>
         !/ERR_INTERNET_DISCONNECTED|Failed to fetch|NetworkError|net::ERR_/i.test(message)
@@ -438,6 +487,7 @@ async function run() {
             "offline navigation links",
             "first-open offline limitation",
             "user-confirmed service worker update",
+            "dirty note saved before update",
           ],
           errors: unexpectedErrors,
           offlineNetworkErrors: errors.length - unexpectedErrors.length,

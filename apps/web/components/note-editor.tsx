@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useEffectEvent, useId, useState, type KeyboardEvent } from "react";
+import { useCallback, useId, useState, type KeyboardEvent } from "react";
 
 import type { Folder, FolderId, Note, NoteId, Tag, TagId } from "@opennest/core";
 import { useLocale, useTranslations } from "@opennest/localization";
@@ -12,8 +12,10 @@ import { EmptyState } from "@/components/empty-state";
 import { MarkdownPreview } from "@/components/markdown-preview";
 import { MoveDialog } from "@/components/move-dialog";
 import { TagDialog } from "@/components/tag-dialog";
+import { useNoteAutosave, type NoteSavePatch } from "@/lib/autosave/use-note-autosave";
 import { useAppData } from "@/lib/data/app-data-provider";
 import { useAsyncData } from "@/lib/data/hooks";
+import { useSaveCoordinator } from "@/lib/data/save-coordinator";
 import { errorKey } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
 
@@ -112,62 +114,30 @@ function NoteEditorForm({
   const previewTabId = `${tabPrefix}-preview-tab`;
   const editPanelId = `${tabPrefix}-edit-panel`;
   const previewPanelId = `${tabPrefix}-preview-panel`;
-  const [title, setTitle] = useState(note.title);
-  const [content, setContent] = useState(note.content);
-  const [saved, setSaved] = useState({ title: note.title, content: note.content });
-  const [updatedAt, setUpdatedAt] = useState(note.updatedAt);
+  const coordinator = useSaveCoordinator();
+  const save = useCallback(
+    (patch: NoteSavePatch) => services.note.update(note.id, patch),
+    [services, note.id]
+  );
+  const autosave = useNoteAutosave({ note, save, coordinator });
+  const {
+    title,
+    content,
+    updatedAt,
+    saving,
+    saveError,
+    draftError,
+    dirty,
+    titleMissing,
+    draftRestored,
+  } = autosave;
   const [pinned, setPinned] = useState(note.pinned);
-  const [saving, setSaving] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [tagsOpen, setTagsOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const titleMissing = title.trim().length === 0;
-  const dirty = title !== saved.title || content !== saved.content;
-
-  async function persistNow() {
-    if (title.trim().length === 0) {
-      return;
-    }
-
-    const nextTitle = title;
-    const nextContent = content;
-
-    setSaving(true);
-
-    try {
-      const updated = await services.note.update(note.id, {
-        title: nextTitle,
-        content: nextContent,
-      });
-      setSaved({ title: updated.title, content: updated.content });
-      setUpdatedAt(updated.updatedAt);
-      setSaveError(null);
-    } catch (caught) {
-      setSaveError(errorKey(caught));
-    } finally {
-      setSaving(false);
-    }
-  }
-
-  const persist = useEffectEvent(() => persistNow());
-
-  useEffect(() => {
-    if (!dirty || titleMissing) {
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      void persist();
-    }, 600);
-
-    return () => {
-      clearTimeout(timer);
-    };
-  }, [dirty, title, content, titleMissing]);
 
   async function togglePinned() {
     setActionError(null);
@@ -201,6 +171,7 @@ function NoteEditorForm({
 
     try {
       await services.note.delete(note.id);
+      autosave.deactivate();
       invalidate();
       setDeleteOpen(false);
       router.push("/notes");
@@ -285,10 +256,10 @@ function NoteEditorForm({
           aria-describedby={titleMissing ? titleErrorId : undefined}
           className="text-2xl font-semibold"
           placeholder={t("notes.untitled")}
-          onChange={(event) => setTitle(event.target.value)}
+          onChange={(event) => autosave.setTitle(event.target.value)}
           onBlur={() => {
             if (dirty) {
-              void persistNow();
+              void autosave.flush();
             }
           }}
         />
@@ -299,6 +270,16 @@ function NoteEditorForm({
             className="text-sm text-red-700 dark:text-red-300"
           >
             {t("errors.titleRequired")}
+          </p>
+        ) : null}
+        {draftError === null ? null : (
+          <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+            {t(draftError)}
+          </p>
+        )}
+        {draftRestored ? (
+          <p role="status" className="text-muted text-xs">
+            {t("notes.draftRestored")}
           </p>
         ) : null}
         <div className="text-muted flex flex-wrap items-center gap-x-3 gap-y-1 text-xs">
@@ -374,10 +355,10 @@ function NoteEditorForm({
             rows={20}
             className="min-h-[55vh] font-mono"
             placeholder={t("notes.previewEmpty")}
-            onChange={(event) => setContent(event.target.value)}
+            onChange={(event) => autosave.setContent(event.target.value)}
             onBlur={() => {
               if (dirty) {
-                void persistNow();
+                void autosave.flush();
               }
             }}
           />

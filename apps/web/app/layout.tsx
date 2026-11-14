@@ -4,6 +4,7 @@ import { LocaleProvider } from "@opennest/localization";
 
 import { AppShell } from "@/components/app-shell";
 import { AppDataProvider } from "@/lib/data/app-data-provider";
+import { SaveCoordinatorProvider } from "@/lib/data/save-coordinator";
 import { themeColors, themeScript } from "@/lib/theme";
 
 import "./globals.css";
@@ -38,7 +39,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <LocaleProvider>
           <AppDataProvider>
-            <AppShell>{children}</AppShell>
+            <SaveCoordinatorProvider>
+              <AppShell>{children}</AppShell>
+            </SaveCoordinatorProvider>
           </AppDataProvider>
         </LocaleProvider>
       </body>

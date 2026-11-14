@@ -56,7 +56,7 @@ export interface PwaCallbacks {
 }
 
 export interface PwaHandle {
-  requestUpdate(): void;
+  requestUpdate(): boolean;
   dispose(): void;
 }
 
@@ -148,17 +148,18 @@ export async function startPwa(
   return {
     requestUpdate() {
       if (disposed) {
-        return;
+        return false;
       }
 
       const waiting = registration.waiting;
 
       if (waiting === null) {
-        return;
+        return false;
       }
 
       pendingUpdate = true;
       waiting.postMessage({ type: "SKIP_WAITING" });
+      return true;
     },
     dispose() {
       disposed = true;

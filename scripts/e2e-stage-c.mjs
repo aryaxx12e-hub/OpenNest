@@ -235,10 +235,10 @@ async function run() {
     await page.waitForURL(/\/notes\/[^/]+$/);
     const title = page.getByRole("textbox", { name: "Note title" });
     await title.fill(`E2E note ${unique}`);
+    await page.getByText("Unsaved changes", { exact: true }).waitFor({ timeout: 5000 });
     await page
       .getByRole("textbox", { name: "Write" })
       .fill(`# E2E ${unique}\n\n- one\n- **two**`);
-    await page.getByText("Unsaved changes", { exact: true }).waitFor({ timeout: 5000 });
     await page.getByText("Saved", { exact: true }).waitFor({ timeout: 5000 });
 
     await title.fill("");
@@ -251,6 +251,25 @@ async function run() {
     await title.fill(`E2E note ${unique}`);
     assert.equal(await title.getAttribute("aria-invalid"), "false");
     await page.getByText("Saved", { exact: true }).waitFor({ timeout: 5000 });
+
+    const navigationMarker = `# E2E ${unique}\n\nNavigation save ${unique}`;
+    await page.getByRole("textbox", { name: "Write" }).fill(navigationMarker);
+    await page.getByRole("link", { name: "All notes", exact: true }).click();
+    await page.getByRole("heading", { name: "Notes", exact: true }).waitFor();
+    await page
+      .getByRole("link", { name: new RegExp(`E2E note ${unique}`) })
+      .first()
+      .click();
+    await page.waitForURL(/\/notes\/[^/]+$/);
+    await page.waitForFunction(
+      (marker) => {
+        const textarea = document.querySelector('textarea[aria-label="Write"]');
+
+        return textarea instanceof HTMLTextAreaElement && textarea.value.includes(marker);
+      },
+      navigationMarker,
+      { timeout: 5000 }
+    );
 
     const editTab = page.getByRole("tab", { name: "Write" });
     const previewTab = page.getByRole("tab", { name: "Preview" });
@@ -386,6 +405,7 @@ async function run() {
             "dashboard structure",
             "skip link",
             "note autosave",
+            "autosave on navigation",
             "title validation description",
             "tab keyboard navigation",
             "tag creation",

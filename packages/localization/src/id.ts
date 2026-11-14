@@ -66,6 +66,8 @@ export const id: typeof en = {
     importDescription:
       "Memulihkan cadangan ini akan mengganti semua yang tersimpan di perangkat ini. Tindakan ini tidak bisa dibatalkan.",
     importConfirm: "Ganti data",
+    draftClearFailed:
+      "Data draft tidak bisa dihapus. Hapus penyimpanan situs ini di pengaturan browser, lalu coba lagi.",
     localOnly: "Cadangan dibuat di perangkat ini. Tidak ada yang diunggah.",
     summary: "Isi cadangan:",
     files: "berkas",
@@ -92,6 +94,33 @@ export const id: typeof en = {
       "Muat ulang untuk memakai OpenNest terbaru. Perubahan yang sudah tersimpan tetap aman.",
     updateAction: "Muat ulang",
     updateLater: "Nanti",
+    updateSaveError:
+      "Gagal menyimpan sebelum memperbarui. Coba lagi sebelum memuat ulang.",
+    updateStartError: "Gagal memulai pembaruan. Coba lagi atau muat ulang halaman.",
+    updateDraftUnverified:
+      "Tidak bisa memeriksa draf di perangkat ini. Coba lagi sebelum memuat ulang.",
+    updateDraftUnverifiedNote:
+      "Beberapa catatan tidak bisa diverifikasi. Unduh drafnya sebelum dibuang.",
+    updateDraftExisting:
+      "Buka catatan ini untuk menyimpan atau membuang draf pemulihannya sebelum memuat ulang.",
+    updateDraftOrphan:
+      "Draf ini milik catatan yang sudah tidak ada. Unduh atau buang sebelum memuat ulang.",
+    updateDraftOpen: "Buka catatan",
+    updateDraftDownload: "Unduh",
+    updateDraftDiscard: "Buang",
+    updateDraftDiscardTitle: "Buang draf ini?",
+    updateDraftDiscardDescription:
+      "Ini menghapus draf pemulihan untuk catatan ini. Unduh dulu kalau mau menyimpan salinannya. Tindakan ini tidak bisa dibatalkan.",
+    updateDraftDiscardConfirm: "Buang draf",
+    updateDraftClearTitle: "Hapus data draf?",
+    updateDraftClearDescription:
+      "OpenNest tidak bisa membaca jurnal draf. Menghapusnya akan menghapus semua draf pemulihan di perangkat ini. Tindakan ini tidak bisa dibatalkan.",
+    updateDraftClearAction: "Hapus data draf",
+    updateDraftClearConfirm: "Hapus data",
+    updateDraftClearFailed:
+      "Data draf tidak bisa dihapus. Hapus penyimpanan situs ini di pengaturan browser, lalu coba lagi.",
+    updateDraftDownloaded: "Berkas draf sudah diunduh.",
+    updateDraftError: "Gagal membuang draf ini. Coba lagi.",
     offlineTitle: "Kamu sedang offline.",
     offlineDescription:
       "Pustaka yang sudah tersimpan tetap bisa dibuka. Sambungkan internet untuk memuat bagian yang belum di-cache.",
@@ -221,7 +250,10 @@ export const id: typeof en = {
     saved: "Tersimpan",
     saving: "Menyimpan...",
     unsaved: "Perubahan belum tersimpan",
-    saveError: "Gagal menyimpan. Teksmu masih ada di sini.",
+    saveError: "Gagal menyimpan. Biarkan halaman ini tetap terbuka dan coba lagi.",
+    draftError:
+      "Browser ini tidak bisa menyimpan draf pemulihan. Biarkan halaman ini tetap terbuka dan coba lagi.",
+    draftRestored: "Draf dipulihkan dari perangkat ini.",
     back: "Semua catatan",
     deleteTitle: "Hapus catatan?",
     deleteBody: "Catatan ini akan dihapus dari perangkat ini.",

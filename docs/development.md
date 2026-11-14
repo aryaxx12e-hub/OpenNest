@@ -226,7 +226,21 @@ Routes: `/`, `/library`, `/library/[folderId]`, `/files/[fileId]`, `/notes`,
 `/notes/[noteId]`, `/search`, `/settings`, and `/offline`. Search state lives in URL
 parameters. File previews use local blob URLs and revoke them on unmount.
 Markdown preview uses `react-markdown` with GFM, skips raw HTML, and blocks
-remote images. Note autosave runs after a 600 ms idle delay and on blur.
+remote images.
+
+Note autosave lives in `apps/web/lib/autosave`. It saves after a 500 ms idle
+delay, on blur, and through lifecycle flushes on unmount, `pagehide`, hidden
+visibility, and reconnection. Saves are serialized so the newest text wins. A
+versioned localStorage draft (`opennest:draft:note:<workspaceId>:<noteId>`) is
+written shortly after typing, restored on mount when it is newer than the stored
+note, and cleared after a successful save, delete, or restore. Transient save
+failures retry twice (1 s and 2 s); deterministic failures do not. A draft write
+failure shows a localized warning without stopping the real save. ADR 0007
+records the durability decision and its limits.
+
+`useAsyncData` is key-aware: changing the key hides the previous record's data
+and error and shows the loading state. Reloading the same key keeps the current
+data visible until the replacement arrives.
 
 ### Backup format and restore
 
@@ -275,9 +289,14 @@ Cache policy (ADR 0006):
 
 Update policy: a new worker installs but does not call `skipWaiting` on its own.
 The app shows a localized prompt only when a waiting worker exists and an
-existing page is controlled. `Refresh` posts `SKIP_WAITING`; the page reloads
-only after `controllerchange`. A first install claims the page without a prompt,
-so opening the app offline later does not loop or interrupt autosave.
+existing page is controlled. `Refresh` first calls the shared save coordinator's
+`flushAll()`, then reads and validates the draft journal. If a save rejects,
+times out, leaves work dirty, a valid draft remains, or the journal cannot be
+read, the prompt stays and reports the specific failure without reloading. On
+success it posts `SKIP_WAITING`, and the page reloads only after
+`controllerchange`. A first
+install claims the page without a prompt, so opening the app offline later does
+not loop or interrupt autosave.
 
 `next.config.ts` serves `/sw.js` with `Cache-Control: no-cache, no-store,
 must-revalidate` and `Service-Worker-Allowed: /`.

@@ -4,9 +4,12 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, type MouseEvent } from "react";
 
+import type { NoteId } from "@opennest/core";
 import { cn } from "@opennest/ui";
 import { useTranslations } from "@opennest/localization";
 
+import type { NoteDraft } from "@/lib/autosave/draft-journal";
+import { useOptionalAppData } from "@/lib/data/app-data-provider";
 import { getConnectionSnapshot } from "@/lib/pwa";
 
 import { ConnectionStatus } from "./connection-status";
@@ -70,6 +73,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations();
   const pathname = usePathname() ?? "/";
   const [collapsed, setCollapsed] = useState(false);
+  const appData = useOptionalAppData();
+
+  const classifyDrafts =
+    appData === null
+      ? undefined
+      : async (drafts: NoteDraft[]) =>
+          Promise.all(
+            drafts.map(async (draft) => {
+              try {
+                const note = await appData.services.note.get(draft.noteId as NoteId);
+
+                return {
+                  draft,
+                  exists: note !== null && note.workspaceId === draft.workspaceId,
+                  verified: true,
+                };
+              } catch {
+                return { draft, exists: false, verified: false };
+              }
+            })
+          );
 
   return (
     <div className="flex min-h-dvh flex-col">
@@ -111,7 +135,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </div>
       </header>
 
-      <ServiceWorkerUpdate />
+      <ServiceWorkerUpdate classifyDrafts={classifyDrafts} />
 
       <div className="flex flex-1">
         <nav

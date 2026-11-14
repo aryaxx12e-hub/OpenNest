@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LocaleProvider } from "@opennest/localization";
 
+import { SaveCoordinatorProvider } from "@/lib/data/save-coordinator";
+
 import { AppShell } from "../app-shell";
 
 const navigation = vi.hoisted(() => ({ pathname: "/" }));
@@ -25,9 +27,11 @@ function renderShell(): HTMLElement {
   act(() => {
     root!.render(
       <LocaleProvider>
-        <AppShell>
-          <p>Content</p>
-        </AppShell>
+        <SaveCoordinatorProvider>
+          <AppShell>
+            <p>Content</p>
+          </AppShell>
+        </SaveCoordinatorProvider>
       </LocaleProvider>
     );
   });

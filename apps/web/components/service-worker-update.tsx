@@ -1,10 +1,20 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useEffectEvent, useRef, useState } from "react";
 
 import { useTranslations } from "@opennest/localization";
 import { Button } from "@opennest/ui";
 
+import {
+  clearAllNoteDrafts,
+  clearNoteDraft,
+  readDraftJournal,
+  type DraftJournal,
+  type DraftStorage,
+  type NoteDraft,
+} from "@/lib/autosave/draft-journal";
+import { useOptionalAppRevision } from "@/lib/data/app-data-provider";
+import { useSaveCoordinator } from "@/lib/data/save-coordinator";
 import {
   browserPwaContainer,
   startPwa,
@@ -12,25 +22,156 @@ import {
   type PwaHandle,
 } from "@/lib/pwa";
 
+import { DraftRecovery, type DraftTarget } from "./draft-recovery";
+
 function reloadPage() {
   window.location.reload();
 }
+
+function readBrowserDrafts(): DraftJournal {
+  if (typeof window === "undefined") {
+    return { ok: true, drafts: [] };
+  }
+
+  try {
+    return readDraftJournal(window.localStorage);
+  } catch (error) {
+    return { ok: false, error };
+  }
+}
+
+function browserDraftStorage(): DraftStorage | null {
+  if (typeof window === "undefined") {
+    return null;
+  }
+
+  try {
+    return window.localStorage;
+  } catch {
+    return null;
+  }
+}
+
+function clearBrowserDraft(workspaceId: string, noteId: string): boolean {
+  const storage = browserDraftStorage();
+
+  return storage === null ? false : clearNoteDraft(storage, workspaceId, noteId);
+}
+
+function clearBrowserDrafts(): { removed: number; failed: number } {
+  const storage = browserDraftStorage();
+
+  return storage === null ? { removed: 0, failed: 1 } : clearAllNoteDrafts(storage);
+}
+
+type UpdateError = "save" | "update";
+
+type Recovery =
+  { kind: "drafts"; targets: DraftTarget[] } | { kind: "unreadable" } | null;
 
 export interface ServiceWorkerUpdateProps {
   enabled?: boolean;
   container?: PwaContainer | null;
   reload?: () => void;
+  readDrafts?: () => DraftJournal;
+  classifyDrafts?: (drafts: NoteDraft[]) => Promise<DraftTarget[]>;
+  clearDraft?: (workspaceId: string, noteId: string) => boolean;
+  clearDrafts?: () => { removed: number; failed: number };
+  download?: (fileName: string, text: string) => void;
+}
+
+async function classifyAsUnverified(drafts: NoteDraft[]): Promise<DraftTarget[]> {
+  return drafts.map((draft) => ({ draft, exists: false, verified: false }));
+}
+
+function draftKey(draft: NoteDraft): string {
+  return `${draft.workspaceId}:${draft.noteId}`;
+}
+
+function coverAllDrafts(drafts: NoteDraft[], targets: DraftTarget[]): DraftTarget[] {
+  const byKey = new Map(targets.map((target) => [draftKey(target.draft), target]));
+
+  return drafts.map(
+    (draft) => byKey.get(draftKey(draft)) ?? { draft, exists: false, verified: false }
+  );
 }
 
 export function ServiceWorkerUpdate({
   enabled = process.env.NODE_ENV === "production",
   container,
   reload = reloadPage,
+  readDrafts = readBrowserDrafts,
+  classifyDrafts = classifyAsUnverified,
+  clearDraft = clearBrowserDraft,
+  clearDrafts = clearBrowserDrafts,
+  download,
 }: ServiceWorkerUpdateProps) {
   const t = useTranslations();
+  const coordinator = useSaveCoordinator();
   const handleRef = useRef<PwaHandle | null>(null);
   const [ready, setReady] = useState(false);
   const [updating, setUpdating] = useState(false);
+  const [updateError, setUpdateError] = useState<UpdateError | null>(null);
+  const [recovery, setRecovery] = useState<Recovery>(null);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const revision = useOptionalAppRevision();
+
+  async function readRecovery(): Promise<Recovery> {
+    let journal: DraftJournal;
+
+    try {
+      journal = readDrafts();
+    } catch (error) {
+      journal = { ok: false, error };
+    }
+
+    if (!journal.ok) {
+      return { kind: "unreadable" };
+    }
+
+    if (journal.drafts.length === 0) {
+      return null;
+    }
+
+    let targets: DraftTarget[];
+
+    try {
+      targets = coverAllDrafts(journal.drafts, await classifyDrafts(journal.drafts));
+    } catch {
+      targets = await classifyAsUnverified(journal.drafts);
+    }
+
+    return { kind: "drafts", targets };
+  }
+
+  const refreshRecovery = useEffectEvent(async (): Promise<Recovery | undefined> => {
+    if (recovery?.kind !== "drafts") {
+      return undefined;
+    }
+
+    return readRecovery();
+  });
+
+  useEffect(() => {
+    if (!ready) {
+      return;
+    }
+
+    let active = true;
+
+    void refreshRecovery()
+      .then((next) => {
+        if (active && next !== undefined) {
+          setRecoveryError(null);
+          setRecovery(next);
+        }
+      })
+      .catch(() => undefined);
+
+    return () => {
+      active = false;
+    };
+  }, [ready, revision]);
 
   useEffect(() => {
     if (!enabled) {
@@ -48,6 +189,9 @@ export function ServiceWorkerUpdate({
     void startPwa(target, {
       onUpdateReady: () => {
         if (active) {
+          setUpdateError(null);
+          setRecovery(null);
+          setRecoveryError(null);
           setReady(true);
         }
       },
@@ -74,38 +218,136 @@ export function ServiceWorkerUpdate({
     };
   }, [container, enabled, reload]);
 
+  async function activateUpdate() {
+    const handle = handleRef.current;
+
+    if (handle === null) {
+      setReady(false);
+      return;
+    }
+
+    setUpdating(true);
+    setUpdateError(null);
+    setRecoveryError(null);
+
+    try {
+      const result = await coordinator.flushAll();
+
+      if (!result.ok) {
+        setUpdating(false);
+        setUpdateError("save");
+        return;
+      }
+
+      const next = await readRecovery();
+
+      if (next !== null) {
+        setUpdating(false);
+        setRecovery(next);
+        return;
+      }
+
+      setRecovery(null);
+
+      try {
+        if (!handle.requestUpdate()) {
+          setUpdating(false);
+          setUpdateError("update");
+        }
+      } catch {
+        setUpdating(false);
+        setUpdateError("update");
+      }
+    } catch {
+      setUpdating(false);
+      setUpdateError("save");
+    }
+  }
+
+  async function discardDraft(draft: NoteDraft) {
+    setUpdating(true);
+    setRecoveryError(null);
+
+    if (!clearDraft(draft.workspaceId, draft.noteId)) {
+      setUpdating(false);
+      setRecoveryError("pwa.updateDraftError");
+      return;
+    }
+
+    setRecovery(null);
+    await activateUpdate();
+  }
+
+  async function clearUnreadableJournal() {
+    setUpdating(true);
+    setRecoveryError(null);
+
+    const result = clearDrafts();
+
+    if (result.failed > 0) {
+      setUpdating(false);
+      setRecoveryError("pwa.updateDraftClearFailed");
+      return;
+    }
+
+    setRecovery(null);
+    await activateUpdate();
+  }
+
   if (!ready) {
     return null;
   }
 
   return (
     <div className="border-border bg-surface border-b px-4 py-3 sm:px-6">
-      <div className="mx-auto flex w-full max-w-5xl flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-        <div role="status" aria-live="polite" className="min-w-0">
-          <p className="text-sm font-semibold">{t("pwa.updateTitle")}</p>
-          <p className="text-muted mt-0.5 text-xs leading-5">
-            {t("pwa.updateDescription")}
-          </p>
-        </div>
-        <div className="flex shrink-0 gap-2">
-          <Button variant="ghost" size="sm" onClick={() => setReady(false)}>
-            {t("pwa.updateLater")}
-          </Button>
-          <Button
-            size="sm"
-            loading={updating}
-            onClick={() => {
-              const handle = handleRef.current;
-
-              if (handle !== null) {
-                setUpdating(true);
-                handle.requestUpdate();
+      <div className="mx-auto w-full max-w-5xl">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div role="status" aria-live="polite" className="min-w-0">
+            <p className="text-sm font-semibold">{t("pwa.updateTitle")}</p>
+            <p
+              role={updateError === null ? undefined : "alert"}
+              className={
+                updateError === null
+                  ? "text-muted mt-0.5 text-xs leading-5"
+                  : "mt-0.5 text-xs leading-5 text-red-700 dark:text-red-300"
               }
-            }}
-          >
-            {t("pwa.updateAction")}
-          </Button>
+            >
+              {updateError === null
+                ? t("pwa.updateDescription")
+                : updateError === "save"
+                  ? t("pwa.updateSaveError")
+                  : t("pwa.updateStartError")}
+            </p>
+          </div>
+          <div className="flex shrink-0 gap-2">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => {
+                setReady(false);
+                setRecovery(null);
+                setRecoveryError(null);
+                setUpdateError(null);
+              }}
+            >
+              {t("pwa.updateLater")}
+            </Button>
+            <Button size="sm" loading={updating} onClick={() => void activateUpdate()}>
+              {t("pwa.updateAction")}
+            </Button>
+          </div>
         </div>
+        {recovery === null ? null : (
+          <DraftRecovery
+            targets={recovery.kind === "drafts" ? recovery.targets : []}
+            unreadable={recovery.kind === "unreadable"}
+            busy={updating}
+            error={recoveryError}
+            download={download}
+            onDiscard={(draft) => void discardDraft(draft)}
+            onClearAll={() => void clearUnreadableJournal()}
+          />
+        )}
       </div>
     </div>
   );

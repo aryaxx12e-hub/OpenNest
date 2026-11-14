@@ -6,6 +6,7 @@ import type { BackupSnapshot } from "@opennest/core";
 import { formatNumber, useLocale, useTranslations } from "@opennest/localization";
 import { Button, Card, ConfirmDialog } from "@opennest/ui";
 
+import { clearAllNoteDrafts } from "@/lib/autosave/draft-journal";
 import { useAppData } from "@/lib/data/app-data-provider";
 import {
   backupErrorKey,
@@ -36,11 +37,13 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
   const [pending, setPending] = useState<PendingImport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
+  const [draftWarning, setDraftWarning] = useState<string | null>(null);
 
   async function exportBackup() {
     setExporting(true);
     setError(null);
     setSuccess(null);
+    setDraftWarning(null);
 
     try {
       const built = await buildBackup(storage, workspace.id);
@@ -57,6 +60,7 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
     setImporting(true);
     setError(null);
     setSuccess(null);
+    setDraftWarning(null);
 
     try {
       const snapshot = await parseBackupFile(await file.text());
@@ -79,12 +83,23 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
 
     setRestoring(true);
     setError(null);
+    setDraftWarning(null);
 
     try {
       await storage.restore(pending.snapshot);
+
+      let draftClearFailed = false;
+
+      try {
+        draftClearFailed = clearAllNoteDrafts(window.localStorage).failed > 0;
+      } catch {
+        draftClearFailed = true;
+      }
+
       setPending(null);
       await refreshWorkspace();
       setSuccess("backup.importSuccess");
+      setDraftWarning(draftClearFailed ? "backup.draftClearFailed" : null);
     } catch (caught) {
       setPending(null);
       setError(backupErrorKey(caught));
@@ -138,6 +153,11 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
         {success === null ? null : (
           <p role="status" className="text-muted text-sm">
             {t(success)}
+          </p>
+        )}
+        {draftWarning === null ? null : (
+          <p role="alert" className="text-sm text-red-700 dark:text-red-300">
+            {t(draftWarning)}
           </p>
         )}
       </Card>

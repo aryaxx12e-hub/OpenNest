@@ -154,6 +154,10 @@ export function useAppData(): ReadyAppData {
   return context;
 }
 
+export function useOptionalAppData(): ReadyAppData | null {
+  return useContext(AppDataContext);
+}
+
 export function useAppRevision(): number {
   const { revisionStore } = useAppData();
 
@@ -161,5 +165,18 @@ export function useAppRevision(): number {
     revisionStore.subscribe,
     revisionStore.getSnapshot,
     revisionStore.getSnapshot
+  );
+}
+
+const noopSubscribe = () => () => undefined;
+const getZeroRevision = () => 0;
+
+export function useOptionalAppRevision(): number {
+  const context = useContext(AppDataContext);
+
+  return useSyncExternalStore(
+    context?.revisionStore.subscribe ?? noopSubscribe,
+    context?.revisionStore.getSnapshot ?? getZeroRevision,
+    context?.revisionStore.getSnapshot ?? getZeroRevision
   );
 }

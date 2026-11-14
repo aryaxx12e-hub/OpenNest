@@ -64,6 +64,8 @@ export const en = {
     importDescription:
       "Restoring this backup replaces everything currently stored on this device. This cannot be undone.",
     importConfirm: "Replace data",
+    draftClearFailed:
+      "Draft data could not be cleared. Clear this site's storage in browser settings, then try again.",
     localOnly: "The backup is created on this device. Nothing is uploaded.",
     summary: "This backup contains:",
     files: "files",
@@ -91,6 +93,32 @@ export const en = {
       "Refresh to load the latest OpenNest. Changes that are already saved stay safe.",
     updateAction: "Refresh",
     updateLater: "Later",
+    updateSaveError: "Could not save before updating. Try again before refreshing.",
+    updateStartError: "Could not start the update. Try again or reload the page.",
+    updateDraftUnverified:
+      "Could not check drafts on this device. Try again before refreshing.",
+    updateDraftUnverifiedNote:
+      "Some notes could not be verified. Download their drafts before discarding.",
+    updateDraftExisting:
+      "Open these notes to save or discard their recovery drafts before refreshing.",
+    updateDraftOrphan:
+      "These drafts belong to notes that no longer exist. Download them or discard them before refreshing.",
+    updateDraftOpen: "Open note",
+    updateDraftDownload: "Download",
+    updateDraftDiscard: "Discard",
+    updateDraftDiscardTitle: "Discard this draft?",
+    updateDraftDiscardDescription:
+      "This removes the recovery draft for this note. Download it first if you want to keep a copy. This cannot be undone.",
+    updateDraftDiscardConfirm: "Discard draft",
+    updateDraftClearTitle: "Clear draft data?",
+    updateDraftClearDescription:
+      "OpenNest cannot read the draft journal. Clearing it removes all recovery drafts on this device. This cannot be undone.",
+    updateDraftClearAction: "Clear draft data",
+    updateDraftClearConfirm: "Clear data",
+    updateDraftClearFailed:
+      "Draft data could not be cleared. Clear this site's storage in browser settings, then try again.",
+    updateDraftDownloaded: "Draft file downloaded.",
+    updateDraftError: "Could not discard this draft. Try again.",
     offlineTitle: "You're offline.",
     offlineDescription:
       "Your saved library still works. Connect to the internet to load anything that has not been cached yet.",
@@ -220,7 +248,10 @@ export const en = {
     saved: "Saved",
     saving: "Saving...",
     unsaved: "Unsaved changes",
-    saveError: "Could not save. Your text is still here.",
+    saveError: "Could not save. Keep this page open and try again.",
+    draftError:
+      "This browser could not keep a recovery draft. Keep this page open and try again.",
+    draftRestored: "Draft recovered from this device.",
     back: "All notes",
     deleteTitle: "Delete note?",
     deleteBody: "This note will be removed from this device.",
