@@ -26,6 +26,7 @@ export function registerFileScenarios(create: StorageFactory): void {
 
         expect(file.sizeBytes).toBe(3);
         expect(await storage.blobs.has(file.blobKey)).toBe(true);
+        expect((await storage.blobs.get(file.blobKey))?.type).toBe(PDF);
 
         const renamed = await services.file.update(file.id, { name: "b.pdf" });
         expect(renamed.name).toBe("b.pdf");
@@ -35,6 +36,7 @@ export function registerFileScenarios(create: StorageFactory): void {
 
         await services.file.delete(file.id);
         expect(await storage.files.get(file.id)).toBeNull();
+        expect(await storage.blobs.has(file.blobKey)).toBe(false);
       });
     });
 

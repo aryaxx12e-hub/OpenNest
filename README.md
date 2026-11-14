@@ -6,7 +6,7 @@ OpenNest is an open-source personal digital workspace designed to help people or
 
 Built around privacy-first and local-first principles, OpenNest aims to give users control over their digital information without forcing them into subscriptions, accounts, or cloud-dependent workflows.
 
-Status: Pre-development · Core architecture complete
+Status: MVP in progress · Library, notes, search, backup, and offline access work locally in the browser
 
 🌱 Our Vision
 
@@ -18,14 +18,19 @@ We believe everyone deserves a digital space that is:
 - Open to everyone — Open-source software shaped by its community.
 - Extensible — A foundation for future integrations and community contributions.
 
-✨ Planned Features
+✨ Features
 
-The following features are part of the product vision. They are planned, not yet implemented.
+Available in the local MVP:
 
 Feature| Description
 My Library| Organize files and digital resources
+Smart Documents| Create and organize Markdown notes
+Offline ready| Install the app and reopen cached content without a connection
+
+Planned for later milestones:
+
+Feature| Description
 Knowledge Hub| Collect and manage personal knowledge
-Smart Documents| Create and organize notes and documents
 Ask OpenNest| Optional AI-powered assistance
 Privacy Center| Understand and manage data storage
 Community Space| Discover community contributions and extensions
@@ -34,16 +39,16 @@ Community Space| Discover community contributions and extensions
 
 The first development milestone focuses on a practical personal digital library.
 
-Planned MVP capabilities:
+MVP capabilities:
 
-- File upload and organization
-- Folders and tags
-- Document preview for supported formats
-- Markdown notes with autosave
-- Local search
-- Data import and export
-- Offline-ready Progressive Web App (PWA)
-- Indonesian and English interface
+- [x] File upload and organization
+- [x] Folders and tags
+- [x] Document preview for supported formats
+- [x] Markdown notes with autosave
+- [x] Local search
+- [x] Data export and restore from a local backup
+- [x] Offline-ready Progressive Web App (PWA)
+- [x] Indonesian and English interface
 
 AI features, cloud synchronization, collaboration, and community extensions are intentionally deferred until the core experience is stable.
 
@@ -99,11 +104,11 @@ Contribution guidelines will be published as development progresses.
 The project will evolve incrementally.
 
 - [x] Foundation and project architecture
-- [ ] Core UI and application shell
-- [ ] Personal Digital Library
-- [ ] Notes and knowledge organization
-- [ ] Search and data portability
-- [ ] PWA and offline experience
+- [x] Core UI and application shell
+- [x] Personal Digital Library
+- [x] Notes and knowledge organization
+- [x] Search and local data portability
+- [x] PWA and offline experience
 - [ ] Accessibility and localization improvements
 - [ ] Community ecosystem
 
@@ -126,6 +131,7 @@ npm run lint
 npm run typecheck
 npm test
 npm run build
+npm run test:e2e
 ```
 
 See `docs/development.md` for the full workflow, Android/Termux notes, and the
@@ -165,7 +171,7 @@ OpenNest adalah ruang kerja digital pribadi berbasis open-source yang dirancang 
 
 Dibangun dengan prinsip privacy-first dan local-first, OpenNest bertujuan memberikan kendali penuh kepada pengguna atas informasi digital mereka tanpa ketergantungan wajib pada langganan, akun, atau layanan cloud.
 
-Status: Pra-pengembangan · Arsitektur inti selesai
+Status: MVP dalam pengembangan · Perpustakaan, catatan, pencarian, cadangan, dan akses offline sudah berjalan lokal di browser
 
 🌱 Visi Kami
 
@@ -177,13 +183,17 @@ Kami percaya setiap orang berhak memiliki ruang digital yang:
 - Terbuka untuk semua — Dikembangkan secara open-source bersama komunitas.
 - Fleksibel — Bisa dikembangkan melalui integrasi dan kontribusi komunitas.
 
-✨ Fitur yang Direncanakan
+✨ Fitur
 
-Semua fitur berikut masih berada dalam tahap perencanaan.
+Sudah tersedia di MVP lokal:
 
 - My Library: Mengatur file dan sumber daya digital.
+- Smart Documents: Membuat serta mengatur catatan Markdown.
+- Siap offline: Pasang aplikasi dan buka kembali konten yang sudah di-cache tanpa koneksi.
+
+Masih direncanakan:
+
 - Knowledge Hub: Mengumpulkan dan mengelola pengetahuan pribadi.
-- Smart Documents: Membuat serta mengatur catatan dan dokumen.
 - Ask OpenNest: Bantuan berbasis AI yang bersifat opsional.
 - Privacy Center: Memahami dan mengelola penyimpanan data.
 - Community Space: Menemukan kontribusi dan ekstensi komunitas.
@@ -192,16 +202,16 @@ Semua fitur berikut masih berada dalam tahap perencanaan.
 
 Pengembangan pertama berfokus pada perpustakaan digital pribadi.
 
-Target fitur awal:
+Fitur MVP:
 
-- Upload dan pengelolaan file.
-- Folder dan tag.
-- Preview dokumen dengan format yang didukung.
-- Catatan Markdown dengan autosave.
-- Pencarian lokal.
-- Import dan export data.
-- PWA yang siap digunakan secara offline.
-- Antarmuka Bahasa Indonesia dan Inggris.
+- [x] Upload dan pengelolaan file.
+- [x] Folder dan tag.
+- [x] Preview dokumen dengan format yang didukung.
+- [x] Catatan Markdown dengan autosave.
+- [x] Pencarian lokal.
+- [x] Export data dan pemulihan dari cadangan lokal.
+- [x] PWA yang siap digunakan secara offline.
+- [x] Antarmuka Bahasa Indonesia dan Inggris.
 
 Fitur AI, sinkronisasi cloud, kolaborasi, dan ekstensi komunitas akan dikembangkan setelah fondasi utama stabil.
 

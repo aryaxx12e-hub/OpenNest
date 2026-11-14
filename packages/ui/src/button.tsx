@@ -2,7 +2,7 @@ import type { ButtonHTMLAttributes } from "react";
 
 import { cn } from "./cn";
 
-export type ButtonVariant = "primary" | "secondary" | "ghost";
+export type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
 export type ButtonSize = "sm" | "md" | "lg";
 
 const variantClasses: Record<ButtonVariant, string> = {
@@ -11,6 +11,8 @@ const variantClasses: Record<ButtonVariant, string> = {
   secondary:
     "border border-border bg-surface text-foreground hover:bg-border/40 disabled:hover:bg-surface",
   ghost: "text-foreground hover:bg-border/40 disabled:hover:bg-transparent",
+  danger:
+    "bg-red-700 text-white hover:bg-red-800 disabled:hover:bg-red-700 dark:bg-red-500 dark:text-red-950 dark:hover:bg-red-400",
 };
 
 const sizeClasses: Record<ButtonSize, string> = {
@@ -22,6 +24,7 @@ const sizeClasses: Record<ButtonSize, string> = {
 export type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
   variant?: ButtonVariant;
   size?: ButtonSize;
+  loading?: boolean;
 };
 
 export function Button({
@@ -29,6 +32,9 @@ export function Button({
   size = "md",
   className,
   type = "button",
+  loading = false,
+  disabled,
+  children,
   ...props
 }: ButtonProps) {
   return (
@@ -42,7 +48,17 @@ export function Button({
         sizeClasses[size],
         className
       )}
+      disabled={disabled === true || loading}
+      aria-busy={loading || undefined}
       {...props}
-    />
+    >
+      {loading ? (
+        <span
+          className="size-4 animate-spin rounded-full border-2 border-current border-r-transparent"
+          aria-hidden="true"
+        />
+      ) : null}
+      {children}
+    </button>
   );
 }

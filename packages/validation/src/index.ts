@@ -1,3 +1,9 @@
+export {
+  BACKUP_FORMAT,
+  BACKUP_FORMAT_VERSION,
+  backupFileSchema,
+  type BackupFile,
+} from "./backup";
 export { fileFilterSchema, noteFilterSchema } from "./filter";
 export { fileInputSchema, filePatchSchema } from "./file";
 export { folderInputSchema, folderPatchSchema } from "./folder";

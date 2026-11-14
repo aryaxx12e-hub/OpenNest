@@ -1,9 +1,15 @@
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
 
+import { Badge } from "../badge";
 import { Button } from "../button";
 import { Card } from "../card";
+import { ConfirmDialog } from "../confirm-dialog";
 import { Input } from "../input";
+import { Label } from "../label";
+import { Select } from "../select";
+import { Skeleton } from "../skeleton";
+import { Textarea } from "../textarea";
 
 function render(element: React.ReactElement): string {
   return renderToStaticMarkup(element);
@@ -44,6 +50,20 @@ describe("Button", () => {
     expect(html).toContain("px-8");
     expect(html).not.toContain("px-4");
   });
+
+  it("disables and marks itself busy while loading", () => {
+    const html = render(<Button loading>Save</Button>);
+    expect(html).toContain("disabled");
+    expect(html).toContain('aria-busy="true"');
+    expect(html).toContain("animate-spin");
+    expect(html).toContain('aria-hidden="true"');
+  });
+
+  it("renders the danger variant with a high-contrast surface", () => {
+    const html = render(<Button variant="danger">Delete</Button>);
+    expect(html).toContain("bg-red-700");
+    expect(html).toContain("text-white");
+  });
 });
 
 describe("Card", () => {
@@ -66,5 +86,54 @@ describe("Input", () => {
     const html = render(<Input aria-label="Name" />);
     expect(html).toContain("min-h-11");
     expect(html).toContain("focus-visible:outline-primary");
+  });
+});
+
+describe("form primitives", () => {
+  it("renders a labelled textarea with a comfortable height", () => {
+    const html = render(<Textarea aria-label="Notes" rows={8} />);
+    expect(html).toContain("<textarea");
+    expect(html).toContain('rows="8"');
+    expect(html).toContain("min-h-28");
+  });
+
+  it("renders a label and select", () => {
+    expect(render(<Label htmlFor="name">Name</Label>)).toContain("<label");
+    expect(render(<Select aria-label="Folder" />)).toContain("<select");
+  });
+});
+
+describe("display primitives", () => {
+  it("renders badge tones", () => {
+    expect(render(<Badge>Draft</Badge>)).toContain("bg-background");
+    expect(render(<Badge tone="success">Saved</Badge>)).toContain("text-green-800");
+  });
+
+  it("hides skeletons from assistive technology", () => {
+    const html = render(<Skeleton className="h-4" />);
+    expect(html).toContain('aria-hidden="true"');
+    expect(html).toContain("animate-pulse");
+  });
+});
+
+describe("ConfirmDialog", () => {
+  it("renders both actions and forwards the destructive tone", () => {
+    const html = render(
+      <ConfirmDialog
+        open
+        title="Delete file?"
+        description="This cannot be undone."
+        confirmLabel="Delete"
+        cancelLabel="Cancel"
+        destructive
+        onConfirm={() => undefined}
+        onClose={() => undefined}
+      />
+    );
+
+    expect(html).toContain("Delete file?");
+    expect(html).toContain("This cannot be undone.");
+    expect(html).toContain("bg-red-700");
+    expect(html).toContain("Cancel");
   });
 });

@@ -3,13 +3,24 @@ import type { Metadata, Viewport } from "next";
 import { LocaleProvider } from "@opennest/localization";
 
 import { AppShell } from "@/components/app-shell";
+import { AppDataProvider } from "@/lib/data/app-data-provider";
 import { themeColors, themeScript } from "@/lib/theme";
 
 import "./globals.css";
 
 export const metadata: Metadata = {
+  applicationName: "OpenNest",
   title: "OpenNest — Your digital life. Your rules.",
   description: "Your digital life. Your rules. A local-first personal workspace.",
+  manifest: "/manifest.webmanifest",
+  appleWebApp: {
+    capable: true,
+    title: "OpenNest",
+    statusBarStyle: "default",
+  },
+  icons: {
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export const viewport: Viewport = {
@@ -26,7 +37,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       </head>
       <body>
         <LocaleProvider>
-          <AppShell>{children}</AppShell>
+          <AppDataProvider>
+            <AppShell>{children}</AppShell>
+          </AppDataProvider>
         </LocaleProvider>
       </body>
     </html>

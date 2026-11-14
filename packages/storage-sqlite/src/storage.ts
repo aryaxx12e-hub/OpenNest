@@ -158,6 +158,23 @@ function snippetOf(text: string, tokens: string[]): string {
   return text.slice(start, start + 100);
 }
 
+const writeQueues = new Map<string, Promise<unknown>>();
+
+function enqueueWrite<T>(key: string, work: () => Promise<T>): Promise<T> {
+  const previous = writeQueues.get(key) ?? Promise.resolve();
+  const result = previous.then(work, work);
+
+  writeQueues.set(
+    key,
+    result.then(
+      () => undefined,
+      () => undefined
+    )
+  );
+
+  return result;
+}
+
 function parseSnapshot(snapshot: BackupSnapshot): BackupSnapshot {
   const result = backupSnapshotSchema.safeParse(snapshot);
 
@@ -202,28 +219,34 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
     }
   }
 
+  function withWriteLock<T>(work: () => Promise<T>): Promise<T> {
+    return enqueueWrite(config.databaseFile, work);
+  }
+
   async function atomic<T>(work: () => Promise<T>): Promise<T> {
     if (transactionDepth > 0) {
       return work();
     }
 
-    const sqlite = connection as DatabaseSync;
-    sqlite.exec("BEGIN IMMEDIATE");
+    return withWriteLock(async () => {
+      const sqlite = connection as DatabaseSync;
+      sqlite.exec("BEGIN IMMEDIATE");
 
-    try {
-      const result = await work();
-      sqlite.exec("COMMIT");
-
-      return result;
-    } catch (error) {
       try {
-        sqlite.exec("ROLLBACK");
-      } catch {
-        // The transaction was already rolled back by SQLite.
-      }
+        const result = await work();
+        sqlite.exec("COMMIT");
 
-      throw error;
-    }
+        return result;
+      } catch (error) {
+        try {
+          sqlite.exec("ROLLBACK");
+        } catch {
+          // The transaction was already rolled back by SQLite.
+        }
+
+        throw error;
+      }
+    });
   }
 
   async function subtreeIds(folderId: FolderId): Promise<string[]> {
@@ -374,33 +397,35 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
       });
     },
     async ensureWorkspace(input) {
-      return run(async () => {
-        const rows = await requireDb().select().from(workspacesTable);
+      return run(async () =>
+        atomic(async () => {
+          const rows = await requireDb().select().from(workspacesTable);
 
-        if (rows.length > 1) {
-          throw new ConstraintError(
-            "More than one workspace exists; refusing to guess which to use.",
-            "multiple_workspaces"
-          );
-        }
+          if (rows.length > 1) {
+            throw new ConstraintError(
+              "More than one workspace exists; refusing to guess which to use.",
+              "multiple_workspaces"
+            );
+          }
 
-        const existing = rows[0];
+          const existing = rows[0];
 
-        if (existing !== undefined) {
-          return toWorkspace(existing);
-        }
+          if (existing !== undefined) {
+            return toWorkspace(existing);
+          }
 
-        const at = requireAt(input?.at);
-        const row: WorkspaceRow = {
-          id: generateId(),
-          name: input?.name ?? DEFAULT_WORKSPACE_NAME,
-          createdAt: at,
-          updatedAt: at,
-        };
-        await requireDb().insert(workspacesTable).values(row);
+          const at = requireAt(input?.at);
+          const row: WorkspaceRow = {
+            id: generateId(),
+            name: input?.name ?? DEFAULT_WORKSPACE_NAME,
+            createdAt: at,
+            updatedAt: at,
+          };
+          await requireDb().insert(workspacesTable).values(row);
 
-        return toWorkspace(row);
-      });
+          return toWorkspace(row);
+        })
+      );
     },
   };
 
@@ -780,41 +805,54 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
       });
     },
     async update(id, patch) {
-      return run(async () => {
-        const rows = await requireDb()
-          .select()
-          .from(notesTable)
-          .where(eq(notesTable.id, id))
-          .limit(1);
-        const row = rows[0];
+      return run(async () =>
+        atomic(async () => {
+          const rows = await requireDb()
+            .select()
+            .from(notesTable)
+            .where(eq(notesTable.id, id))
+            .limit(1);
+          const row = rows[0];
 
-        if (row === undefined) {
-          throw new NotFoundError("Note does not exist.");
-        }
+          if (row === undefined) {
+            throw new NotFoundError("Note does not exist.");
+          }
 
-        const at = requireAt(patch.at);
-        const next: NoteRow = {
-          ...row,
-          title: patch.title ?? row.title,
-          content: patch.content ?? row.content,
-          folderId: patch.folderId === undefined ? row.folderId : patch.folderId,
-          pinned: patch.pinned === undefined ? row.pinned : patch.pinned,
-          updatedAt: laterOf(at, row.updatedAt as IsoDate),
-        };
+          const at = requireAt(patch.at);
+          const changes: Partial<NoteRow> = {
+            updatedAt: laterOf(at, row.updatedAt as IsoDate),
+          };
 
-        await requireDb()
-          .update(notesTable)
-          .set({
-            title: next.title,
-            content: next.content,
-            folderId: next.folderId,
-            pinned: next.pinned,
-            updatedAt: next.updatedAt,
-          })
-          .where(eq(notesTable.id, id));
+          if (patch.title !== undefined) {
+            changes.title = patch.title;
+          }
 
-        return toNote(next);
-      });
+          if (patch.content !== undefined) {
+            changes.content = patch.content;
+          }
+
+          if (patch.folderId !== undefined) {
+            changes.folderId = patch.folderId;
+          }
+
+          if (patch.pinned !== undefined) {
+            changes.pinned = patch.pinned;
+          }
+
+          await requireDb().update(notesTable).set(changes).where(eq(notesTable.id, id));
+
+          const next: NoteRow = {
+            ...row,
+            title: changes.title ?? row.title,
+            content: changes.content ?? row.content,
+            folderId: changes.folderId === undefined ? row.folderId : changes.folderId,
+            pinned: changes.pinned === undefined ? row.pinned : changes.pinned,
+            updatedAt: changes.updatedAt ?? row.updatedAt,
+          };
+
+          return toNote(next);
+        })
+      );
     },
     async delete(id) {
       return run(async () => {

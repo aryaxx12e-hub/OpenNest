@@ -22,6 +22,31 @@ export function registerWorkspaceScenarios(create: StorageFactory): void {
       });
     });
 
+    it("concurrent ensureWorkspace calls across connections create exactly one workspace", async () => {
+      const name = `workspace-race-${Date.now().toString(36)}`;
+      const first = await create(name);
+      const second = await create(name);
+
+      try {
+        await first.init();
+        await second.init();
+
+        const results = await Promise.all([
+          first.workspaces.ensureWorkspace({ name: "Satu", at: AT }),
+          first.workspaces.ensureWorkspace({ name: "Dua", at: AT }),
+          second.workspaces.ensureWorkspace({ name: "Tiga", at: AT }),
+          second.workspaces.ensureWorkspace({ name: "Empat", at: AT }),
+        ]);
+
+        expect(new Set(results.map((workspace) => workspace.id)).size).toBe(1);
+        expect(await first.workspaces.list()).toHaveLength(1);
+        expect(await second.workspaces.list()).toHaveLength(1);
+      } finally {
+        await first.close();
+        await second.close();
+      }
+    });
+
     it("ensureWorkspace refuses to guess when two workspaces exist", async () => {
       await withHarness(create, async ({ storage }) => {
         await storage.workspaces.create({ name: "Satu", at: AT });

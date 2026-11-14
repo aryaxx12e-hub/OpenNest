@@ -473,6 +473,43 @@ describe("file service", () => {
     expect(await services.storage.blobs.has(file.blobKey)).toBe(true);
   });
 
+  it("upload stores the blob with the validated MIME type", async () => {
+    const services = setup();
+    const workspace = await services.workspaces.ensure();
+
+    const file = await services.files.upload({
+      workspaceId: workspace.id,
+      folderId: null,
+      name: "catatan.txt",
+      mimeType: "text/plain",
+      data: new Uint8Array([1, 2, 3, 4]),
+    });
+
+    const blob = await services.storage.blobs.get(file.blobKey);
+
+    expect(blob).not.toBeNull();
+    expect(blob?.type).toBe("text/plain");
+  });
+
+  it("delete removes the file row and the blob it wrote", async () => {
+    const services = setup();
+    const workspace = await services.workspaces.ensure();
+
+    const file = await services.files.upload({
+      workspaceId: workspace.id,
+      folderId: null,
+      name: "catatan.txt",
+      mimeType: "text/plain",
+      data: new Uint8Array([1, 2, 3, 4]),
+    });
+
+    await services.files.delete(file.id);
+
+    expect(await services.storage.files.get(file.id)).toBeNull();
+    expect(await services.storage.blobs.has(file.blobKey)).toBe(false);
+    expect((await services.storage.blobs.usage()).items).toBe(0);
+  });
+
   it("upload removes the blob it wrote when the row insert fails", async () => {
     const services = setup();
     const workspace = await services.workspaces.ensure();

@@ -2,14 +2,15 @@ OpenNest Roadmap 🪺
 
 This document outlines the planned development direction of OpenNest.
 
-Project status: Pre-development
-Current milestone: Core architecture complete
+Project status: MVP in progress
+Current milestone: Stage C features, local data portability, and the PWA offline shell implemented
 Last updated: November 2026
 
-Phase 0 foundation is complete. Stage B added the domain core, validation, and
-both storage adapters; the storage interfaces are defined and covered by the
-shared conformance suite. Stage C (MVP features) is the next milestone and has
-not started.
+Phase 0 foundation and Stage B core architecture are complete. Stage C now
+implements the local browser experience: dashboard, library, file previews,
+folders, tags, Markdown notes with autosave, search, local backup export and
+restore, and an installable offline shell. Stage C implementation is complete;
+the next gate is acceptance review.
 
 Roadmap items represent development goals, not guaranteed release dates.
 
@@ -45,16 +46,16 @@ Phase 1: Personal Digital Library
 
 Goal: Deliver the first genuinely useful OpenNest experience.
 
-- [ ] Dashboard and navigation.
-- [ ] File upload.
-- [ ] File listing and metadata.
-- [ ] Folder management.
-- [ ] Tag management.
-- [ ] Supported document previews.
-- [ ] Local search.
-- [ ] File deletion and organization.
-- [ ] Import and export.
-- [ ] Empty, loading, and error states.
+- [x] Dashboard and navigation.
+- [x] File upload.
+- [x] File listing and metadata.
+- [x] Folder management.
+- [x] Tag management.
+- [x] Supported document previews.
+- [x] Local search.
+- [x] File deletion and organization.
+- [x] Local backup export and restore.
+- [x] Empty, loading, and error states.
 
 Completion criteria: Users can manage their personal digital library reliably.
 
@@ -62,11 +63,11 @@ Phase 2: Notes and Knowledge
 
 Goal: Expand OpenNest into a personal knowledge workspace.
 
-- [ ] Markdown editor.
-- [ ] Autosave.
-- [ ] Note organization.
-- [ ] Tags and folders for notes.
-- [ ] Search across notes.
+- [x] Markdown editor.
+- [x] Autosave.
+- [x] Note organization.
+- [x] Tags and folders for notes.
+- [x] Search across notes.
 - [ ] Connections between notes and files.
 - [ ] Knowledge Hub foundation.
 
@@ -74,13 +75,13 @@ Phase 3: Offline and PWA
 
 Goal: Make OpenNest dependable without a permanent internet connection.
 
-- [ ] PWA manifest.
-- [ ] Installable application.
-- [ ] Offline application shell.
-- [ ] Offline access to locally stored content.
+- [x] PWA manifest.
+- [x] Installable application.
+- [x] Offline application shell.
+- [x] Offline access to locally stored content.
 - [ ] Storage status information.
 - [ ] Backup reminders.
-- [ ] Recovery and import workflows.
+- [ ] Guided recovery workflows.
 
 Phase 4: Privacy and Extensibility
 

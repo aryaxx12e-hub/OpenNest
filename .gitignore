@@ -50,7 +50,13 @@ Thumbs.db
 *.db
 
 # Runtime data (database and blob roots created by the app)
-data/
+/data/
+
+# Generated service worker
+/apps/web/public/sw.js
+
+# Local agent state
+/.superpowers/
 
 # Temporary files
 *.tmp

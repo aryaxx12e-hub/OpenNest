@@ -132,7 +132,10 @@ export function createFileService(deps: FileDeps): FileService {
       assertSafeBlobKey(blobKey);
 
       const checksum = (await hash(input.data)).toLowerCase();
-      await blobs.put(blobKey as BlobKey, input.data);
+      await blobs.put(
+        blobKey as BlobKey,
+        new Blob([Uint8Array.from(input.data)], { type: input.mimeType ?? "" })
+      );
 
       try {
         return await files.create({
@@ -206,6 +209,7 @@ export function createFileService(deps: FileDeps): FileService {
       }
 
       await files.delete(id);
+      await blobs.delete(file.blobKey);
     },
   };
 }

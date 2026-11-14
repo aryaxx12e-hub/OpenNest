@@ -53,6 +53,11 @@ export interface WorkspaceRepository {
   create(input: { name: string; at?: IsoDate }): Promise<Workspace>;
   update(id: WorkspaceId, patch: { name: string; at?: IsoDate }): Promise<Workspace>;
   delete(id: WorkspaceId): Promise<void>;
+  /**
+   * Creates the single workspace if none exists. Adapters serialize concurrent
+   * calls, so every caller receives the same workspace. If more than one
+   * already exists, throws `multiple_workspaces` instead of guessing.
+   */
   ensureWorkspace(input?: { name?: string; at?: IsoDate }): Promise<Workspace>;
 }
 
@@ -111,6 +116,11 @@ export interface NoteRepository {
     at?: IsoDate;
   }): Promise<Note>;
   get(id: NoteId): Promise<Note | null>;
+  /**
+   * Applies a field-level patch: only fields present in `patch` are written.
+   * Concurrent patches to different fields are merged. For the same field the
+   * last completed write wins, and `updatedAt` never moves backwards.
+   */
   update(
     id: NoteId,
     patch: {

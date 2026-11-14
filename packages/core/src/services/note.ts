@@ -106,8 +106,14 @@ export function createNoteService(deps: NoteDeps): NoteService {
           title: patch.title ?? note.title,
           content: patch.content ?? note.content,
         });
-        next.title = validated.title;
-        next.content = validated.content;
+
+        if (patch.title !== undefined) {
+          next.title = validated.title;
+        }
+
+        if (patch.content !== undefined) {
+          next.content = validated.content;
+        }
       }
 
       if (patch.folderId !== undefined) {

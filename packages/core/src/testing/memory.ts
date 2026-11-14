@@ -764,7 +764,7 @@ export function createMemoryStorage(config: MemoryStorageConfig = {}): StorageAd
   };
 
   const blobs: BlobStore = (() => {
-    const entries = new Map<string, Uint8Array>();
+    const entries = new Map<string, { bytes: Uint8Array; type: string }>();
     return {
       async put(key, data) {
         guard();
@@ -772,17 +772,18 @@ export function createMemoryStorage(config: MemoryStorageConfig = {}): StorageAd
           data instanceof Uint8Array
             ? new Uint8Array(data)
             : new Uint8Array(await data.arrayBuffer());
-        entries.set(key, bytes);
+        const type = data instanceof Uint8Array ? "" : data.type;
+        entries.set(key, { bytes, type });
       },
       async get(key) {
         guard();
-        const bytes = entries.get(key);
-        if (bytes === undefined) {
+        const entry = entries.get(key);
+        if (entry === undefined) {
           return null;
         }
-        const copy = new Uint8Array(new ArrayBuffer(bytes.byteLength));
-        copy.set(bytes);
-        return new Blob([copy]);
+        const copy = new Uint8Array(new ArrayBuffer(entry.bytes.byteLength));
+        copy.set(entry.bytes);
+        return new Blob([copy], { type: entry.type });
       },
       async delete(key) {
         guard();
@@ -796,7 +797,7 @@ export function createMemoryStorage(config: MemoryStorageConfig = {}): StorageAd
         guard();
         let bytes = 0;
         for (const value of entries.values()) {
-          bytes += value.byteLength;
+          bytes += value.bytes.byteLength;
         }
         return { bytes, items: entries.size };
       },

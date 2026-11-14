@@ -34,18 +34,22 @@ not something a flag or configuration can work around.
 
 ## Commands
 
-| Command                       | What it does                                         |
-| ----------------------------- | ---------------------------------------------------- |
-| `npm run dev`                 | Next.js dev server with Webpack                      |
-| `npm run build`               | Production build with Webpack                        |
-| `npm run start`               | Serve the production build                           |
-| `npm run lint`                | ESLint with the Next.js rules                        |
-| `npm run typecheck`           | Generate Next route types, then `tsc --noEmit`       |
-| `npm test`                    | Browser-graph check, then Vitest single run          |
-| `npm run test:watch`          | Vitest, watch mode                                   |
-| `npm run check:browser-graph` | Verify nothing Node-only reaches the browser adapter |
-| `npm run format`              | Prettier write                                       |
-| `npm run format:check`        | Prettier check                                       |
+| Command                       | What it does                                           |
+| ----------------------------- | ------------------------------------------------------ |
+| `npm run dev`                 | Next.js dev server with Webpack                        |
+| `npm run build`               | Production build with Webpack, then the service worker |
+| `npm run build:pwa`           | Regenerate `public/sw.js` after an existing build      |
+| `npm run start`               | Serve the production build                             |
+| `npm run lint`                | ESLint with the Next.js rules                          |
+| `npm run typecheck`           | Generate Next route types, then `tsc --noEmit`         |
+| `npm test`                    | Browser-graph check, then Vitest single run            |
+| `npm run test:watch`          | Vitest, watch mode                                     |
+| `npm run test:e2e`            | Stage C and PWA browser E2E against the current build  |
+| `npm run test:e2e:pwa`        | PWA install, offline, and update browser E2E           |
+| `npm run benchmark:library`   | Storage benchmark with 2,000 files and 2,000 notes     |
+| `npm run check:browser-graph` | Verify nothing Node-only reaches the browser adapter   |
+| `npm run format`              | Prettier write                                         |
+| `npm run format:check`        | Prettier check                                         |
 
 ## Android/Termux notes
 
@@ -121,16 +125,72 @@ const browser = await chromium.launch({
 This is how the A2 screenshot check (mobile and desktop, dark mode, Indonesian
 locale, console errors) was done.
 
+### Stage C browser E2E
+
+`npm run test:e2e` runs `scripts/e2e-stage-c.mjs` and `scripts/e2e-pwa.mjs`
+against a production build. Each script starts the built server on a free local
+port and opens Chromium at a 412x915 viewport. The Stage C suite checks dashboard
+structure, the skip link, note autosave, title validation, tab keyboard
+navigation, tag creation, notes list, search status and tag grouping, dialog
+focus and Escape, folder creation, file upload and preview, backup export and
+restore, desktop layout, horizontal overflow, and console errors.
+
+Build first, because the script serves `.next`:
+
+```bash
+npm run build
+npm run test:e2e
+```
+
+It uses the system Playwright module by default. Override the module directory
+with `PLAYWRIGHT_MODULE_PATH` and the browser launcher with `CHROMIUM_PATH`. Set
+`BASE_URL` to reuse a running server instead of starting one.
+
+### Large-library benchmark
+
+`npm run benchmark:library` runs `benchmarks/library.bench.ts` through a separate
+Vitest config. It seeds 2,000 files and 2,000 notes into the Dexie adapter using
+`fake-indexeddb`, then measures list, folder list, and search latency. It prints
+the timings and fails if any single operation takes longer than 10 seconds.
+
+Reference result on the Android/Termux device (2026-11-13):
+
+| Operation                   | Time   |
+| --------------------------- | ------ |
+| First 50 files, all folders | 94 ms  |
+| First 50 files in a folder  | 69 ms  |
+| First 50 notes              | 79 ms  |
+| All 21 folders              | 2 ms   |
+| Search over 4,000 items     | 135 ms |
+
+The Dexie list implementation reads the workspace rows and then filters and
+paginates in memory. That is fine at this size, but it is the first place to
+revisit when libraries reach tens of thousands of items. The UI caps file pages
+at 500 rows and note and search results at 100, so the browser never renders the
+whole library at once.
+
+## Accessibility checks
+
+`npm test` covers navigation landmarks, current-page state, the skip link target,
+and focusability. `npm run test:e2e` adds a live audit of every page it visits:
+exactly one `h1`, a `main#main-content` landmark, unique ids, image alt
+attributes, accessible names on links and buttons, no horizontal overflow at
+412px, dialog focus, Escape to close, and arrow-key tab switching in the note
+editor.
+
 ## Repository layout
 
 ```
 apps/web             Next.js application
-  app/               App Router: layout, page, tokens, icon
-  components/        app shell, language switcher, theme toggle
-  lib/               design token values and contrast helpers
+  app/               App Router: dashboard, library, files, notes, search, offline
+  components/        screens, dialogs, editor, shell, theme, locale, PWA controls
+  lib/data/          browser storage singleton, services, provider, async hook
+  lib/               formatting, file, folder, note, error, token, PWA helpers
+  public/            icons and the generated service worker
 packages/ui          React primitives: Button, Card, Input, cn
 packages/localization  en/id catalogs, provider, Intl formatting
-scripts/             Node-based command resolvers
+scripts/pwa/         service worker template, generator, generator tests
+scripts/             Node-based command resolvers and browser E2E
 docs/                Development notes and ADRs
 ```
 
@@ -144,10 +204,101 @@ packages/storage-sqlite       SQLite adapter, Drizzle schema, migrations, blob s
 packages/storage-conformance  the shared suite both adapters run
 ```
 
+## Stage C application runtime
+
+The browser app composes the domain services once and shares them through
+`AppDataProvider` (see ADR 0004):
+
+- `apps/web/lib/data/browser-storage.ts` opens Dexie once.
+- `apps/web/lib/data/services.ts` builds the domain services over the ports.
+- `apps/web/lib/data/app-data-provider.tsx` ensures the workspace and exposes
+  `{ storage, services, workspace }`, plus `invalidate()` and
+  `refreshWorkspace()`.
+- `apps/web/lib/data/hooks.ts` provides `useAsyncData`.
+- `apps/web/lib/data/revision.ts` tracks invalidation revisions.
+
+Mutations call `invalidate()` so every open screen reloads. Do not open a second
+storage connection and do not import Dexie or repositories directly in a
+component. Browser storage is the source of truth, so screens are client
+components; there is no server API in Stage C.
+
+Routes: `/`, `/library`, `/library/[folderId]`, `/files/[fileId]`, `/notes`,
+`/notes/[noteId]`, `/search`, `/settings`, and `/offline`. Search state lives in URL
+parameters. File previews use local blob URLs and revoke them on unmount.
+Markdown preview uses `react-markdown` with GFM, skips raw HTML, and blocks
+remote images. Note autosave runs after a 600 ms idle delay and on blur.
+
+### Backup format and restore
+
+`apps/web/lib/data/backup.ts` builds and validates the local backup envelope; the
+schema lives in `packages/validation/src/backup.ts`. A backup is one JSON file
+with `format: "opennest-backup"`, `formatVersion: 1`, and a `BackupSnapshot`
+whose blob bytes are base64. Export paginates every repository, rebuilds tag and
+note links through the public `tags()`/`links()` methods, and fails rather than
+produce a backup with a missing blob.
+
+Import parses JSON, rejects unknown formats and versions, validates the snapshot
+schema and its references, decodes base64, and verifies every file blob and
+SHA-256 checksum before calling `storage.restore()`. Restore is transactional, so
+a failure leaves active data unchanged. The UI asks for explicit confirmation,
+then calls `refreshWorkspace()` so the provider points at the restored workspace.
+The format and restore decision is recorded in ADR 0005.
+
+### PWA, offline shell, and updates
+
+`apps/web/app/manifest.ts` describes the installable app and points at the PNG
+icons in `apps/web/public/icons`. The root layout links the manifest, declares
+the Apple web app metadata, and keeps the existing theme-color sync.
+
+`npm run build` also runs `scripts/pwa/build.mjs`, which renders
+`scripts/pwa/service-worker.js` into `apps/web/public/sw.js`. The generated file
+is gitignored: it is a build artifact, so deploy the output of `npm run build`,
+not a stale checked-in worker. The generator versions the cache from the Next
+build ID, the worker template, and the actual precache list, which includes the six shell routes
+(`/`, `/library`, `/notes`, `/search`, `/settings`, `/offline`), the manifest and
+icons, every file under `.next/static`, and the public assets.
+
+Cache policy (ADR 0006):
+
+- Install precaches the shell with `cache: "reload"` and fails the install if any
+  required path is unavailable.
+- Full navigations are network-first with a four-second timeout, then a cached
+  response for the same path, then `/offline`.
+- Immutable `/_next/static` assets, icons, and the favicon are cache-first.
+  Next RSC requests are network-first so client navigation can use a cached
+  response when offline.
+- Non-GET, cross-origin, range, authorized, `/api/`, `/_next/image`, `sw.js`, and
+  manifest requests are never cached. Responses marked `no-store` or `private`
+  are not stored.
+- Activate deletes only caches with the `opennest-` prefix. Browser data and
+  IndexedDB are never cleared.
+
+Update policy: a new worker installs but does not call `skipWaiting` on its own.
+The app shows a localized prompt only when a waiting worker exists and an
+existing page is controlled. `Refresh` posts `SKIP_WAITING`; the page reloads
+only after `controllerchange`. A first install claims the page without a prompt,
+so opening the app offline later does not loop or interrupt autosave.
+
+`next.config.ts` serves `/sw.js` with `Cache-Control: no-cache, no-store,
+must-revalidate` and `Service-Worker-Allowed: /`.
+
+Limitations:
+
+- A first visit cannot work offline: there is no worker or cache yet. The
+  worker also requires HTTPS (or localhost), so a plain-HTTP LAN deployment
+  cannot install it.
+- Static shell routes and previously visited data work offline. A dynamic
+  route such as `/files/[fileId]` is only available if it was visited or its
+  HTML was cached while online. The IndexedDB content itself stays local.
+- Offline prefetch requests may log expected `net::ERR_FAILED` console entries.
+  The PWA E2E filters those and still fails on application errors.
+- Browser storage remains evictable. The PWA does not make IndexedDB permanent;
+  users still need backups.
+
 ## Package boundaries
 
-- `apps/web` may import `@opennest/ui` and `@opennest/localization`. It imports
-  the storage packages only in Stage C, when it needs data.
+- `apps/web` may import `@opennest/ui`, `@opennest/localization`, `core` types,
+  and the browser storage adapter through the app data layer.
 - Packages must not import Next.js or app code.
 - Import through the barrel, never a deep path. ESLint enforces this with
   `no-restricted-imports`.

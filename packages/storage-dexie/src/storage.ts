@@ -297,31 +297,44 @@ export function createDexieStorage(config: DexieStorageOptions): StorageAdapter 
     },
     ensureWorkspace(input) {
       return run(async () => {
-        const all = await db.workspaces.toArray();
+        const apply = async () => {
+          const all = await db.workspaces.toArray();
 
-        if (all.length > 1) {
+          if (all.length > 1) {
+            return null;
+          }
+
+          const existing = all[0];
+
+          if (existing !== undefined) {
+            return toWorkspace(existing);
+          }
+
+          const at = requireAt(input?.at);
+          const row: WorkspaceRow = {
+            id: generateId(),
+            name: input?.name ?? DEFAULT_WORKSPACE_NAME,
+            createdAt: at,
+            updatedAt: at,
+          };
+          await db.workspaces.add(row);
+
+          return toWorkspace(row);
+        };
+
+        const ensured =
+          transactionDepth > 0
+            ? await apply()
+            : await db.transaction("rw", db.workspaces, apply);
+
+        if (ensured === null) {
           throw new ConstraintError(
             "More than one workspace exists; refusing to guess which to use.",
             "multiple_workspaces"
           );
         }
 
-        const existing = all[0];
-
-        if (existing !== undefined) {
-          return toWorkspace(existing);
-        }
-
-        const at = requireAt(input?.at);
-        const row: WorkspaceRow = {
-          id: generateId(),
-          name: input?.name ?? DEFAULT_WORKSPACE_NAME,
-          createdAt: at,
-          updatedAt: at,
-        };
-        await db.workspaces.add(row);
-
-        return toWorkspace(row);
+        return ensured;
       });
     },
   };
@@ -584,19 +597,58 @@ export function createDexieStorage(config: DexieStorageOptions): StorageAdapter 
     },
     update(id, patch) {
       return run(async () => {
-        const row = await requireNote(id);
-        const at = requireAt(patch.at);
-        const next: NoteRow = {
-          ...row,
-          title: patch.title ?? row.title,
-          content: patch.content ?? row.content,
-          folderId: patch.folderId === undefined ? row.folderId : patch.folderId,
-          pinned: patch.pinned === undefined ? row.pinned : patch.pinned === true ? 1 : 0,
-          updatedAt: laterOf(at, row.updatedAt as IsoDate),
-        };
-        await db.notes.put(next);
+        const apply = async () => {
+          const row = await db.notes.get(id);
 
-        return toNote(next);
+          if (row === undefined) {
+            return null;
+          }
+
+          const at = requireAt(patch.at);
+          const changes: Partial<NoteRow> = {
+            updatedAt: laterOf(at, row.updatedAt as IsoDate),
+          };
+
+          if (patch.title !== undefined) {
+            changes.title = patch.title;
+          }
+
+          if (patch.content !== undefined) {
+            changes.content = patch.content;
+          }
+
+          if (patch.folderId !== undefined) {
+            changes.folderId = patch.folderId;
+          }
+
+          if (patch.pinned !== undefined) {
+            changes.pinned = patch.pinned ? 1 : 0;
+          }
+
+          await db.notes.update(id, changes);
+
+          const next: NoteRow = {
+            ...row,
+            title: changes.title ?? row.title,
+            content: changes.content ?? row.content,
+            folderId: changes.folderId === undefined ? row.folderId : changes.folderId,
+            pinned: changes.pinned === undefined ? row.pinned : changes.pinned,
+            updatedAt: changes.updatedAt ?? row.updatedAt,
+          };
+
+          return toNote(next);
+        };
+
+        const updated =
+          transactionDepth > 0
+            ? await apply()
+            : await db.transaction("rw", db.notes, apply);
+
+        if (updated === null) {
+          throw new NotFoundError("Note does not exist.");
+        }
+
+        return updated;
       });
     },
     delete(id) {

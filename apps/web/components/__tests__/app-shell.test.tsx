@@ -1,10 +1,16 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { LocaleProvider } from "@opennest/localization";
 
 import { AppShell } from "../app-shell";
+
+const navigation = vi.hoisted(() => ({ pathname: "/" }));
+
+vi.mock("next/navigation", () => ({
+  usePathname: () => navigation.pathname,
+}));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
 
@@ -40,6 +46,11 @@ function navByName(host: HTMLElement, name: string): HTMLElement {
   return match;
 }
 
+beforeEach(() => {
+  navigation.pathname = "/";
+  window.localStorage.clear();
+});
+
 afterEach(() => {
   act(() => {
     root?.unmount();
@@ -58,20 +69,64 @@ describe("AppShell navigation", () => {
     expect(navByName(host, "Quick navigation")).toBeTruthy();
   });
 
-  it("renders the current page as a link with aria-current in both navs", () => {
+  it("renders enabled pages as links and marks only the current one", () => {
     const host = renderShell();
 
     for (const name of ["Primary navigation", "Quick navigation"]) {
       const links = Array.from(navByName(host, name).querySelectorAll("a"));
 
-      expect(links).toHaveLength(1);
+      expect(links).toHaveLength(5);
       expect(links[0]!.getAttribute("href")).toBe("/");
       expect(links[0]!.getAttribute("aria-current")).toBe("page");
       expect(links[0]!.textContent).toContain("Home");
+      expect(links[1]!.getAttribute("href")).toBe("/library");
+      expect(links[1]!.getAttribute("aria-current")).toBeNull();
+      expect(links[2]!.getAttribute("href")).toBe("/notes");
+      expect(links[2]!.getAttribute("aria-current")).toBeNull();
+      expect(links[3]!.getAttribute("href")).toBe("/search");
+      expect(links[3]!.getAttribute("aria-current")).toBeNull();
+      expect(links[4]!.getAttribute("href")).toBe("/settings");
+      expect(links[4]!.getAttribute("aria-current")).toBeNull();
     }
   });
 
-  it("renders unavailable items as plain text without ARIA state", () => {
+  it("marks the library as current on file routes", () => {
+    navigation.pathname = "/files/abc";
+    const host = renderShell();
+
+    for (const name of ["Primary navigation", "Quick navigation"]) {
+      const links = Array.from(navByName(host, name).querySelectorAll("a"));
+      const library = links.find((link) => link.getAttribute("href") === "/library");
+
+      expect(library?.getAttribute("aria-current")).toBe("page");
+    }
+  });
+
+  it("marks notes as current on note routes", () => {
+    navigation.pathname = "/notes/abc";
+    const host = renderShell();
+
+    for (const name of ["Primary navigation", "Quick navigation"]) {
+      const links = Array.from(navByName(host, name).querySelectorAll("a"));
+      const notes = links.find((link) => link.getAttribute("href") === "/notes");
+
+      expect(notes?.getAttribute("aria-current")).toBe("page");
+    }
+  });
+
+  it("marks search as current on the search route", () => {
+    navigation.pathname = "/search";
+    const host = renderShell();
+
+    for (const name of ["Primary navigation", "Quick navigation"]) {
+      const links = Array.from(navByName(host, name).querySelectorAll("a"));
+      const search = links.find((link) => link.getAttribute("href") === "/search");
+
+      expect(search?.getAttribute("aria-current")).toBe("page");
+    }
+  });
+
+  it("renders every navigation item as an enabled link", () => {
     const host = renderShell();
 
     for (const name of ["Primary navigation", "Quick navigation"]) {
@@ -80,14 +135,8 @@ describe("AppShell navigation", () => {
         li.textContent?.includes("Coming soon")
       );
 
-      expect(unavailable).toHaveLength(4);
-
-      for (const item of unavailable) {
-        expect(item.querySelector("a, button, select, input, textarea")).toBeNull();
-        expect(item.querySelector("[aria-disabled]")).toBeNull();
-        expect(item.querySelector("[aria-current]")).toBeNull();
-        expect(item.querySelector("[tabindex]")).toBeNull();
-      }
+      expect(unavailable).toHaveLength(0);
+      expect(nav.querySelectorAll("a")).toHaveLength(5);
     }
   });
 
@@ -99,7 +148,7 @@ describe("AppShell navigation", () => {
 
   it("keeps the sidebar toggle wired to the desktop nav", () => {
     const host = renderShell();
-    const toggle = host.querySelector("header button");
+    const toggle = host.querySelector('[aria-controls="primary-navigation"]');
 
     expect(toggle).not.toBeNull();
     expect(toggle!.getAttribute("aria-expanded")).toBe("true");
@@ -119,7 +168,7 @@ describe("AppShell navigation", () => {
       (element) => element.closest("nav") !== null
     );
 
-    expect(insideNavigation).toHaveLength(2);
+    expect(insideNavigation).toHaveLength(10);
     expect(insideNavigation.every((element) => element.tagName === "A")).toBe(true);
     expect(host.querySelector("main")?.getAttribute("tabindex")).toBe("-1");
   });

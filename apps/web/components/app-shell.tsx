@@ -1,37 +1,74 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { usePathname } from "next/navigation";
+import { useState, type MouseEvent } from "react";
 
 import { cn } from "@opennest/ui";
 import { useTranslations } from "@opennest/localization";
+
+import { getConnectionSnapshot } from "@/lib/pwa";
+
+import { ConnectionStatus } from "./connection-status";
+import { LanguageSwitcher } from "./language-switcher";
+import { ServiceWorkerUpdate } from "./service-worker-update";
+import { ThemeToggle } from "./theme-toggle";
 
 const items = [
   {
     key: "home",
     labelKey: "nav.home",
     shortKey: "nav.home",
-    enabled: true,
     href: "/",
+    match: ["/"],
   },
   {
     key: "library",
     labelKey: "nav.library",
     shortKey: "nav.libraryShort",
-    enabled: false,
+    href: "/library",
+    match: ["/library", "/files"],
   },
   {
-    key: "knowledge",
-    labelKey: "nav.knowledge",
-    shortKey: "nav.knowledgeShort",
-    enabled: false,
+    key: "notes",
+    labelKey: "nav.notes",
+    shortKey: "nav.notes",
+    href: "/notes",
+    match: ["/notes"],
   },
-  { key: "search", labelKey: "nav.search", shortKey: "nav.search", enabled: false },
-  { key: "settings", labelKey: "nav.settings", shortKey: "nav.settings", enabled: false },
+  {
+    key: "search",
+    labelKey: "nav.search",
+    shortKey: "nav.search",
+    href: "/search",
+    match: ["/search"],
+  },
+  {
+    key: "settings",
+    labelKey: "nav.settings",
+    shortKey: "nav.settings",
+    href: "/settings",
+    match: ["/settings"],
+  },
 ] as const;
+
+function isActive(item: (typeof items)[number], pathname: string): boolean {
+  return item.match.some(
+    (prefix) =>
+      pathname === prefix || (prefix !== "/" && pathname.startsWith(`${prefix}/`))
+  );
+}
+
+function handleOfflineNavigation(event: MouseEvent<HTMLAnchorElement>, href: string) {
+  if (!getConnectionSnapshot()) {
+    event.preventDefault();
+    window.location.assign(href);
+  }
+}
 
 export function AppShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations();
+  const pathname = usePathname() ?? "/";
   const [collapsed, setCollapsed] = useState(false);
 
   return (
@@ -42,7 +79,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       >
         {t("common.skipToContent")}
       </a>
-      <header className="border-border bg-surface/90 sticky top-0 z-20 flex min-h-14 items-center justify-between gap-3 border-b px-4 backdrop-blur sm:px-6">
+      <header className="border-border bg-surface/90 sticky top-0 z-20 flex min-h-14 items-center justify-between gap-1.5 border-b px-2.5 backdrop-blur sm:px-6">
         <div className="flex min-w-0 items-center gap-3">
           <span
             aria-hidden="true"
@@ -58,16 +95,23 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           </div>
         </div>
 
-        <button
-          type="button"
-          onClick={() => setCollapsed((value) => !value)}
-          aria-expanded={!collapsed}
-          aria-controls="primary-navigation"
-          className="border-border text-foreground hover:bg-border/40 hidden min-h-11 items-center rounded-lg border px-3 text-sm font-medium md:inline-flex"
-        >
-          {collapsed ? t("nav.showSidebar") : t("nav.hideSidebar")}
-        </button>
+        <div className="flex shrink-0 items-center gap-1">
+          <ConnectionStatus />
+          <LanguageSwitcher />
+          <ThemeToggle />
+          <button
+            type="button"
+            onClick={() => setCollapsed((value) => !value)}
+            aria-expanded={!collapsed}
+            aria-controls="primary-navigation"
+            className="border-border text-foreground hover:bg-border/40 hidden min-h-11 items-center rounded-lg border px-3 text-sm font-medium md:inline-flex"
+          >
+            {collapsed ? t("nav.showSidebar") : t("nav.hideSidebar")}
+          </button>
+        </div>
       </header>
+
+      <ServiceWorkerUpdate />
 
       <div className="flex flex-1">
         <nav
@@ -91,33 +135,32 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         className="border-border bg-surface/95 fixed inset-x-0 bottom-0 z-20 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
         <ul className="flex items-stretch">
-          {items.map((item) => (
-            <li key={item.key} className="min-w-0 flex-1">
-              {item.enabled ? (
+          {items.map((item) => {
+            const active = isActive(item, pathname);
+
+            return (
+              <li key={item.key} className="min-w-0 flex-1">
                 <Link
                   href={item.href}
-                  aria-current="page"
-                  className="text-primary flex min-h-16 w-full flex-col items-center justify-center gap-0.5 px-0.5 text-center"
+                  aria-current={active ? "page" : undefined}
+                  onClick={(event) => handleOfflineNavigation(event, item.href)}
+                  className={cn(
+                    "flex min-h-16 w-full flex-col items-center justify-center gap-0.5 px-0.5 text-center",
+                    active ? "text-primary" : "text-foreground hover:bg-border/30"
+                  )}
                 >
-                  <span className="max-w-full truncate text-[11px] leading-tight">
+                  <span className="max-w-full truncate text-xs leading-tight font-medium">
                     {t(item.shortKey)}
                   </span>
-                  <span className="max-w-full truncate text-[9px] leading-tight font-semibold">
-                    {t("common.current")}
-                  </span>
+                  {active ? (
+                    <span className="max-w-full truncate text-[10px] leading-tight font-semibold">
+                      {t("common.current")}
+                    </span>
+                  ) : null}
                 </Link>
-              ) : (
-                <span className="text-muted flex min-h-16 w-full flex-col items-center justify-center gap-0.5 px-0.5 text-center">
-                  <span className="max-w-full truncate text-[11px] leading-tight">
-                    {t(item.shortKey)}
-                  </span>
-                  <span className="max-w-full truncate text-[9px] leading-tight opacity-80">
-                    {t("common.comingSoon")}
-                  </span>
-                </span>
-              )}
-            </li>
-          ))}
+              </li>
+            );
+          })}
         </ul>
       </nav>
     </div>
@@ -126,31 +169,31 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
 function NavList() {
   const t = useTranslations();
+  const pathname = usePathname() ?? "/";
 
   return (
     <ul className="flex flex-col gap-1">
-      {items.map((item) =>
-        item.enabled ? (
+      {items.map((item) => {
+        const active = isActive(item, pathname);
+
+        return (
           <li key={item.key}>
             <Link
               href={item.href}
-              aria-current="page"
-              className="bg-primary/10 text-primary flex min-h-11 items-center justify-between gap-2 rounded-xl px-3 text-sm font-semibold"
+              aria-current={active ? "page" : undefined}
+              onClick={(event) => handleOfflineNavigation(event, item.href)}
+              className={cn(
+                "flex min-h-11 items-center justify-between gap-2 rounded-xl px-3 text-sm font-medium",
+                active
+                  ? "bg-primary/10 text-primary font-semibold"
+                  : "text-foreground hover:bg-border/30"
+              )}
             >
               <span className="truncate">{t(item.labelKey)}</span>
             </Link>
           </li>
-        ) : (
-          <li key={item.key}>
-            <span className="text-muted flex min-h-11 items-center justify-between gap-2 rounded-xl px-3 text-sm">
-              <span className="truncate">{t(item.labelKey)}</span>
-              <span className="bg-border/60 shrink-0 rounded-md px-1.5 py-0.5 text-[10px]">
-                {t("common.comingSoon")}
-              </span>
-            </span>
-          </li>
-        )
-      )}
+        );
+      })}
     </ul>
   );
 }
