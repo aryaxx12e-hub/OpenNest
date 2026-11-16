@@ -87,8 +87,8 @@ Phase 4: Privacy and Extensibility
 
 Goal: Strengthen user control and prepare for future integrations.
 
-- [ ] Privacy Center.
-- [ ] Data management controls.
+- [x] Privacy Center.
+- [x] Data management controls.
 - [ ] Storage diagnostics.
 - [ ] Optional storage adapters.
 - [ ] Self-hosting architecture evaluation.

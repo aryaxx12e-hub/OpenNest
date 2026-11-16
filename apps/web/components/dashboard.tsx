@@ -21,10 +21,10 @@ import { noteExcerpt } from "@/lib/notes";
 export function Dashboard() {
   const t = useTranslations();
   const { locale } = useLocale();
-  const { services, workspace, storage } = useAppData();
+  const { services, workspace, privacy } = useAppData();
   const [createOpen, setCreateOpen] = useState(false);
   const state = useAsyncData("dashboard", async () => {
-    const [files, notes, folders, children, usage] = await Promise.all([
+    const [files, notes, folders, children, overview] = await Promise.all([
       services.file.list(
         workspace.id,
         {},
@@ -37,10 +37,10 @@ export function Dashboard() {
       ),
       services.folder.list(workspace.id, { limit: 1 }),
       services.folder.children(workspace.id, null),
-      storage.blobs.usage(),
+      privacy.data.overview(),
     ]);
 
-    return { files, notes, folders, children, usage };
+    return { files, notes, folders, children, overview };
   });
 
   if (state.loading && state.data === null) {
@@ -85,7 +85,7 @@ export function Dashboard() {
     { label: t("dashboard.files"), value: formatNumber(locale, data.files.total) },
     { label: t("dashboard.notes"), value: formatNumber(locale, data.notes.total) },
     { label: t("dashboard.folders"), value: formatNumber(locale, data.folders.total) },
-    { label: t("dashboard.storage"), value: formatBytes(locale, data.usage.bytes) },
+    { label: t("dashboard.storage"), value: formatBytes(locale, data.overview.bytes) },
   ];
   const isEmpty =
     data.files.total === 0 &&

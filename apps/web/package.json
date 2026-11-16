@@ -8,6 +8,7 @@
     "start": "node ../../scripts/next.mjs start"
   },
   "dependencies": {
+    "dexie": "4.4.7",
     "next": "16.4.6",
     "react": "19.3.1",
     "react-dom": "19.3.1",
@@ -16,6 +17,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.5",
+    "fake-indexeddb": "6.2.8",
     "postcss": "8.5.32",
     "tailwindcss": "4.3.5"
   }

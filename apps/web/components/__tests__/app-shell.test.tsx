@@ -79,7 +79,7 @@ describe("AppShell navigation", () => {
     for (const name of ["Primary navigation", "Quick navigation"]) {
       const links = Array.from(navByName(host, name).querySelectorAll("a"));
 
-      expect(links).toHaveLength(5);
+      expect(links).toHaveLength(6);
       expect(links[0]!.getAttribute("href")).toBe("/");
       expect(links[0]!.getAttribute("aria-current")).toBe("page");
       expect(links[0]!.textContent).toContain("Home");
@@ -89,8 +89,10 @@ describe("AppShell navigation", () => {
       expect(links[2]!.getAttribute("aria-current")).toBeNull();
       expect(links[3]!.getAttribute("href")).toBe("/search");
       expect(links[3]!.getAttribute("aria-current")).toBeNull();
-      expect(links[4]!.getAttribute("href")).toBe("/settings");
+      expect(links[4]!.getAttribute("href")).toBe("/privacy");
       expect(links[4]!.getAttribute("aria-current")).toBeNull();
+      expect(links[5]!.getAttribute("href")).toBe("/settings");
+      expect(links[5]!.getAttribute("aria-current")).toBeNull();
     }
   });
 
@@ -118,6 +120,29 @@ describe("AppShell navigation", () => {
     }
   });
 
+  it("adds Privacy Center to desktop and mobile navigation", () => {
+    const host = renderShell();
+
+    for (const name of ["Primary navigation", "Quick navigation"]) {
+      const links = Array.from(navByName(host, name).querySelectorAll("a"));
+      const privacy = links.find((link) => link.getAttribute("href") === "/privacy");
+
+      expect(privacy?.textContent).toContain("Privacy");
+    }
+  });
+
+  it("marks privacy as current on the privacy route", () => {
+    navigation.pathname = "/privacy";
+    const host = renderShell();
+
+    for (const name of ["Primary navigation", "Quick navigation"]) {
+      const links = Array.from(navByName(host, name).querySelectorAll("a"));
+      const privacy = links.find((link) => link.getAttribute("href") === "/privacy");
+
+      expect(privacy?.getAttribute("aria-current")).toBe("page");
+    }
+  });
+
   it("marks search as current on the search route", () => {
     navigation.pathname = "/search";
     const host = renderShell();
@@ -140,7 +165,7 @@ describe("AppShell navigation", () => {
       );
 
       expect(unavailable).toHaveLength(0);
-      expect(nav.querySelectorAll("a")).toHaveLength(5);
+      expect(nav.querySelectorAll("a")).toHaveLength(6);
     }
   });
 
@@ -172,7 +197,7 @@ describe("AppShell navigation", () => {
       (element) => element.closest("nav") !== null
     );
 
-    expect(insideNavigation).toHaveLength(10);
+    expect(insideNavigation).toHaveLength(12);
     expect(insideNavigation.every((element) => element.tagName === "A")).toBe(true);
     expect(host.querySelector("main")?.getAttribute("tabindex")).toBe("-1");
   });

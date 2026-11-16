@@ -26,7 +26,7 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
   const t = useTranslations();
   const { locale } = useLocale();
   const router = useRouter();
-  const { services, storage, workspace, invalidate } = useAppData();
+  const { services, workspace, privacy, invalidate } = useAppData();
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
@@ -41,7 +41,7 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
     }
 
     const [blob, folders, allTags, fileTags] = await Promise.all([
-      storage.blobs.get(file.blobKey),
+      privacy.data.readBlob(file.blobKey),
       services.folder.list(workspace.id, { limit: 500, sort: "name" }),
       services.tag.list(workspace.id, { limit: 500, sort: "name" }),
       services.file.tags(file.id),

@@ -6,16 +6,16 @@ import type { BackupSnapshot } from "@opennest/core";
 import { formatNumber, useLocale, useTranslations } from "@opennest/localization";
 import { Button, Card, ConfirmDialog } from "@opennest/ui";
 
-import { clearAllNoteDrafts } from "@/lib/autosave/draft-journal";
 import { useAppData } from "@/lib/data/app-data-provider";
 import {
   backupErrorKey,
-  buildBackup,
   downloadTextFile,
   parseBackupFile,
   summarizeBackup,
   type BackupSummary,
 } from "@/lib/data/backup";
+import type { DataOverview } from "@/lib/privacy/data-controls";
+import { dataControlErrorKey } from "@/lib/privacy/errors";
 
 export interface BackupPanelProps {
   download?: (fileName: string, text: string) => void;
@@ -29,15 +29,31 @@ interface PendingImport {
 export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
   const t = useTranslations();
   const { locale } = useLocale();
-  const { storage, workspace, refreshWorkspace } = useAppData();
+  const { privacy, refreshWorkspace } = useAppData();
   const inputRef = useRef<HTMLInputElement>(null);
   const [exporting, setExporting] = useState(false);
   const [importing, setImporting] = useState(false);
   const [restoring, setRestoring] = useState(false);
   const [pending, setPending] = useState<PendingImport | null>(null);
+  const [pendingExport, setPendingExport] = useState<DataOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [draftWarning, setDraftWarning] = useState<string | null>(null);
+
+  async function prepareExport() {
+    setExporting(true);
+    setError(null);
+    setSuccess(null);
+    setDraftWarning(null);
+
+    try {
+      setPendingExport(await privacy.data.overview());
+    } catch (caught) {
+      setError(dataControlErrorKey(caught));
+    } finally {
+      setExporting(false);
+    }
+  }
 
   async function exportBackup() {
     setExporting(true);
@@ -46,13 +62,14 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
     setDraftWarning(null);
 
     try {
-      const built = await buildBackup(storage, workspace.id);
+      const built = await privacy.data.exportAll();
       download(built.fileName, built.text);
       setSuccess("backup.exportSuccess");
     } catch (caught) {
-      setError(backupErrorKey(caught));
+      setError(dataControlErrorKey(caught));
     } finally {
       setExporting(false);
+      setPendingExport(null);
     }
   }
 
@@ -86,23 +103,14 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
     setDraftWarning(null);
 
     try {
-      await storage.restore(pending.snapshot);
-
-      let draftClearFailed = false;
-
-      try {
-        draftClearFailed = clearAllNoteDrafts(window.localStorage).failed > 0;
-      } catch {
-        draftClearFailed = true;
-      }
-
+      const result = await privacy.data.restore(pending.snapshot);
       setPending(null);
       await refreshWorkspace();
       setSuccess("backup.importSuccess");
-      setDraftWarning(draftClearFailed ? "backup.draftClearFailed" : null);
+      setDraftWarning(result.draftClearFailed ? "backup.draftClearFailed" : null);
     } catch (caught) {
       setPending(null);
-      setError(backupErrorKey(caught));
+      setError(dataControlErrorKey(caught));
     } finally {
       setRestoring(false);
     }
@@ -117,7 +125,7 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button loading={exporting} onClick={() => void exportBackup()}>
+          <Button loading={exporting} onClick={() => void prepareExport()}>
             {exporting ? t("backup.exporting") : t("backup.export")}
           </Button>
           <input
@@ -161,6 +169,37 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
           </p>
         )}
       </Card>
+
+      <ConfirmDialog
+        open={pendingExport !== null}
+        title={t("backup.exportTitle")}
+        description={t("backup.exportDescription")}
+        confirmLabel={t("backup.exportConfirm")}
+        cancelLabel={t("common.cancel")}
+        busy={exporting}
+        onConfirm={() => void exportBackup()}
+        onClose={() => setPendingExport(null)}
+      >
+        {pendingExport === null ? null : (
+          <div className="space-y-2">
+            <ul className="text-muted grid grid-cols-2 gap-1 text-sm">
+              <li>
+                {formatNumber(locale, pendingExport.files)} {t("backup.files")}
+              </li>
+              <li>
+                {formatNumber(locale, pendingExport.notes)} {t("backup.notes")}
+              </li>
+              <li>
+                {formatNumber(locale, pendingExport.folders)} {t("backup.folders")}
+              </li>
+              <li>
+                {formatNumber(locale, pendingExport.tags)} {t("backup.tags")}
+              </li>
+            </ul>
+            <p className="text-muted text-xs leading-5">{t("backup.exportExclusion")}</p>
+          </div>
+        )}
+      </ConfirmDialog>
 
       <ConfirmDialog
         open={pending !== null}

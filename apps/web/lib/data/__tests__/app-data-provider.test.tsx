@@ -17,6 +17,10 @@ function Probe() {
     <div>
       <span data-testid="workspace">{data.workspace.name}</span>
       <span data-testid="revision">{revision}</span>
+      <span data-testid="privacy">
+        {data.privacy === undefined ? "missing" : "ready"}
+      </span>
+      <span data-testid="storage">{"storage" in data ? "exposed" : "hidden"}</span>
       <button type="button" onClick={data.invalidate}>
         refresh
       </button>
@@ -69,6 +73,10 @@ describe("AppDataProvider", () => {
 
     expect(container.textContent).toContain("My Library");
     expect(container.textContent).toContain("0");
+    expect(container.querySelector('[data-testid="privacy"]')?.textContent).toBe("ready");
+    expect(container.querySelector('[data-testid="storage"]')?.textContent).toBe(
+      "hidden"
+    );
 
     const button = container.querySelector("button");
     act(() => button?.click());

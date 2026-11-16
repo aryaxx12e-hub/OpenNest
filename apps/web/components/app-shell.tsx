@@ -47,6 +47,13 @@ const items = [
     match: ["/search"],
   },
   {
+    key: "privacy",
+    labelKey: "nav.privacy",
+    shortKey: "nav.privacy",
+    href: "/privacy",
+    match: ["/privacy"],
+  },
+  {
     key: "settings",
     labelKey: "nav.settings",
     shortKey: "nav.settings",

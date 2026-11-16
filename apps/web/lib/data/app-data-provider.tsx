@@ -14,26 +14,34 @@ import {
 
 import type { StorageAdapter, Workspace } from "@opennest/core";
 import { useTranslations } from "@opennest/localization";
+import { createMemoryPrivacyStore, type PrivacyStore } from "@opennest/privacy";
 import { Button } from "@opennest/ui";
 
 import { openBrowserStorage } from "./browser-storage";
 import { createRevisionStore, type RevisionStore } from "./revision";
 import { createAppServices, type AppServices } from "./services";
+import { createDexiePrivacyStore } from "@/lib/privacy/dexie-store";
+import {
+  createPrivacyRuntime,
+  type BrokeredAppServices,
+  type PrivacyRuntime,
+} from "@/lib/privacy/runtime";
 
 type LoadState =
   | { status: "loading" }
   | { status: "error" }
   | {
       status: "ready";
-      storage: StorageAdapter;
-      services: AppServices;
+      privacy: PrivacyRuntime;
+      rawServices: AppServices;
+      services: BrokeredAppServices;
       workspace: Workspace;
     };
 
 interface ReadyAppData {
   status: "ready";
-  storage: StorageAdapter;
-  services: AppServices;
+  privacy: PrivacyRuntime;
+  services: BrokeredAppServices;
   workspace: Workspace;
   revisionStore: RevisionStore;
   invalidate: () => void;
@@ -45,9 +53,22 @@ const AppDataContext = createContext<ReadyAppData | null>(null);
 export interface AppDataProviderProps {
   children: ReactNode;
   openStorage?: () => Promise<StorageAdapter>;
+  openPrivacyStore?: () => Promise<PrivacyStore>;
 }
 
-export function AppDataProvider({ children, openStorage }: AppDataProviderProps) {
+function openDefaultPrivacyStore(): Promise<PrivacyStore> {
+  if (typeof indexedDB === "undefined") {
+    return Promise.resolve(createMemoryPrivacyStore());
+  }
+
+  return Promise.resolve(createDexiePrivacyStore());
+}
+
+export function AppDataProvider({
+  children,
+  openStorage,
+  openPrivacyStore,
+}: AppDataProviderProps) {
   const t = useTranslations();
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [attempt, setAttempt] = useState(0);
@@ -58,6 +79,8 @@ export function AppDataProvider({ children, openStorage }: AppDataProviderProps)
   useEffect(() => {
     const current = request.current + 1;
     request.current = current;
+    let cancelled = false;
+    let runtime: PrivacyRuntime | null = null;
 
     (openStorage ?? openBrowserStorage)()
       .then(async (storage) => {
@@ -65,21 +88,48 @@ export function AppDataProvider({ children, openStorage }: AppDataProviderProps)
           defaultWorkspaceName,
         });
 
-        if (request.current === current) {
-          setState({
-            status: "ready",
-            storage,
-            services: result.services,
-            workspace: result.workspace,
-          });
+        if (cancelled || request.current !== current) {
+          return;
         }
+
+        const privacy = await createPrivacyRuntime({
+          storage,
+          services: result.services,
+          workspace: result.workspace,
+          drafts: window.localStorage,
+          openPrivacyStore: openPrivacyStore ?? openDefaultPrivacyStore,
+        });
+
+        if (cancelled || request.current !== current) {
+          await privacy.dispose();
+          return;
+        }
+
+        runtime = privacy;
+        setState({
+          status: "ready",
+          privacy,
+          rawServices: result.services,
+          services: privacy.services,
+          workspace: result.workspace,
+        });
       })
       .catch(() => {
-        if (request.current === current) {
+        if (!cancelled && request.current === current) {
           setState({ status: "error" });
         }
       });
-  }, [attempt, defaultWorkspaceName, openStorage]);
+
+    return () => {
+      cancelled = true;
+      const owned = runtime;
+      runtime = null;
+
+      if (owned !== null) {
+        void owned.dispose();
+      }
+    };
+  }, [attempt, defaultWorkspaceName, openPrivacyStore, openStorage]);
 
   const retry = useCallback(() => {
     setState({ status: "loading" });
@@ -95,7 +145,7 @@ export function AppDataProvider({ children, openStorage }: AppDataProviderProps)
       return;
     }
 
-    const workspace = await state.services.workspace.ensure(defaultWorkspaceName);
+    const workspace = await state.rawServices.workspace.ensure(defaultWorkspaceName);
 
     setState((previous) =>
       previous.status === "ready" ? { ...previous, workspace } : previous
@@ -110,7 +160,7 @@ export function AppDataProvider({ children, openStorage }: AppDataProviderProps)
 
     return {
       status: "ready",
-      storage: state.storage,
+      privacy: state.privacy,
       services: state.services,
       workspace: state.workspace,
       revisionStore,

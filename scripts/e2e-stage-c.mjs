@@ -350,6 +350,8 @@ async function run() {
 
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "Export backup" }).click();
+    await page.getByRole("dialog").waitFor();
+    await page.getByRole("button", { name: "Download backup" }).click();
     const download = await downloadPromise;
     const backupPath = await download.path();
     assert.ok(backupPath, "the exported backup should be saved to a temporary file");
@@ -386,6 +388,36 @@ async function run() {
     );
     await assertPageStructure(page, "restored notes");
 
+    await page.goto(`${server.base}/privacy`, { waitUntil: "networkidle" });
+    await page.getByRole("heading", { name: "Privacy Center", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Data inventory", exact: true }).waitFor();
+    await page.getByRole("heading", { name: "Audit log", exact: true }).waitFor();
+    await assertPageStructure(page, "privacy center");
+
+    const privacyDownloadPromise = page.waitForEvent("download");
+    await page.getByRole("button", { name: "Export backup" }).click();
+    await page.getByRole("dialog").waitFor();
+    await page.getByRole("button", { name: "Download backup" }).click();
+    await privacyDownloadPromise;
+    await page.getByText("Backup downloaded.").waitFor();
+
+    await page.getByText("Built-in", { exact: true }).first().waitFor();
+
+    await page.getByRole("button", { name: "Delete all data" }).click();
+    await page.getByRole("dialog").waitFor();
+    await page.getByRole("button", { name: "Cancel" }).click();
+    await page.getByRole("dialog").waitFor({ state: "detached" });
+    await page.getByRole("button", { name: "Delete all data" }).click();
+    await page.getByRole("dialog").waitFor();
+    await page.getByRole("button", { name: "Delete everything" }).click();
+    await page.getByText("All local data was deleted.").waitFor();
+    await page.getByText("No audit entries yet.").waitFor();
+    await page.getByText("Built-in", { exact: true }).first().waitFor();
+
+    await page.goto(server.base, { waitUntil: "networkidle" });
+    await page.getByText("Start your library", { exact: true }).waitFor();
+    await assertPageStructure(page, "empty workspace after privacy delete");
+
     const desktop = await context.newPage();
     await desktop.setViewportSize({ width: 1280, height: 900 });
     const desktopErrors = collectErrors(desktop);
@@ -416,6 +448,10 @@ async function run() {
             "file upload and preview",
             "settings backup export",
             "settings backup restore",
+            "privacy center structure",
+            "privacy export",
+            "privacy delete all",
+            "empty workspace after deletion",
             "desktop layout",
           ],
           errors,

@@ -134,6 +134,16 @@ describe("BackupPanel", () => {
     });
     await settle();
 
+    expect(mounted.container.textContent).toContain("Download a backup?");
+    expect(mounted.container.textContent).toContain(
+      "sync metadata (including outbox and conflict records) are not included"
+    );
+
+    await act(async () => {
+      buttonByText(mounted.container, "Download backup").click();
+    });
+    await settle();
+
     expect(mounted.download).toHaveBeenCalledTimes(1);
     const [fileName, text] = mounted.download.mock.calls[0] as [string, string];
 
