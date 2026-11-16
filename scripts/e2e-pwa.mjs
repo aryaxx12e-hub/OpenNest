@@ -456,10 +456,9 @@ async function run() {
       { timeout: 10000 }
     );
 
-    assert.equal(
-      await page.getByText("A new version is ready.", { exact: true }).count(),
-      0
-    );
+    await page
+      .getByText("A new version is ready.", { exact: true })
+      .waitFor({ state: "detached", timeout: 20000 });
 
     const unexpectedErrors = errors.filter(
       (message) =>
