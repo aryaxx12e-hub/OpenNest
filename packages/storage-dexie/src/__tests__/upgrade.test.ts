@@ -54,14 +54,14 @@ async function seedVersionOne(name: string): Promise<void> {
 }
 
 describe("schema upgrade", () => {
-  it("keeps rows written under version 1 when the adapter opens version 2", async () => {
+  it("keeps rows written under version 1 when the adapter opens version 4", async () => {
     const name = databaseName("preserve");
     await seedVersionOne(name);
 
     const storage = createDexieStorage({ databaseName: name });
     await storage.init();
 
-    expect(storage.schemaVersion).toBe(1);
+    expect(storage.schemaVersion).toBe(3);
     expect((await storage.workspaces.list()).map((row) => row.name)).toEqual(["Rumah"]);
     expect((await storage.folders.get("folder-1" as never))?.name).toBe("Akar");
     expect(await storage.blobs.has("blob-1" as never)).toBe(true);
@@ -86,7 +86,7 @@ describe("schema upgrade", () => {
     expect(folder.schema.primKey.keyPath).toBe("id");
     expect(indexes).toContain("workspaceId");
     expect(indexes).toContain("[workspaceId+parentId]");
-    expect(reopened.verno).toBe(2);
+    expect(reopened.verno).toBe(4);
 
     reopened.close();
   });

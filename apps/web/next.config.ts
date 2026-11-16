@@ -8,6 +8,7 @@ const nextConfig: NextConfig = {
     "@opennest/core",
     "@opennest/validation",
     "@opennest/storage-dexie",
+    "@opennest/sync",
   ],
   async headers() {
     return [

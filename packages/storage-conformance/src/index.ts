@@ -11,6 +11,7 @@ import { registerNoteScenarios } from "./scenarios/notes";
 import { registerPaginationScenarios } from "./scenarios/pagination";
 import { registerRestoreScenarios } from "./scenarios/restore";
 import { registerSearchScenarios } from "./scenarios/search";
+import { registerSyncScenarios, type SyncStorageFactory } from "./scenarios/sync";
 import { registerTagScenarios } from "./scenarios/tags";
 import { registerTransactionScenarios } from "./scenarios/transactions";
 import { registerWorkspaceScenarios } from "./scenarios/workspaces";
@@ -18,6 +19,7 @@ import { registerWorkspaceScenarios } from "./scenarios/workspaces";
 export type StorageFactory = (name?: string) => Promise<StorageAdapter>;
 
 export { openHarness, withHarness, type Harness } from "./harness";
+export type { SyncStorageFactory } from "./scenarios/sync";
 
 export function runStorageConformance(name: string, create: StorageFactory): void {
   describe(name, () => {
@@ -33,5 +35,11 @@ export function runStorageConformance(name: string, create: StorageFactory): voi
     registerTransactionScenarios(create);
     registerRestoreScenarios(create);
     registerErrorScenarios(create);
+  });
+}
+
+export function runSyncConformance(name: string, create: SyncStorageFactory): void {
+  describe(name, () => {
+    registerSyncScenarios(create);
   });
 }

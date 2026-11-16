@@ -37,7 +37,7 @@ describe("sqlite migrations", () => {
     });
 
     await storage.init();
-    expect(storage.schemaVersion).toBe(2);
+    expect(storage.schemaVersion).toBe(4);
     await storage.close();
 
     const database = new DatabaseSync(databaseFile);
@@ -45,7 +45,7 @@ describe("sqlite migrations", () => {
     try {
       const version = database.prepare("PRAGMA user_version").get() as
         { user_version?: number } | undefined;
-      expect(Number(version?.user_version)).toBe(2);
+      expect(Number(version?.user_version)).toBe(4);
 
       const tables = database
         .prepare("SELECT name FROM sqlite_master WHERE type = 'table' ORDER BY name")
@@ -61,6 +61,13 @@ describe("sqlite migrations", () => {
         "file_tags",
         "note_tags",
         "note_links",
+        "sync_meta",
+        "sync_field_meta",
+        "sync_outbox",
+        "workspace_sync_state",
+        "sync_tombstone",
+        "sync_conflict",
+        "sync_devices",
       ]) {
         expect(names).toContain(table);
       }

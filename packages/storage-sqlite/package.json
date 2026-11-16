@@ -8,6 +8,7 @@
   },
   "dependencies": {
     "@opennest/core": "0.1.0",
+    "@opennest/sync": "0.1.0",
     "@opennest/validation": "0.1.0",
     "drizzle-orm": "0.45.4"
   },

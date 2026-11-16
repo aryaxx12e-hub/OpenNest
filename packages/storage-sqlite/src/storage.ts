@@ -29,7 +29,6 @@ import {
   type SortField,
   type SqliteStorageConfig,
   type StoredFile,
-  type StorageAdapter,
   type Tag,
   type TagId,
   type TagRepository,
@@ -37,6 +36,16 @@ import {
   type WorkspaceId,
   type WorkspaceRepository,
 } from "@opennest/core";
+import {
+  DEFAULT_SYNC_POLICY,
+  SyncError,
+  canonicalIdList,
+  prepareSyncChanges,
+  recordPreparedSyncChanges,
+  type SyncCapableStorage,
+  type SyncChange,
+  type SyncPolicy,
+} from "@opennest/sync";
 import { backupSnapshotSchema } from "@opennest/validation";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
@@ -52,9 +61,17 @@ import {
   noteLinks as noteLinksTable,
   notes as notesTable,
   noteTags as noteTagsTable,
+  syncConflict as syncConflictTable,
+  syncDevices as syncDevicesTable,
+  syncFieldMeta as syncFieldMetaTable,
+  syncMeta as syncMetaTable,
+  syncOutbox as syncOutboxTable,
+  syncTombstone as syncTombstoneTable,
   tags as tagsTable,
+  workspaceSyncState as workspaceSyncStateTable,
   workspaces as workspacesTable,
 } from "./schema";
+import { createSqliteSyncStore } from "./sync-store";
 
 const DEFAULT_WORKSPACE_NAME = "Workspace";
 
@@ -188,14 +205,100 @@ function parseSnapshot(snapshot: BackupSnapshot): BackupSnapshot {
   return result.data;
 }
 
-export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter {
+function restoreChanges(snapshot: BackupSnapshot): SyncChange[] {
+  const fileTags = new Map<string, string[]>();
+  for (const link of snapshot.fileTags) {
+    fileTags.set(link.fileId, [...(fileTags.get(link.fileId) ?? []), link.tagId]);
+  }
+  const noteTags = new Map<string, string[]>();
+  for (const link of snapshot.noteTags) {
+    noteTags.set(link.noteId, [...(noteTags.get(link.noteId) ?? []), link.tagId]);
+  }
+  const noteLinks = new Map<string, string[]>();
+  for (const link of snapshot.noteLinks) {
+    noteLinks.set(link.sourceNoteId, [
+      ...(noteLinks.get(link.sourceNoteId) ?? []),
+      link.targetNoteId,
+    ]);
+  }
+
+  return [
+    {
+      workspaceId: snapshot.workspace.id,
+      entityType: "workspace",
+      entityId: snapshot.workspace.id,
+      operation: "restore",
+      fieldPatches: { name: snapshot.workspace.name },
+      at: snapshot.workspace.updatedAt,
+      contentHash: null,
+    },
+    ...snapshot.folders.map((folder) => ({
+      workspaceId: folder.workspaceId,
+      entityType: "folder" as const,
+      entityId: folder.id,
+      operation: "restore" as const,
+      fieldPatches: { name: folder.name, parentId: folder.parentId },
+      at: folder.updatedAt,
+      contentHash: null,
+    })),
+    ...snapshot.files.map((file) => ({
+      workspaceId: file.workspaceId,
+      entityType: "file" as const,
+      entityId: file.id,
+      operation: "restore" as const,
+      fieldPatches: {
+        name: file.name,
+        folderId: file.folderId,
+        mimeType: file.mimeType,
+        tagIds: canonicalIdList(fileTags.get(file.id) ?? []),
+      },
+      at: file.updatedAt,
+      contentHash: file.checksum,
+    })),
+    ...snapshot.notes.map((note) => ({
+      workspaceId: note.workspaceId,
+      entityType: "note" as const,
+      entityId: note.id,
+      operation: "restore" as const,
+      fieldPatches: {
+        title: note.title,
+        content: note.content,
+        folderId: note.folderId,
+        pinned: note.pinned,
+        tagIds: canonicalIdList(noteTags.get(note.id) ?? []),
+        targetNoteIds: canonicalIdList(noteLinks.get(note.id) ?? []),
+      },
+      at: note.updatedAt,
+      contentHash: null,
+    })),
+    ...snapshot.tags.map((tag) => ({
+      workspaceId: tag.workspaceId,
+      entityType: "tag" as const,
+      entityId: tag.id,
+      operation: "restore" as const,
+      fieldPatches: { name: tag.name, color: tag.color },
+      at: tag.createdAt,
+      contentHash: null,
+    })),
+  ];
+}
+
+export interface SqliteStorageOptions extends SqliteStorageConfig {
+  syncPolicy?: SyncPolicy;
+}
+
+export function createSqliteStorage(config: SqliteStorageOptions): SyncCapableStorage {
   const blobs = new FileSystemBlobStore({ rootDir: config.blobRoot });
 
   let connection: DatabaseSync | null = null;
   let db: SqliteDatabase | null = null;
+  const policy = config.syncPolicy ?? DEFAULT_SYNC_POLICY;
   let closed = false;
   let schemaVersion = 0;
   let transactionDepth = 0;
+  let currentWorkspaceRevisions = new Map<string, number>();
+  let savepointSequence = 0;
+  let nestedWriteQueue: Promise<unknown> = Promise.resolve();
 
   function guard(): void {
     if (closed || connection === null || db === null) {
@@ -208,6 +311,8 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
 
     return db as SqliteDatabase;
   }
+
+  const sync = createSqliteSyncStore(() => requireDb());
 
   async function run<T>(work: () => Promise<T>): Promise<T> {
     guard();
@@ -225,12 +330,45 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
 
   async function atomic<T>(work: () => Promise<T>): Promise<T> {
     if (transactionDepth > 0) {
-      return work();
+      const runNested = async (): Promise<T> => {
+        const sqlite = connection as DatabaseSync;
+        const savepoint = `opennest_savepoint_${savepointSequence}`;
+        savepointSequence += 1;
+        sqlite.exec(`SAVEPOINT ${savepoint}`);
+
+        try {
+          const result = await work();
+          sqlite.exec(`RELEASE SAVEPOINT ${savepoint}`);
+
+          return result;
+        } catch (error) {
+          try {
+            sqlite.exec(`ROLLBACK TO SAVEPOINT ${savepoint}`);
+            sqlite.exec(`RELEASE SAVEPOINT ${savepoint}`);
+          } catch {
+            // The savepoint was already rolled back by SQLite.
+          }
+
+          throw error;
+        }
+      };
+
+      const queued = nestedWriteQueue.then(runNested, runNested);
+      nestedWriteQueue = queued.then(
+        () => undefined,
+        () => undefined
+      );
+
+      return queued;
     }
 
     return withWriteLock(async () => {
       const sqlite = connection as DatabaseSync;
       sqlite.exec("BEGIN IMMEDIATE");
+      const previousWorkspaceRevisions = currentWorkspaceRevisions;
+      currentWorkspaceRevisions = new Map();
+      nestedWriteQueue = Promise.resolve();
+      transactionDepth += 1;
 
       try {
         const result = await work();
@@ -245,6 +383,121 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
         }
 
         throw error;
+      } finally {
+        transactionDepth -= 1;
+        currentWorkspaceRevisions = previousWorkspaceRevisions;
+      }
+    });
+  }
+
+  async function syncWrite<T>(
+    work: () => Promise<{ result: T; changes: SyncChange[] }>
+  ): Promise<T> {
+    return atomic(async () => {
+      const { result, changes } = await work();
+      const prepared = await prepareSyncChanges({ changes, policy });
+
+      if (prepared.length > 0) {
+        const workspaceId = prepared[0]?.workspaceId;
+        const revision =
+          workspaceId === undefined
+            ? undefined
+            : currentWorkspaceRevisions.get(workspaceId);
+        const recorded = await recordPreparedSyncChanges(sync, {
+          changes: prepared,
+          policy,
+          ...(revision === undefined ? {} : { workspaceRevision: revision }),
+        });
+        if (workspaceId !== undefined) {
+          currentWorkspaceRevisions.set(workspaceId, recorded.workspaceRevision);
+        }
+      }
+
+      return result;
+    });
+  }
+
+  async function bootstrapSync(): Promise<void> {
+    await atomic(async () => {
+      const db = requireDb();
+      const devices = await db.select().from(syncDevicesTable);
+      const installationId = devices[0]?.deviceId ?? generateId();
+      const workspaces = await db.select().from(workspacesTable);
+
+      for (const workspace of workspaces) {
+        const at = workspace.updatedAt;
+        const device = await db
+          .select()
+          .from(syncDevicesTable)
+          .where(
+            and(
+              eq(syncDevicesTable.workspaceId, workspace.id),
+              eq(syncDevicesTable.deviceId, installationId)
+            )
+          );
+        if (device.length === 0) {
+          await db.insert(syncDevicesTable).values({
+            workspaceId: workspace.id,
+            deviceId: installationId,
+            registeredAt: at,
+            lastSeenAt: at,
+            lastAckedTombstoneWorkspaceRevision: 0,
+            state: "active",
+            publicKey: null,
+          });
+        }
+
+        const legacy = await db
+          .select()
+          .from(workspaceSyncStateTable)
+          .where(
+            and(
+              eq(workspaceSyncStateTable.workspaceId, workspace.id),
+              eq(workspaceSyncStateTable.deviceId, "legacy")
+            )
+          );
+        const existing = await db
+          .select()
+          .from(workspaceSyncStateTable)
+          .where(
+            and(
+              eq(workspaceSyncStateTable.workspaceId, workspace.id),
+              eq(workspaceSyncStateTable.deviceId, installationId)
+            )
+          );
+        if (existing.length === 0) {
+          const legacyState = legacy[0];
+          await db.insert(workspaceSyncStateTable).values({
+            workspaceId: workspace.id,
+            deviceId: installationId,
+            remoteWorkspaceId: legacyState?.remoteWorkspaceId ?? null,
+            lastServerCursor: legacyState?.lastServerCursor ?? null,
+            lastLocalWorkspaceRevision: legacyState?.lastLocalWorkspaceRevision ?? 0,
+            lastLocalSequence: legacyState?.lastLocalSequence ?? 0,
+            tombstoneFloor: legacyState?.tombstoneFloor ?? 0,
+            lastFullResyncAt: legacyState?.lastFullResyncAt ?? null,
+          });
+        }
+        if (legacy.length > 0) {
+          await db
+            .delete(workspaceSyncStateTable)
+            .where(
+              and(
+                eq(workspaceSyncStateTable.workspaceId, workspace.id),
+                eq(workspaceSyncStateTable.deviceId, "legacy")
+              )
+            );
+        }
+
+        await db
+          .update(syncMetaTable)
+          .set({ originDeviceId: installationId })
+          .where(
+            and(
+              eq(syncMetaTable.workspaceId, workspace.id),
+              eq(syncMetaTable.originDeviceId, "legacy")
+            )
+          );
       }
     });
   }
@@ -340,65 +593,164 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
       });
     },
     async create(input) {
-      return run(async () => {
-        const at = requireAt(input.at);
-        const row: WorkspaceRow = {
-          id: generateId(),
-          name: input.name,
-          createdAt: at,
-          updatedAt: at,
-        };
-        await requireDb().insert(workspacesTable).values(row);
+      return run(async () =>
+        syncWrite(async () => {
+          const at = requireAt(input.at);
+          const row: WorkspaceRow = {
+            id: generateId(),
+            name: input.name,
+            createdAt: at,
+            updatedAt: at,
+          };
+          await requireDb().insert(workspacesTable).values(row);
 
-        return toWorkspace(row);
-      });
+          return {
+            result: toWorkspace(row),
+            changes: [
+              {
+                workspaceId: row.id,
+                entityType: "workspace" as const,
+                entityId: row.id,
+                operation: "create" as const,
+                fieldPatches: { name: row.name },
+                at,
+                contentHash: null,
+              },
+            ],
+          };
+        })
+      );
     },
     async update(id, patch) {
-      return run(async () => {
-        const rows = await requireDb()
-          .select()
-          .from(workspacesTable)
-          .where(eq(workspacesTable.id, id))
-          .limit(1);
-        const row = rows[0];
+      return run(async () =>
+        syncWrite(async () => {
+          const rows = await requireDb()
+            .select()
+            .from(workspacesTable)
+            .where(eq(workspacesTable.id, id))
+            .limit(1);
+          const row = rows[0];
 
-        if (row === undefined) {
-          throw new NotFoundError("Workspace does not exist.");
-        }
+          if (row === undefined) {
+            throw new NotFoundError("Workspace does not exist.");
+          }
 
-        const at = requireAt(patch.at);
-        const next: WorkspaceRow = {
-          ...row,
-          name: patch.name,
-          updatedAt: laterOf(at, row.updatedAt as IsoDate),
-        };
+          const at = requireAt(patch.at);
+          const next: WorkspaceRow = {
+            ...row,
+            name: patch.name,
+            updatedAt: laterOf(at, row.updatedAt as IsoDate),
+          };
 
-        await requireDb()
-          .update(workspacesTable)
-          .set({ name: next.name, updatedAt: next.updatedAt })
-          .where(eq(workspacesTable.id, id));
+          await requireDb()
+            .update(workspacesTable)
+            .set({ name: next.name, updatedAt: next.updatedAt })
+            .where(eq(workspacesTable.id, id));
 
-        return toWorkspace(next);
-      });
+          return {
+            result: toWorkspace(next),
+            changes: [
+              {
+                workspaceId: id,
+                entityType: "workspace" as const,
+                entityId: id,
+                operation: "update" as const,
+                fieldPatches: { name: next.name },
+                at: next.updatedAt,
+                contentHash: null,
+              },
+            ],
+          };
+        })
+      );
     },
     async delete(id) {
-      return run(async () => {
-        const rows = await requireDb()
-          .select({ id: workspacesTable.id })
-          .from(workspacesTable)
-          .where(eq(workspacesTable.id, id))
-          .limit(1);
+      return run(async () =>
+        syncWrite(async () => {
+          const rows = await requireDb()
+            .select({ id: workspacesTable.id })
+            .from(workspacesTable)
+            .where(eq(workspacesTable.id, id))
+            .limit(1);
 
-        if (rows.length === 0) {
-          throw new NotFoundError("Workspace does not exist.");
-        }
+          if (rows.length === 0) {
+            throw new NotFoundError("Workspace does not exist.");
+          }
 
-        await requireDb().delete(workspacesTable).where(eq(workspacesTable.id, id));
-      });
+          const at = new Date().toISOString();
+          const folders = await requireDb()
+            .select({ id: foldersTable.id })
+            .from(foldersTable)
+            .where(eq(foldersTable.workspaceId, id));
+          const files = await requireDb()
+            .select({ id: filesTable.id })
+            .from(filesTable)
+            .where(eq(filesTable.workspaceId, id));
+          const notes = await requireDb()
+            .select({ id: notesTable.id })
+            .from(notesTable)
+            .where(eq(notesTable.workspaceId, id));
+          const tags = await requireDb()
+            .select({ id: tagsTable.id })
+            .from(tagsTable)
+            .where(eq(tagsTable.workspaceId, id));
+          const changes: SyncChange[] = [
+            {
+              workspaceId: id,
+              entityType: "workspace",
+              entityId: id,
+              operation: "delete",
+              fieldPatches: {},
+              at,
+              contentHash: null,
+            },
+            ...folders.map((row) => ({
+              workspaceId: id,
+              entityType: "folder" as const,
+              entityId: row.id,
+              operation: "delete" as const,
+              fieldPatches: {},
+              at,
+              contentHash: null,
+            })),
+            ...files.map((row) => ({
+              workspaceId: id,
+              entityType: "file" as const,
+              entityId: row.id,
+              operation: "delete" as const,
+              fieldPatches: {},
+              at,
+              contentHash: null,
+            })),
+            ...notes.map((row) => ({
+              workspaceId: id,
+              entityType: "note" as const,
+              entityId: row.id,
+              operation: "delete" as const,
+              fieldPatches: {},
+              at,
+              contentHash: null,
+            })),
+            ...tags.map((row) => ({
+              workspaceId: id,
+              entityType: "tag" as const,
+              entityId: row.id,
+              operation: "delete" as const,
+              fieldPatches: {},
+              at,
+              contentHash: null,
+            })),
+          ];
+
+          await requireDb().delete(workspacesTable).where(eq(workspacesTable.id, id));
+
+          return { result: undefined, changes };
+        })
+      );
     },
     async ensureWorkspace(input) {
       return run(async () =>
-        atomic(async () => {
+        syncWrite(async () => {
           const rows = await requireDb().select().from(workspacesTable);
 
           if (rows.length > 1) {
@@ -411,7 +763,7 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
           const existing = rows[0];
 
           if (existing !== undefined) {
-            return toWorkspace(existing);
+            return { result: toWorkspace(existing), changes: [] };
           }
 
           const at = requireAt(input?.at);
@@ -423,7 +775,20 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
           };
           await requireDb().insert(workspacesTable).values(row);
 
-          return toWorkspace(row);
+          return {
+            result: toWorkspace(row),
+            changes: [
+              {
+                workspaceId: row.id,
+                entityType: "workspace" as const,
+                entityId: row.id,
+                operation: "create" as const,
+                fieldPatches: { name: row.name },
+                at,
+                contentHash: null,
+              },
+            ],
+          };
         })
       );
     },
@@ -431,33 +796,48 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
 
   const folders: FolderRepository = {
     async create(input) {
-      return run(async () => {
-        const at = requireAt(input.at);
+      return run(async () =>
+        syncWrite(async () => {
+          const at = requireAt(input.at);
 
-        if (input.parentId !== null) {
-          const parent = await requireDb()
-            .select({ id: foldersTable.id })
-            .from(foldersTable)
-            .where(eq(foldersTable.id, input.parentId))
-            .limit(1);
+          if (input.parentId !== null) {
+            const parent = await requireDb()
+              .select({ id: foldersTable.id })
+              .from(foldersTable)
+              .where(eq(foldersTable.id, input.parentId))
+              .limit(1);
 
-          if (parent.length === 0) {
-            throw new NotFoundError("Parent folder does not exist.");
+            if (parent.length === 0) {
+              throw new NotFoundError("Parent folder does not exist.");
+            }
           }
-        }
 
-        const row: FolderRow = {
-          id: generateId(),
-          workspaceId: input.workspaceId,
-          parentId: input.parentId,
-          name: input.name,
-          createdAt: at,
-          updatedAt: at,
-        };
-        await requireDb().insert(foldersTable).values(row);
+          const row: FolderRow = {
+            id: generateId(),
+            workspaceId: input.workspaceId,
+            parentId: input.parentId,
+            name: input.name,
+            createdAt: at,
+            updatedAt: at,
+          };
+          await requireDb().insert(foldersTable).values(row);
 
-        return toFolder(row);
-      });
+          return {
+            result: toFolder(row),
+            changes: [
+              {
+                workspaceId: row.workspaceId,
+                entityType: "folder" as const,
+                entityId: row.id,
+                operation: "create" as const,
+                fieldPatches: { name: row.name, parentId: row.parentId },
+                at,
+                contentHash: null,
+              },
+            ],
+          };
+        })
+      );
     },
     async get(id) {
       return run(async () => {
@@ -472,48 +852,128 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
       });
     },
     async update(id, patch) {
-      return run(async () => {
-        const rows = await requireDb()
-          .select()
-          .from(foldersTable)
-          .where(eq(foldersTable.id, id))
-          .limit(1);
-        const row = rows[0];
+      return run(async () =>
+        syncWrite(async () => {
+          const rows = await requireDb()
+            .select()
+            .from(foldersTable)
+            .where(eq(foldersTable.id, id))
+            .limit(1);
+          const row = rows[0];
 
-        if (row === undefined) {
-          throw new NotFoundError("Folder does not exist.");
-        }
+          if (row === undefined) {
+            throw new NotFoundError("Folder does not exist.");
+          }
 
-        const at = requireAt(patch.at);
-        const next: FolderRow = {
-          ...row,
-          name: patch.name ?? row.name,
-          parentId: patch.parentId === undefined ? row.parentId : patch.parentId,
-          updatedAt: laterOf(at, row.updatedAt as IsoDate),
-        };
+          const at = requireAt(patch.at);
+          const next: FolderRow = {
+            ...row,
+            name: patch.name ?? row.name,
+            parentId: patch.parentId === undefined ? row.parentId : patch.parentId,
+            updatedAt: laterOf(at, row.updatedAt as IsoDate),
+          };
 
-        await requireDb()
-          .update(foldersTable)
-          .set({ name: next.name, parentId: next.parentId, updatedAt: next.updatedAt })
-          .where(eq(foldersTable.id, id));
+          await requireDb()
+            .update(foldersTable)
+            .set({ name: next.name, parentId: next.parentId, updatedAt: next.updatedAt })
+            .where(eq(foldersTable.id, id));
 
-        return toFolder(next);
-      });
+          const fieldPatches: Record<string, unknown> = {};
+          if (patch.name !== undefined) {
+            fieldPatches.name = next.name;
+          }
+          if (patch.parentId !== undefined) {
+            fieldPatches.parentId = next.parentId;
+          }
+
+          return {
+            result: toFolder(next),
+            changes: [
+              {
+                workspaceId: next.workspaceId,
+                entityType: "folder" as const,
+                entityId: next.id,
+                operation: "update" as const,
+                fieldPatches,
+                at: next.updatedAt,
+                contentHash: null,
+              },
+            ],
+          };
+        })
+      );
     },
     async delete(id) {
-      return run(async () => {
-        const rows = await requireDb()
-          .select({ id: foldersTable.id })
-          .from(foldersTable)
-          .where(eq(foldersTable.id, id))
-          .limit(1);
+      return run(async () =>
+        syncWrite(async () => {
+          const rows = await requireDb()
+            .select()
+            .from(foldersTable)
+            .where(eq(foldersTable.id, id))
+            .limit(1);
+          const row = rows[0];
 
-        if (rows.length === 0) {
-          throw new NotFoundError("Folder does not exist.");
-        }
+          if (row === undefined) {
+            throw new NotFoundError("Folder does not exist.");
+          }
 
-        await requireDb().delete(foldersTable).where(eq(foldersTable.id, id));
-      });
+          const at = new Date().toISOString();
+          const childFolders = await requireDb()
+            .select()
+            .from(foldersTable)
+            .where(eq(foldersTable.parentId, id));
+          const files = await requireDb()
+            .select()
+            .from(filesTable)
+            .where(eq(filesTable.folderId, id));
+          const notes = await requireDb()
+            .select()
+            .from(notesTable)
+            .where(eq(notesTable.folderId, id));
+          const changes: SyncChange[] = [
+            {
+              workspaceId: row.workspaceId,
+              entityType: "folder",
+              entityId: id,
+              operation: "delete",
+              fieldPatches: {},
+              at,
+              contentHash: null,
+            },
+            ...childFolders.map((child) => ({
+              workspaceId: child.workspaceId,
+              entityType: "folder" as const,
+              entityId: child.id,
+              operation: "update" as const,
+              fieldPatches: { parentId: null },
+              at,
+              contentHash: null,
+            })),
+            ...files.map((file) => ({
+              workspaceId: file.workspaceId,
+              entityType: "file" as const,
+              entityId: file.id,
+              operation: "update" as const,
+              fieldPatches: { folderId: null },
+              at,
+              contentHash: file.checksum,
+            })),
+            ...notes.map((note) => ({
+              workspaceId: note.workspaceId,
+              entityType: "note" as const,
+              entityId: note.id,
+              operation: "update" as const,
+              fieldPatches: { folderId: null },
+              at,
+              contentHash: null,
+            })),
+          ];
+
+          await requireDb().delete(foldersTable).where(eq(foldersTable.id, id));
+
+          return { result: undefined, changes };
+        })
+      );
     },
     async list(workspaceId, options) {
       return run(async () => {
@@ -599,24 +1059,44 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
 
   const files: FileRepository = {
     async create(input) {
-      return run(async () => {
-        const at = requireAt(input.at);
-        const row: FileRow = {
-          id: generateId(),
-          workspaceId: input.workspaceId,
-          folderId: input.folderId,
-          name: input.name,
-          mimeType: input.mimeType,
-          sizeBytes: input.sizeBytes,
-          blobKey: input.blobKey,
-          checksum: input.checksum,
-          createdAt: at,
-          updatedAt: at,
-        };
-        await requireDb().insert(filesTable).values(row);
+      return run(async () =>
+        syncWrite(async () => {
+          const at = requireAt(input.at);
+          const row: FileRow = {
+            id: generateId(),
+            workspaceId: input.workspaceId,
+            folderId: input.folderId,
+            name: input.name,
+            mimeType: input.mimeType,
+            sizeBytes: input.sizeBytes,
+            blobKey: input.blobKey,
+            checksum: input.checksum,
+            createdAt: at,
+            updatedAt: at,
+          };
+          await requireDb().insert(filesTable).values(row);
 
-        return toFile(row);
-      });
+          return {
+            result: toFile(row),
+            changes: [
+              {
+                workspaceId: row.workspaceId,
+                entityType: "file" as const,
+                entityId: row.id,
+                operation: "create" as const,
+                fieldPatches: {
+                  name: row.name,
+                  folderId: row.folderId,
+                  mimeType: row.mimeType,
+                  tagIds: [],
+                },
+                at,
+                contentHash: row.checksum,
+              },
+            ],
+          };
+        })
+      );
     },
     async get(id) {
       return run(async () => {
@@ -631,48 +1111,90 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
       });
     },
     async update(id, patch) {
-      return run(async () => {
-        const rows = await requireDb()
-          .select()
-          .from(filesTable)
-          .where(eq(filesTable.id, id))
-          .limit(1);
-        const row = rows[0];
+      return run(async () =>
+        syncWrite(async () => {
+          const rows = await requireDb()
+            .select()
+            .from(filesTable)
+            .where(eq(filesTable.id, id))
+            .limit(1);
+          const row = rows[0];
 
-        if (row === undefined) {
-          throw new NotFoundError("File does not exist.");
-        }
+          if (row === undefined) {
+            throw new NotFoundError("File does not exist.");
+          }
 
-        const at = requireAt(patch.at);
-        const next: FileRow = {
-          ...row,
-          name: patch.name ?? row.name,
-          folderId: patch.folderId === undefined ? row.folderId : patch.folderId,
-          updatedAt: laterOf(at, row.updatedAt as IsoDate),
-        };
+          const at = requireAt(patch.at);
+          const next: FileRow = {
+            ...row,
+            name: patch.name ?? row.name,
+            folderId: patch.folderId === undefined ? row.folderId : patch.folderId,
+            updatedAt: laterOf(at, row.updatedAt as IsoDate),
+          };
 
-        await requireDb()
-          .update(filesTable)
-          .set({ name: next.name, folderId: next.folderId, updatedAt: next.updatedAt })
-          .where(eq(filesTable.id, id));
+          await requireDb()
+            .update(filesTable)
+            .set({ name: next.name, folderId: next.folderId, updatedAt: next.updatedAt })
+            .where(eq(filesTable.id, id));
 
-        return toFile(next);
-      });
+          const fieldPatches: Record<string, unknown> = {};
+          if (patch.name !== undefined) {
+            fieldPatches.name = next.name;
+          }
+          if (patch.folderId !== undefined) {
+            fieldPatches.folderId = next.folderId;
+          }
+
+          return {
+            result: toFile(next),
+            changes: [
+              {
+                workspaceId: next.workspaceId,
+                entityType: "file" as const,
+                entityId: next.id,
+                operation: "update" as const,
+                fieldPatches,
+                at: next.updatedAt,
+                contentHash: next.checksum,
+              },
+            ],
+          };
+        })
+      );
     },
     async delete(id) {
-      return run(async () => {
-        const rows = await requireDb()
-          .select({ id: filesTable.id })
-          .from(filesTable)
-          .where(eq(filesTable.id, id))
-          .limit(1);
+      return run(async () =>
+        syncWrite(async () => {
+          const rows = await requireDb()
+            .select()
+            .from(filesTable)
+            .where(eq(filesTable.id, id))
+            .limit(1);
+          const row = rows[0];
 
-        if (rows.length === 0) {
-          throw new NotFoundError("File does not exist.");
-        }
+          if (row === undefined) {
+            throw new NotFoundError("File does not exist.");
+          }
 
-        await requireDb().delete(filesTable).where(eq(filesTable.id, id));
-      });
+          const at = new Date().toISOString();
+          await requireDb().delete(filesTable).where(eq(filesTable.id, id));
+
+          return {
+            result: undefined,
+            changes: [
+              {
+                workspaceId: row.workspaceId,
+                entityType: "file" as const,
+                entityId: id,
+                operation: "delete" as const,
+                fieldPatches: {},
+                at,
+                contentHash: null,
+              },
+            ],
+          };
+        })
+      );
     },
     async list(workspaceId, filter, options) {
       return run(async () => {
@@ -732,18 +1254,20 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
     },
     async setTags(id, tagIds) {
       return run(async () =>
-        atomic(async () => {
+        syncWrite(async () => {
           const rows = await requireDb()
-            .select({ id: filesTable.id })
+            .select()
             .from(filesTable)
             .where(eq(filesTable.id, id))
             .limit(1);
+          const row = rows[0];
 
-          if (rows.length === 0) {
+          if (row === undefined) {
             throw new NotFoundError("File does not exist.");
           }
 
-          const unique = [...new Set<string>(tagIds)];
+          const at = new Date().toISOString();
+          const unique = canonicalIdList(tagIds);
           await requireDb().delete(fileTagsTable).where(eq(fileTagsTable.fileId, id));
 
           if (unique.length > 0) {
@@ -751,6 +1275,21 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
               .insert(fileTagsTable)
               .values(unique.map((tagId) => ({ fileId: id, tagId })));
           }
+
+          return {
+            result: undefined,
+            changes: [
+              {
+                workspaceId: row.workspaceId,
+                entityType: "file" as const,
+                entityId: id,
+                operation: "update" as const,
+                fieldPatches: { tagIds: unique },
+                at,
+                contentHash: row.checksum,
+              },
+            ],
+          };
         })
       );
     },
@@ -775,22 +1314,44 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
 
   const notes: NoteRepository = {
     async create(input) {
-      return run(async () => {
-        const at = requireAt(input.at);
-        const row: NoteRow = {
-          id: generateId(),
-          workspaceId: input.workspaceId,
-          folderId: input.folderId,
-          title: input.title,
-          content: input.content ?? "",
-          pinned: input.pinned ?? false,
-          createdAt: at,
-          updatedAt: at,
-        };
-        await requireDb().insert(notesTable).values(row);
+      return run(async () =>
+        syncWrite(async () => {
+          const at = requireAt(input.at);
+          const row: NoteRow = {
+            id: generateId(),
+            workspaceId: input.workspaceId,
+            folderId: input.folderId,
+            title: input.title,
+            content: input.content ?? "",
+            pinned: input.pinned ?? false,
+            createdAt: at,
+            updatedAt: at,
+          };
+          await requireDb().insert(notesTable).values(row);
 
-        return toNote(row);
-      });
+          return {
+            result: toNote(row),
+            changes: [
+              {
+                workspaceId: row.workspaceId,
+                entityType: "note" as const,
+                entityId: row.id,
+                operation: "create" as const,
+                fieldPatches: {
+                  title: row.title,
+                  content: row.content,
+                  folderId: row.folderId,
+                  pinned: row.pinned,
+                  tagIds: [],
+                  targetNoteIds: [],
+                },
+                at,
+                contentHash: null,
+              },
+            ],
+          };
+        })
+      );
     },
     async get(id) {
       return run(async () => {
@@ -806,7 +1367,7 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
     },
     async update(id, patch) {
       return run(async () =>
-        atomic(async () => {
+        syncWrite(async () => {
           const rows = await requireDb()
             .select()
             .from(notesTable)
@@ -849,25 +1410,101 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
             pinned: changes.pinned === undefined ? row.pinned : changes.pinned,
             updatedAt: changes.updatedAt ?? row.updatedAt,
           };
+          const fieldPatches: Record<string, unknown> = {};
 
-          return toNote(next);
+          if (patch.title !== undefined) {
+            fieldPatches.title = next.title;
+          }
+          if (patch.content !== undefined) {
+            fieldPatches.content = next.content;
+          }
+          if (patch.folderId !== undefined) {
+            fieldPatches.folderId = next.folderId;
+          }
+          if (patch.pinned !== undefined) {
+            fieldPatches.pinned = next.pinned;
+          }
+
+          return {
+            result: toNote(next),
+            changes: [
+              {
+                workspaceId: next.workspaceId,
+                entityType: "note" as const,
+                entityId: next.id,
+                operation: "update" as const,
+                fieldPatches,
+                at: next.updatedAt,
+                contentHash: null,
+              },
+            ],
+          };
         })
       );
     },
     async delete(id) {
-      return run(async () => {
-        const rows = await requireDb()
-          .select({ id: notesTable.id })
-          .from(notesTable)
-          .where(eq(notesTable.id, id))
-          .limit(1);
+      return run(async () =>
+        syncWrite(async () => {
+          const rows = await requireDb()
+            .select()
+            .from(notesTable)
+            .where(eq(notesTable.id, id))
+            .limit(1);
+          const row = rows[0];
 
-        if (rows.length === 0) {
-          throw new NotFoundError("Note does not exist.");
-        }
+          if (row === undefined) {
+            throw new NotFoundError("Note does not exist.");
+          }
 
-        await requireDb().delete(notesTable).where(eq(notesTable.id, id));
-      });
+          const at = new Date().toISOString();
+          const incoming = await requireDb()
+            .select({ sourceNoteId: noteLinksTable.sourceNoteId })
+            .from(noteLinksTable)
+            .where(eq(noteLinksTable.targetNoteId, id));
+          const sourceIds = [...new Set(incoming.map((link) => link.sourceNoteId))];
+          const sources = await Promise.all(
+            sourceIds.map(async (sourceId) => {
+              const links = await requireDb()
+                .select({ targetNoteId: noteLinksTable.targetNoteId })
+                .from(noteLinksTable)
+                .where(eq(noteLinksTable.sourceNoteId, sourceId));
+
+              return {
+                sourceId,
+                targetNoteIds: canonicalIdList(
+                  links
+                    .map((link) => link.targetNoteId)
+                    .filter((targetId) => targetId !== id)
+                ),
+              };
+            })
+          );
+          const changes: SyncChange[] = [
+            {
+              workspaceId: row.workspaceId,
+              entityType: "note",
+              entityId: id,
+              operation: "delete",
+              fieldPatches: {},
+              at,
+              contentHash: null,
+            },
+            ...sources.map((source) => ({
+              workspaceId: row.workspaceId,
+              entityType: "note" as const,
+              entityId: source.sourceId,
+              operation: "update" as const,
+              fieldPatches: { targetNoteIds: source.targetNoteIds },
+              at,
+              contentHash: null,
+            })),
+          ];
+
+          await requireDb().delete(notesTable).where(eq(notesTable.id, id));
+
+          return { result: undefined, changes };
+        })
+      );
     },
     async list(workspaceId, filter, options) {
       return run(async () => {
@@ -925,18 +1562,20 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
     },
     async setTags(id, tagIds) {
       return run(async () =>
-        atomic(async () => {
+        syncWrite(async () => {
           const rows = await requireDb()
-            .select({ id: notesTable.id })
+            .select()
             .from(notesTable)
             .where(eq(notesTable.id, id))
             .limit(1);
+          const row = rows[0];
 
-          if (rows.length === 0) {
+          if (row === undefined) {
             throw new NotFoundError("Note does not exist.");
           }
 
-          const unique = [...new Set<string>(tagIds)];
+          const at = new Date().toISOString();
+          const unique = canonicalIdList(tagIds);
           await requireDb().delete(noteTagsTable).where(eq(noteTagsTable.noteId, id));
 
           if (unique.length > 0) {
@@ -944,6 +1583,21 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
               .insert(noteTagsTable)
               .values(unique.map((tagId) => ({ noteId: id, tagId })));
           }
+
+          return {
+            result: undefined,
+            changes: [
+              {
+                workspaceId: row.workspaceId,
+                entityType: "note" as const,
+                entityId: id,
+                operation: "update" as const,
+                fieldPatches: { tagIds: unique },
+                at,
+                contentHash: null,
+              },
+            ],
+          };
         })
       );
     },
@@ -966,18 +1620,20 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
     },
     async setLinks(id, targetIds) {
       return run(async () =>
-        atomic(async () => {
+        syncWrite(async () => {
           const rows = await requireDb()
-            .select({ id: notesTable.id })
+            .select()
             .from(notesTable)
             .where(eq(notesTable.id, id))
             .limit(1);
+          const row = rows[0];
 
-          if (rows.length === 0) {
+          if (row === undefined) {
             throw new NotFoundError("Note does not exist.");
           }
 
-          const unique = [...new Set<string>(targetIds)];
+          const at = new Date().toISOString();
+          const unique = canonicalIdList(targetIds);
 
           for (const targetId of unique) {
             assertNoSelfLink(id, targetId);
@@ -997,6 +1653,21 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
                 }))
               );
           }
+
+          return {
+            result: undefined,
+            changes: [
+              {
+                workspaceId: row.workspaceId,
+                entityType: "note" as const,
+                entityId: id,
+                operation: "update" as const,
+                fieldPatches: { targetNoteIds: unique },
+                at,
+                contentHash: null,
+              },
+            ],
+          };
         })
       );
     },
@@ -1017,19 +1688,34 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
 
   const tags: TagRepository = {
     async create(input) {
-      return run(async () => {
-        const at = requireAt(input.at);
-        const row: TagRow = {
-          id: generateId(),
-          workspaceId: input.workspaceId,
-          name: normalizeTagName(input.name).display,
-          color: input.color ?? null,
-          createdAt: at,
-        };
-        await requireDb().insert(tagsTable).values(row);
+      return run(async () =>
+        syncWrite(async () => {
+          const at = requireAt(input.at);
+          const row: TagRow = {
+            id: generateId(),
+            workspaceId: input.workspaceId,
+            name: normalizeTagName(input.name).display,
+            color: input.color ?? null,
+            createdAt: at,
+          };
+          await requireDb().insert(tagsTable).values(row);
 
-        return toTag(row);
-      });
+          return {
+            result: toTag(row),
+            changes: [
+              {
+                workspaceId: row.workspaceId,
+                entityType: "tag" as const,
+                entityId: row.id,
+                operation: "create" as const,
+                fieldPatches: { name: row.name, color: row.color },
+                at,
+                contentHash: null,
+              },
+            ],
+          };
+        })
+      );
     },
     async get(id) {
       return run(async () => {
@@ -1044,47 +1730,152 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
       });
     },
     async update(id, patch) {
-      return run(async () => {
-        const rows = await requireDb()
-          .select()
-          .from(tagsTable)
-          .where(eq(tagsTable.id, id))
-          .limit(1);
-        const row = rows[0];
+      return run(async () =>
+        syncWrite(async () => {
+          const rows = await requireDb()
+            .select()
+            .from(tagsTable)
+            .where(eq(tagsTable.id, id))
+            .limit(1);
+          const row = rows[0];
 
-        if (row === undefined) {
-          throw new NotFoundError("Tag does not exist.");
-        }
+          if (row === undefined) {
+            throw new NotFoundError("Tag does not exist.");
+          }
 
-        const next: TagRow = {
-          ...row,
-          name:
-            patch.name === undefined ? row.name : normalizeTagName(patch.name).display,
-          color: patch.color === undefined ? row.color : patch.color,
-        };
+          const at = requireAt(patch.at);
+          const next: TagRow = {
+            ...row,
+            name:
+              patch.name === undefined ? row.name : normalizeTagName(patch.name).display,
+            color: patch.color === undefined ? row.color : patch.color,
+          };
 
-        await requireDb()
-          .update(tagsTable)
-          .set({ name: next.name, color: next.color })
-          .where(eq(tagsTable.id, id));
+          await requireDb()
+            .update(tagsTable)
+            .set({ name: next.name, color: next.color })
+            .where(eq(tagsTable.id, id));
 
-        return toTag(next);
-      });
+          const fieldPatches: Record<string, unknown> = {};
+          if (patch.name !== undefined) {
+            fieldPatches.name = next.name;
+          }
+          if (patch.color !== undefined) {
+            fieldPatches.color = next.color;
+          }
+
+          return {
+            result: toTag(next),
+            changes: [
+              {
+                workspaceId: next.workspaceId,
+                entityType: "tag" as const,
+                entityId: next.id,
+                operation: "update" as const,
+                fieldPatches,
+                at,
+                contentHash: null,
+              },
+            ],
+          };
+        })
+      );
     },
     async delete(id) {
-      return run(async () => {
-        const rows = await requireDb()
-          .select({ id: tagsTable.id })
-          .from(tagsTable)
-          .where(eq(tagsTable.id, id))
-          .limit(1);
+      return run(async () =>
+        syncWrite(async () => {
+          const rows = await requireDb()
+            .select()
+            .from(tagsTable)
+            .where(eq(tagsTable.id, id))
+            .limit(1);
+          const row = rows[0];
 
-        if (rows.length === 0) {
-          throw new NotFoundError("Tag does not exist.");
-        }
+          if (row === undefined) {
+            throw new NotFoundError("Tag does not exist.");
+          }
 
-        await requireDb().delete(tagsTable).where(eq(tagsTable.id, id));
-      });
+          const at = new Date().toISOString();
+          const fileLinks = await requireDb()
+            .select()
+            .from(fileTagsTable)
+            .where(eq(fileTagsTable.tagId, id));
+          const noteLinks = await requireDb()
+            .select()
+            .from(noteTagsTable)
+            .where(eq(noteTagsTable.tagId, id));
+          const filePatchIds = [...new Set(fileLinks.map((link) => link.fileId))];
+          const notePatchIds = [...new Set(noteLinks.map((link) => link.noteId))];
+          const files = await Promise.all(
+            filePatchIds.map(async (fileId) => {
+              const links = await requireDb()
+                .select({ tagId: fileTagsTable.tagId })
+                .from(fileTagsTable)
+                .where(eq(fileTagsTable.fileId, fileId));
+              const [file] = await requireDb()
+                .select({ checksum: filesTable.checksum })
+                .from(filesTable)
+                .where(eq(filesTable.id, fileId));
+
+              return {
+                fileId,
+                tagIds: canonicalIdList(
+                  links.map((link) => link.tagId).filter((tagId) => tagId !== id)
+                ),
+                contentHash: file?.checksum ?? null,
+              };
+            })
+          );
+          const notes = await Promise.all(
+            notePatchIds.map(async (noteId) => {
+              const links = await requireDb()
+                .select({ tagId: noteTagsTable.tagId })
+                .from(noteTagsTable)
+                .where(eq(noteTagsTable.noteId, noteId));
+
+              return {
+                noteId,
+                tagIds: canonicalIdList(
+                  links.map((link) => link.tagId).filter((tagId) => tagId !== id)
+                ),
+              };
+            })
+          );
+          const changes: SyncChange[] = [
+            {
+              workspaceId: row.workspaceId,
+              entityType: "tag",
+              entityId: id,
+              operation: "delete",
+              fieldPatches: {},
+              at,
+              contentHash: null,
+            },
+            ...files.map((file) => ({
+              workspaceId: row.workspaceId,
+              entityType: "file" as const,
+              entityId: file.fileId,
+              operation: "update" as const,
+              fieldPatches: { tagIds: file.tagIds },
+              at,
+              contentHash: file.contentHash,
+            })),
+            ...notes.map((note) => ({
+              workspaceId: row.workspaceId,
+              entityType: "note" as const,
+              entityId: note.noteId,
+              operation: "update" as const,
+              fieldPatches: { tagIds: note.tagIds },
+              at,
+              contentHash: null,
+            })),
+          ];
+
+          await requireDb().delete(tagsTable).where(eq(tagsTable.id, id));
+
+          return { result: undefined, changes };
+        })
+      );
     },
     async list(workspaceId, options) {
       return run(async () => {
@@ -1322,7 +2113,7 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
     },
   };
 
-  const adapter: StorageAdapter = {
+  const adapter: SyncCapableStorage = {
     kind: "sqlite",
     get schemaVersion() {
       return schemaVersion;
@@ -1334,6 +2125,7 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
     tags,
     search,
     blobs,
+    sync,
     async transaction(work) {
       guard();
 
@@ -1345,6 +2137,9 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
       }
 
       const sqlite = connection as DatabaseSync;
+      const previousWorkspaceRevisions = currentWorkspaceRevisions;
+      currentWorkspaceRevisions = new Map();
+      nestedWriteQueue = Promise.resolve();
       transactionDepth = 1;
 
       try {
@@ -1368,6 +2163,7 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
         throw mapSqliteError(error);
       } finally {
         transactionDepth = 0;
+        currentWorkspaceRevisions = previousWorkspaceRevisions;
       }
     },
     async init() {
@@ -1382,6 +2178,7 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
         connection = opened.sqlite;
         db = opened.db;
         schemaVersion = opened.migrationCount;
+        await bootstrapSync();
       } catch (error) {
         throw mapSqliteError(error);
       }
@@ -1403,7 +2200,15 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
     async reset() {
       return run(async () => {
         await atomic(async () => {
-          await requireDb().delete(workspacesTable);
+          const database = requireDb();
+          await database.delete(syncConflictTable);
+          await database.delete(syncTombstoneTable);
+          await database.delete(syncOutboxTable);
+          await database.delete(syncFieldMetaTable);
+          await database.delete(syncMetaTable);
+          await database.delete(workspaceSyncStateTable);
+          await database.delete(syncDevicesTable);
+          await database.delete(workspacesTable);
         });
         await blobs.purgeOrphans([]);
       });
@@ -1411,6 +2216,21 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
     async restore(snapshot) {
       return run(async () => {
         const parsed = parseSnapshot(snapshot);
+        const prepared = await prepareSyncChanges({
+          changes: restoreChanges(parsed),
+          policy,
+        });
+        const existingWorkspaces = await requireDb()
+          .select({ id: workspacesTable.id })
+          .from(workspacesTable);
+        for (const workspace of existingWorkspaces) {
+          if (await sync.hasRemoteTarget(workspace.id)) {
+            throw new SyncError(
+              "Restore is blocked while a remote workspace target exists.",
+              "remote_target_present"
+            );
+          }
+        }
         const newlyWritten: BlobKey[] = [];
 
         for (const blob of parsed.blobs) {
@@ -1431,12 +2251,63 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
             const database = requireDb();
             await database.run(sql`PRAGMA defer_foreign_keys = ON`);
 
+            const current = await database
+              .select({ id: workspacesTable.id })
+              .from(workspacesTable);
+            for (const workspace of current) {
+              if (await sync.hasRemoteTarget(workspace.id)) {
+                throw new SyncError(
+                  "Restore is blocked while a remote workspace target exists.",
+                  "remote_target_present"
+                );
+              }
+            }
+
+            const devices = await database.select().from(syncDevicesTable);
+            const installationDeviceId = devices[0]?.deviceId ?? generateId();
+            const [previousState] = await database
+              .select()
+              .from(workspaceSyncStateTable)
+              .where(
+                and(
+                  eq(workspaceSyncStateTable.workspaceId, parsed.workspace.id),
+                  eq(workspaceSyncStateTable.deviceId, installationDeviceId)
+                )
+              );
+            const previousHighWater = previousState?.lastLocalSequence ?? 0;
+
+            await database.delete(syncConflictTable);
+            await database.delete(syncTombstoneTable);
+            await database.delete(syncOutboxTable);
+            await database.delete(syncFieldMetaTable);
+            await database.delete(syncMetaTable);
+            await database.delete(workspaceSyncStateTable);
+            await database.delete(syncDevicesTable);
             await database.delete(workspacesTable);
             await database.insert(workspacesTable).values({
               id: parsed.workspace.id,
               name: parsed.workspace.name,
               createdAt: parsed.workspace.createdAt,
               updatedAt: parsed.workspace.updatedAt,
+            });
+            await database.insert(syncDevicesTable).values({
+              workspaceId: parsed.workspace.id,
+              deviceId: installationDeviceId,
+              registeredAt: parsed.workspace.updatedAt,
+              lastSeenAt: parsed.workspace.updatedAt,
+              lastAckedTombstoneWorkspaceRevision: 0,
+              state: "active",
+              publicKey: null,
+            });
+            await database.insert(workspaceSyncStateTable).values({
+              workspaceId: parsed.workspace.id,
+              deviceId: installationDeviceId,
+              remoteWorkspaceId: null,
+              lastServerCursor: null,
+              lastLocalWorkspaceRevision: 0,
+              lastLocalSequence: previousHighWater,
+              tombstoneFloor: 0,
+              lastFullResyncAt: parsed.workspace.updatedAt,
             });
 
             if (parsed.folders.length > 0) {
@@ -1522,6 +2393,8 @@ export function createSqliteStorage(config: SqliteStorageConfig): StorageAdapter
                 }))
               );
             }
+
+            await recordPreparedSyncChanges(sync, { changes: prepared, policy });
           });
         } catch (error) {
           for (const key of newlyWritten) {

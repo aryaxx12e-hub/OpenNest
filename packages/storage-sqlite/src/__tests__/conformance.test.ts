@@ -4,7 +4,8 @@ import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
-import { runStorageConformance } from "@opennest/storage-conformance";
+import { runStorageConformance, runSyncConformance } from "@opennest/storage-conformance";
+import type { SyncPolicy } from "@opennest/sync";
 import { afterAll } from "vitest";
 
 import { createSqliteStorage } from "../index";
@@ -35,16 +36,22 @@ function databaseFileFor(name?: string): string {
 }
 
 function createFactory(label: string, forceFile: boolean) {
-  return async (name?: string) => {
+  return async (name?: string, policy?: SyncPolicy) => {
     counter += 1;
     const key = name === undefined ? `${label}-${counter}` : `${label}:${name}`;
 
     return createSqliteStorage({
       databaseFile: forceFile || name !== undefined ? databaseFileFor(key) : ":memory:",
       blobRoot: path.join(root, `blobs-${counter}`),
+      ...(policy === undefined ? {} : { syncPolicy: policy }),
     });
   };
 }
 
-runStorageConformance("sqlite (:memory:)", createFactory("memory", false));
-runStorageConformance("sqlite (file)", createFactory("file", true));
+const memoryFactory = createFactory("memory", false);
+const fileFactory = createFactory("file", true);
+
+runStorageConformance("sqlite (:memory:)", memoryFactory);
+runStorageConformance("sqlite (file)", fileFactory);
+runSyncConformance("sqlite (:memory:) sync", memoryFactory);
+runSyncConformance("sqlite (file) sync", fileFactory);

@@ -1,2 +1,2 @@
 export { FileSystemBlobStore, type FileSystemBlobStoreConfig } from "./blob-store";
-export { createSqliteStorage } from "./storage";
+export { createSqliteStorage, type SqliteStorageOptions } from "./storage";

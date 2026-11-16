@@ -17,9 +17,69 @@ export interface OpenDatabaseResult {
 }
 
 const MIGRATIONS_FOLDER = fileURLToPath(new URL("../migrations", import.meta.url));
+const SYNC_TABLES = [
+  "sync_meta",
+  "sync_field_meta",
+  "sync_outbox",
+  "workspace_sync_state",
+  "sync_tombstone",
+  "sync_conflict",
+  "sync_devices",
+] as const;
 
 function toSqliteValues(params: readonly unknown[]): SQLInputValue[] {
   return params as SQLInputValue[];
+}
+
+function tableExists(sqlite: DatabaseSync, name: string): boolean {
+  return (
+    sqlite
+      .prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?")
+      .get(name) !== undefined
+  );
+}
+
+function readMigrationCount(sqlite: DatabaseSync): number {
+  if (!tableExists(sqlite, "__drizzle_migrations")) {
+    return 0;
+  }
+
+  const row = sqlite
+    .prepare("SELECT COUNT(*) AS count FROM __drizzle_migrations")
+    .get() as { count?: number | bigint } | undefined;
+
+  return Number(row?.count ?? 0);
+}
+
+function rejectPartialSyncSchema(sqlite: DatabaseSync): void {
+  const migrationCount = readMigrationCount(sqlite);
+
+  if (migrationCount < 3 && SYNC_TABLES.some((name) => tableExists(sqlite, name))) {
+    throw new StorageError(
+      "The sync migration ledger does not match the existing tables.",
+      "corrupt_data"
+    );
+  }
+}
+
+function runMigrationQueries(sqlite: DatabaseSync, queries: readonly string[]): void {
+  sqlite.exec("BEGIN IMMEDIATE");
+
+  try {
+    for (const query of queries) {
+      sqlite.exec(query);
+    }
+
+    sqlite.exec("COMMIT");
+  } catch (error) {
+    try {
+      sqlite.exec("ROLLBACK");
+    } catch {
+      // The transaction was already rolled back by SQLite.
+    }
+
+    throw error;
+  }
 }
 
 export async function openDatabase(databaseFile: string): Promise<OpenDatabaseResult> {
@@ -54,23 +114,24 @@ export async function openDatabase(databaseFile: string): Promise<OpenDatabaseRe
       { schema, casing: "snake_case" }
     );
 
+    rejectPartialSyncSchema(sqlite);
+
     await migrate(
       db,
       async (queries) => {
-        for (const query of queries) {
-          sqlite.exec(query);
-        }
+        runMigrationQueries(sqlite, queries);
       },
       { migrationsFolder: MIGRATIONS_FOLDER }
     );
 
-    const row = sqlite
-      .prepare("SELECT COUNT(*) AS count FROM __drizzle_migrations")
-      .get() as { count?: number | bigint } | undefined;
-    const migrationCount = Number(row?.count ?? 0);
+    const migrationCount = readMigrationCount(sqlite);
 
     if (!Number.isInteger(migrationCount) || migrationCount < 0) {
       throw new StorageError("The migration ledger is unreadable.", "corrupt_data");
+    }
+
+    if (!SYNC_TABLES.every((name) => tableExists(sqlite, name))) {
+      throw new StorageError("The sync schema is incomplete.", "corrupt_data");
     }
 
     sqlite.exec(`PRAGMA user_version = ${migrationCount}`);

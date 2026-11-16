@@ -94,6 +94,9 @@ Goal: Strengthen user control and prepare for future integrations.
 - [ ] Self-hosting architecture evaluation.
 - [ ] Security review.
 - [ ] Extension architecture research.
+- [x] Sync-compatible data model (local-only); ADR 0012 audit remediation complete.
+- [x] D2 transaction and migration remediation: per-workspace revisions, nested rollback, atomic SQLite migrations, and restore guard before blob writes.
+- [ ] SQLite interrupted-restore orphan blob and stale `.tmp` cleanup.
 
 Phase 5: Community Ecosystem
 
