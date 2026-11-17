@@ -351,6 +351,7 @@ async function run() {
     const downloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "Export backup" }).click();
     await page.getByRole("dialog").waitFor();
+    await page.getByRole("radio", { name: /Plaintext \(v1\)/ }).check();
     await page.getByRole("button", { name: "Download backup" }).click();
     const download = await downloadPromise;
     const backupPath = await download.path();
@@ -358,7 +359,8 @@ async function run() {
     const backupText = await readFile(backupPath, "utf8");
     assert.match(backupText, /"format": "opennest-backup"/);
     assert.match(backupText, new RegExp(unique));
-    await page.getByText("Backup downloaded.").waitFor();
+    await page.getByText("Backup downloaded.", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "Done", exact: true }).click();
 
     await page.goto(`${server.base}/notes`, { waitUntil: "networkidle" });
     await page.getByRole("button", { name: "New note" }).first().click();
@@ -397,9 +399,11 @@ async function run() {
     const privacyDownloadPromise = page.waitForEvent("download");
     await page.getByRole("button", { name: "Export backup" }).click();
     await page.getByRole("dialog").waitFor();
+    await page.getByRole("radio", { name: /Plaintext \(v1\)/ }).check();
     await page.getByRole("button", { name: "Download backup" }).click();
     await privacyDownloadPromise;
-    await page.getByText("Backup downloaded.").waitFor();
+    await page.getByText("Backup downloaded.", { exact: true }).waitFor();
+    await page.getByRole("button", { name: "Done", exact: true }).click();
 
     await page.getByText("Built-in", { exact: true }).first().waitFor();
 

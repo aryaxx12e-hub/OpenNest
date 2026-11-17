@@ -2,6 +2,7 @@
 
 - Status: Accepted
 - Date: 2026-11-14
+- Amendment: AD-7-1 accepted 2026-11-16 for Stage D3
 
 ## Context
 
@@ -52,6 +53,66 @@ localStorage.
 `useAsyncData` is key-aware so a route change never shows another record's data
 or error while the next record loads. Same-key reloads keep the current data
 visible until the replacement arrives.
+
+## Amendment AD-7-1: asynchronous encrypted drafts
+
+- Status: Accepted for D3 implementation on 2026-11-16.
+- Scope: this amendment changes only draft storage and flush behavior. The rest
+  of ADR 0007 remains in force.
+
+Plaintext workspaces keep the existing synchronous `localStorage` journal and
+the `opennest:draft:note:` key prefix. An encrypted workspace uses a new
+`DraftStore` interface whose operations return promises:
+
+- `list`, `get`, `put`, `remove`, `clear`, `count`, and `flush`.
+- The encrypted implementation stores under
+  `opennest:edraft:note:<workspaceId>:<noteId>`.
+- The complete draft record, including title, content, base title, base content,
+  and timestamps, is serialized and encrypted. The note ID and workspace ID
+  remain in the key and in AAD, but no draft text is written in plaintext.
+- The envelope uses the workspace key hierarchy and binds workspace ID, note ID,
+  purpose `draft`, envelope version, and key ID. A moved or swapped draft must
+  fail authentication.
+- `put` resolves only after the encrypted write is committed. `flush` resolves
+  after pending writes settle. `count` reports stored drafts without exposing
+  their contents.
+
+Lifecycle behavior changes in encrypted mode:
+
+- `pagehide`, hidden-document, unmount, and update prompts are best effort. The
+  browser does not guarantee that an asynchronous encrypted write finishes before
+  the page is frozen or discarded.
+- The editor still attempts the normal IndexedDB save and the encrypted draft.
+  It must not fall back to a plaintext draft when encryption is active.
+- If the encrypted draft cannot be written, the editor reports a localized
+  warning while continuing the normal save. The update control must not reload
+  while a pending encrypted draft cannot be verified.
+- On unlock, draft recovery runs after the workspace key is available. A draft
+  that cannot be decrypted is ignored and removed without displaying ciphertext.
+
+Migration behavior:
+
+- Plaintext drafts are copied to encrypted keys first.
+- Each copied draft is decrypted and compared before the encrypted base restore
+  commits.
+- Plaintext drafts are deleted only after the encrypted restore commits and the
+  new base is readable.
+- If migration fails before commit, plaintext storage and plaintext drafts remain
+  readable. There is no mixed mode that locks the user out.
+- If migration is cancelled, encrypted draft copies are removed and plaintext
+  drafts remain.
+
+Consequences of this amendment:
+
+- Encrypted draft durability is weaker than the synchronous plaintext journal at
+  the final instant before a page is discarded. The product must not promise
+  crash-proof drafts in encrypted mode.
+- Losing the workspace passphrase and recovery key also makes pending encrypted
+  drafts unrecoverable.
+- Draft metadata in key names remains visible. Draft text, title, and base values
+  do not.
+- Every draft write has encryption cost. The editor must serialize draft writes
+  so an older write cannot overwrite a newer snapshot.
 
 ## Consequences
 

@@ -76,6 +76,43 @@ Backup v1 is unchanged and excludes all seven sidecars: `sync_meta`, `sync_field
 
 Restore is blocked when `workspace_sync_state.remoteWorkspaceId` is non-null. Dexie checks this inside the restore transaction before clearing anything. SQLite checks before writing any blob and rechecks inside the database transaction, so a blocked restore leaves existing blobs unchanged. The failure is `remote_target_present`. A future remote writer could still race the pre-check between the guard and the blob writes; the in-transaction recheck limits that window.
 
+## D3 encryption implications
+
+D3 is still under implementation. The following constraints apply to the
+encrypted storage wrapper and must not be read as a shipped E2EE claim.
+
+- Note content and file bytes are ciphertext at rest when workspace encryption is
+  active. Note titles and sync metadata remain plaintext.
+- Sync sidecars record the ciphertext for content-bearing fields. They never
+  store a second plaintext copy of note content or file bytes. Outbox patches and
+  conflict values inherit the content data class and may contain ciphertext.
+- `payloadHash` is computed over the stored ciphertext for covered fields. A
+  re-encryption can therefore change the hash even when the plaintext is
+  unchanged. Conflict handling must compare decrypted content or accept that
+  re-encryption is a content-bearing change. It must never leak plaintext into
+  sidecars to avoid that cost.
+- File bytes remain outside sync sidecars. A file ciphertext checksum is not the
+  logical plaintext checksum used by backup v1 or v2.
+- The encrypted wrapper does not support `transaction`; it fails with
+  `UnsupportedError("encrypted_transaction")`. Core services must not call it.
+  Adapter-internal single-operation transactions and restore remain the
+  responsibility of the base adapter.
+- Search decrypts notes in memory. No persistent plaintext search index or
+  preview cache is allowed in encrypted mode.
+- Backup v1 and v2 both exclude all seven sidecars, device identity, drafts,
+  keyring records, credentials, grants, and audit entries. Backup v2 additionally
+  encrypts its payload.
+- Restore from backup v2 maps the snapshot to the current workspace ID,
+  re-encrypts covered values under the target workspace key, clears stale
+  sidecars, preserves the installation device ID, and keeps the existing
+  `remote_target_present` guard. The backup DEK is never installed as a live
+  workspace key.
+- Sync metadata, outbox field names, tombstones, and conflict records remain
+  visible. D3 does not provide metadata confidentiality.
+- R-13-7 rollback and replay protection is unresolved. No E2EE claim may be made
+  until the sync design defines client-pinned revisions or authenticated
+  metadata that detects rollback, replay, and truncation.
+
 ## No global order
 
 `workspaceRevision` is local to this device. D2 does not claim a cross-device revision order, a server cursor, or distributed tombstone authority. Future sync needs a canonical authority or a per-device vector; local-only behavior must not be described as globally ordered.

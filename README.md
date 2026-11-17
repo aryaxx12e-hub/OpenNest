@@ -6,7 +6,7 @@ OpenNest is an open-source personal digital workspace designed to help people or
 
 Built around privacy-first and local-first principles, OpenNest aims to give users control over their digital information without forcing them into subscriptions, accounts, or cloud-dependent workflows.
 
-Status: MVP in progress · Library, notes, search, backup, and offline access work locally in the browser
+Status: MVP in progress · Library, notes, search, backup, and offline access work locally in the browser. Optional content encryption is implemented but has not been independently reviewed.
 
 🌱 Our Vision
 
@@ -82,6 +82,14 @@ OpenNest aims to:
 - Provide clear data export and deletion capabilities.
 
 Browser storage has limitations, including possible eviction by the browser. Users should be able to export and back up their data.
+
+Optional content encryption for note bodies, attached file bytes, encrypted
+drafts, and backup v2 payloads is implemented under ADR 0013. It has not been
+independently reviewed. OpenNest does not claim end-to-end encryption or
+database encryption yet. Note titles, filenames, tags, folder names and
+structure, sizes, timestamps, and sync metadata remain plaintext by design. See
+`SECURITY.md` and `docs/e2ee-threat-model.md` for the current gate and
+limitations.
 
 🌍 Community & Contributions
 
@@ -171,7 +179,7 @@ OpenNest adalah ruang kerja digital pribadi berbasis open-source yang dirancang 
 
 Dibangun dengan prinsip privacy-first dan local-first, OpenNest bertujuan memberikan kendali penuh kepada pengguna atas informasi digital mereka tanpa ketergantungan wajib pada langganan, akun, atau layanan cloud.
 
-Status: MVP dalam pengembangan · Perpustakaan, catatan, pencarian, cadangan, dan akses offline sudah berjalan lokal di browser
+Status: MVP dalam pengembangan · Perpustakaan, catatan, pencarian, cadangan, dan akses offline sudah berjalan lokal di browser. Enkripsi konten opsional masih dalam implementasi dan belum ditinjau secara independen.
 
 🌱 Visi Kami
 
@@ -220,6 +228,14 @@ Fitur AI, sinkronisasi cloud, kolaborasi, dan ekstensi komunitas akan dikembangk
 OpenNest dirancang agar data pribadi tetap berada di perangkat pengguna secara default.
 
 Kami ingin membangun aplikasi yang transparan, tidak mengumpulkan data secara berlebihan, dan tidak mengirim dokumen pribadi ke layanan eksternal tanpa persetujuan pengguna.
+
+Enkripsi konten opsional untuk isi catatan, byte file terlampir, draft
+terenkripsi, dan payload backup v2 sudah diimplementasikan berdasarkan ADR 0013.
+Fitur ini belum ditinjau secara independen. OpenNest belum mengklaim end-to-end
+encryption atau enkripsi seluruh database. Judul catatan, nama file, tag, nama
+dan struktur folder, ukuran, timestamp, serta metadata sync tetap plaintext
+sesuai keputusan produk. Lihat `SECURITY.md` dan `docs/e2ee-threat-model.md`
+untuk gate dan batasan saat ini.
 
 🤝 Bergabung dengan Komunitas
 

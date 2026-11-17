@@ -1,11 +1,51 @@
 # ADR 0013: E2EE key management strategy
 
-- Status: Proposed, pending Stage D0 approval
+- Status: Accepted for implementation; E2EE claim pending review
 - Date: 2026-11-14
+- Approval: 2026-11-16
 - Context: Stage D0 Privacy and Extensibility
 - Related: ADR 0005, ADR 0007, ADR 0008, ADR 0009, ADR 0011, ADR 0012
 - Product conflict: ADR 0007 draft storage and ADR 0005 backup default
 - Security refinement: pass 1 applied 2026-11-14
+- Implementation plan: `docs/superpowers/plans/2026-11-16-d3-e2ee-key-management.md`
+
+## Approval record
+
+Rya approved this ADR on 2026-11-16 for Stage D3 implementation. This is an
+implementation acceptance, not an end-to-end encryption claim. No code existed
+when the decision was recorded.
+
+Approved security refinements:
+
+- R-13-1, unambiguous envelope.
+- R-13-2, nonce and CEK discipline.
+- R-13-4, KDF hardening and unlock rate limiting.
+- R-13-5, recovery-key handling and confirmation.
+- R-13-8, backup key separation and backup v2 key hierarchy.
+
+Deferred controls:
+
+- R-13-6, authenticated device enrollment. Device pairing is outside D3.
+- R-13-7, rollback and replay protection. Sync is outside D3 and this remains an
+  open gate before any E2EE claim.
+
+Approved product decisions:
+
+- Content-only encryption covers note bodies, attached file bytes, encrypted
+  drafts, and backup v2 payloads. Titles, filenames, tags, folder names and
+  structure, sizes, timestamps, and sync metadata remain plaintext. This leakage
+  must be disclosed in the product.
+- Workspace, credential-vault, and backup key domains remain separate. No domain
+  may unwrap another domain's keys.
+- ADR 0007 is amended by AD-7-1 for asynchronous encrypted drafts. ADR 0005 is
+  extended by an addendum for backup v2.
+- Backup v2 is the default export when encryption is active. Backup v1 remains
+  importable and is clearly marked as plaintext.
+- The migration must leave plaintext readable after a failure before commit.
+
+The E2EE claim gate remains open. It requires R-13-7, the acceptance criteria
+below, and an external cryptographic and implementation review to pass. Marketing,
+documentation, and UI copy must not call local storage encrypted until then.
 
 ## Context and problem
 
@@ -332,27 +372,42 @@ encryption or authorize an E2EE claim.
   restore creates or targets a workspace key hierarchy; it does not import the
   backup DEK as a live workspace key.
 
-## Conflicts and decisions requiring approval
+## Resolved decisions and open gates
 
-- **ADR 0007 conflict:** plaintext draft storage cannot coexist with an E2EE
-  claim. The recommended fix is encrypted drafts. This requires an accepted
-  amendment to ADR 0007.
-- **ADR 0005 conflict:** v1 backups are plaintext. Encrypted v2 is additive, but
-  making v2 the default changes the backup product behavior and requires
-  approval. ADR 0005 is not superseded silently.
-- **PRD scope conflict:** the PRD says E2EE is a target, but does not define
-  whether metadata is encrypted. This ADR proposes content-only E2EE first. That
-  scope requires approval.
-- **Key-domain conflict:** workspace recovery, credential-vault recovery, and
-  backup recovery are separate. Workspace recovery must not open the credential
-  vault, and credential-vault recovery must not open the workspace. The credential
-  vault hierarchy is owned by ADR 0011. This separation requires approval.
-- **Security trade-off:** PBKDF2 is used because no new dependency is allowed.
-  Argon2 remains a future option.
-- **No claim:** the product must not describe local storage as encrypted until
-  implementation and review are complete.
+The conflicts below were resolved for D3 implementation on 2026-11-16. They
+remain recorded so a later change cannot silently undo the decision.
+
+- **ADR 0007 conflict, resolved:** plaintext drafts cannot coexist with an E2EE
+  claim. ADR 0007 amendment AD-7-1 accepts asynchronous encrypted drafts, keeps
+  the plaintext draft prefix for plaintext workspaces, and forbids a plaintext
+  fallback in encrypted mode.
+- **ADR 0005 conflict, resolved:** v1 backups are plaintext. Encrypted v2 is
+  additive, becomes the default when encryption is active, and leaves v1
+  importable with a plaintext warning. ADR 0005 is extended, not superseded.
+- **PRD scope conflict, resolved:** D3 encrypts content only. Metadata remains
+  plaintext and must be documented as a residual risk.
+- **Key-domain conflict, resolved:** workspace recovery, credential-vault
+  recovery, and backup recovery remain separate domains. The credential-vault
+  hierarchy is owned by ADR 0011. No key material crosses domains.
+- **PBKDF2 trade-off, accepted:** PBKDF2-SHA-256 with a 600,000-iteration floor is
+  used because D3 allows no new dependency. Argon2 remains a future option that
+  requires a format migration and review.
+- **No claim, still binding:** the product must not describe local storage as
+  encrypted until implementation, the acceptance criteria, R-13-7, and external
+  review are complete.
+
+Open gates before an E2EE claim:
+
+- R-13-7 rollback and replay protection is not solved.
+- Authenticated device enrollment (R-13-6) is deferred with multi-device work.
+- External cryptographic and implementation review has not started.
+- Security review must confirm that migration, drafts, backup v2, rotation, and
+  lock behavior match this design.
 
 ## Acceptance criteria
+
+These criteria gate the E2EE claim. The implementation acceptance above does not
+assert that they are met.
 
 - Threat model and crypto specification exist.
 - Workspace key hierarchy, backup key hierarchy, recovery, rotation, and device

@@ -30,8 +30,31 @@ OpenNest is local-first. The highest-risk areas are:
 - Anything that could send user data to an external service without explicit
   consent.
 
+## Cryptography and E2EE status
+
+Optional workspace content encryption is implemented under ADR 0013. It has not
+been independently reviewed. OpenNest does not claim end-to-end encryption,
+database encryption, or metadata confidentiality at this stage.
+
+The design encrypts note bodies, attached file bytes, encrypted drafts, and
+backup v2 payloads. Note titles, filenames, tags, folder names and structure,
+sizes, timestamps, and sync metadata remain plaintext. Workspace, backup, and
+credential-vault keys are separate domains.
+
+The implementation and required automated tests are complete. The E2EE claim
+gate remains open until:
+
+- Rollback and replay protection (R-13-7) is defined.
+- The external cryptographic and implementation review passes.
+- Documentation and UI copy disclose metadata leakage and key-loss risk.
+
+Report suspected crypto flaws through the private vulnerability channel. Do not
+include real passphrases, recovery keys, plaintext notes, or private files in a
+report. Use synthetic test data.
+
 ## Our commitments
 
 - No telemetry and no analytics by default.
 - No data leaves the device without an explicit user action.
 - Dependencies are pinned, and new dependencies are reviewed for necessity.
+- No E2EE claim is made before implementation and external review pass.

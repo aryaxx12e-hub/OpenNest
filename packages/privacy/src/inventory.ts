@@ -72,6 +72,16 @@ export const dataInventory: readonly DataInventoryEntry[] = [
     retention: "until-cleared",
   },
   {
+    id: "keyring",
+    labelKey: "privacy.inventory.items.keyring",
+    dataClass: "D3",
+    storage: "indexeddb",
+    includedInBackup: false,
+    derivedFrom: [],
+    deletedWithSource: false,
+    retention: "until-delete",
+  },
+  {
     id: "grants",
     labelKey: "privacy.inventory.items.grants",
     dataClass: "D3",

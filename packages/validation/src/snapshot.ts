@@ -118,6 +118,7 @@ export const backupSnapshotSchema: z.ZodType<BackupSnapshot> = withDomainCode(
     kind: z.enum(["dexie", "sqlite"], {
       error: "Snapshot kind must be dexie or sqlite.",
     }),
+    blobEncoding: z.enum(["plaintext", "encrypted"]).optional(),
     createdAt: isoDateSchema,
     workspace: workspaceSchema,
     folders: z.array(folderSchema),
@@ -338,7 +339,11 @@ export const backupSnapshotSchema: z.ZodType<BackupSnapshot> = withDomainCode(
         });
       }
 
-      if (file !== undefined && blob.data.byteLength !== file.sizeBytes) {
+      if (
+        file !== undefined &&
+        snapshot.blobEncoding !== "encrypted" &&
+        blob.data.byteLength !== file.sizeBytes
+      ) {
         ctx.addIssue({
           code: "custom",
           path: ["blobs"],

@@ -44,7 +44,7 @@ export function parseNoteDraftKey(
   };
 }
 
-function isNoteDraft(value: unknown): value is NoteDraft {
+export function isNoteDraft(value: unknown): value is NoteDraft {
   if (typeof value !== "object" || value === null) {
     return false;
   }

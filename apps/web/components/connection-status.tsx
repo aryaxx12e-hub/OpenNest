@@ -32,7 +32,9 @@ export function ConnectionStatus() {
           online ? "bg-emerald-600 dark:bg-emerald-400" : "bg-amber-600 dark:bg-amber-400"
         )}
       />
-      <span>{online ? t("pwa.online") : t("pwa.offline")}</span>
+      <span className="sr-only sm:not-sr-only">
+        {online ? t("pwa.online") : t("pwa.offline")}
+      </span>
     </span>
   );
 }

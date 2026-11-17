@@ -4,13 +4,8 @@ import type { Note } from "@opennest/core";
 import { useCallback, useEffect, useRef, useState } from "react";
 
 import { errorKey } from "../errors";
-import {
-  clearNoteDraft,
-  readNoteDraft,
-  writeNoteDraft,
-  type DraftStorage,
-  type NoteDraft,
-} from "./draft-journal";
+import type { NoteDraft } from "./draft-journal";
+import { createBrowserPlainDraftStore, type DraftStore } from "./draft-store";
 import { SAVE_RETRY_DELAYS_MS, isRetryableSaveError } from "./retry";
 import type { SaveCoordinator, SaveFlushResult } from "./save-coordinator";
 
@@ -23,7 +18,7 @@ export interface NoteAutosaveOptions {
   note: Note;
   save: (patch: NoteSavePatch) => Promise<Note>;
   coordinator: SaveCoordinator;
-  storage?: DraftStorage | null;
+  draftStore?: DraftStore | null;
 }
 
 export interface NoteAutosave {
@@ -49,13 +44,6 @@ function wait(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-interface InitialState {
-  title: string;
-  content: string;
-  draftRestored: boolean;
-  ignoredDraft: NoteDraft | null;
-}
-
 function isNewerDraft(note: Note, draft: NoteDraft): boolean {
   if (draft.title === note.title && draft.content === note.content) {
     return false;
@@ -75,74 +63,33 @@ function isNewerDraft(note: Note, draft: NoteDraft): boolean {
   return Number.isNaN(updatedAt) || draft.savedAt >= updatedAt;
 }
 
-function readInitialState(note: Note, storage: DraftStorage | null): InitialState {
-  const draft =
-    storage === null ? null : readNoteDraft(storage, note.workspaceId, note.id);
-
-  if (draft === null) {
-    return {
-      title: note.title,
-      content: note.content,
-      draftRestored: false,
-      ignoredDraft: null,
-    };
-  }
-
-  if (!isNewerDraft(note, draft)) {
-    return {
-      title: note.title,
-      content: note.content,
-      draftRestored: false,
-      ignoredDraft: draft,
-    };
-  }
-
-  return {
-    title: draft.title,
-    content: draft.content,
-    draftRestored: true,
-    ignoredDraft: null,
-  };
-}
-
-interface ResolvedDraftStorage {
-  storage: DraftStorage | null;
+interface ResolvedDraftStore {
+  store: DraftStore | null;
   failed: boolean;
 }
 
-function resolveDraftStorage(
-  storageOption: DraftStorage | null | undefined
-): ResolvedDraftStorage {
-  if (storageOption !== undefined) {
-    return { storage: storageOption, failed: false };
+function resolveDraftStore(
+  storeOption: DraftStore | null | undefined
+): ResolvedDraftStore {
+  if (storeOption !== undefined) {
+    return { store: storeOption, failed: false };
   }
 
-  if (typeof window === "undefined") {
-    return { storage: null, failed: false };
-  }
+  const store = createBrowserPlainDraftStore();
 
-  try {
-    const storage = window.localStorage;
-    void storage.length;
-
-    return { storage, failed: false };
-  } catch {
-    return { storage: null, failed: true };
-  }
+  return { store, failed: store === null };
 }
 
 export function useNoteAutosave({
   note,
   save,
   coordinator,
-  storage: storageOption,
+  draftStore: draftStoreOption,
 }: NoteAutosaveOptions): NoteAutosave {
-  const [draftStorage] = useState(() => resolveDraftStorage(storageOption));
-  const storage = draftStorage.storage;
-  const [initial] = useState(() => readInitialState(note, storage));
-
-  const [title, setTitleState] = useState(initial.title);
-  const [content, setContentState] = useState(initial.content);
+  const [draftStorage] = useState(() => resolveDraftStore(draftStoreOption));
+  const store = draftStorage.store;
+  const [title, setTitleState] = useState(note.title);
+  const [content, setContentState] = useState(note.content);
   const [saved, setSaved] = useState({ title: note.title, content: note.content });
   const [updatedAt, setUpdatedAt] = useState<string>(note.updatedAt);
   const [saving, setSaving] = useState(false);
@@ -150,7 +97,7 @@ export function useNoteAutosave({
   const [draftError, setDraftError] = useState<string | null>(
     draftStorage.failed ? "notes.draftError" : null
   );
-  const [draftRestored, setDraftRestored] = useState(initial.draftRestored);
+  const [draftRestored, setDraftRestored] = useState(false);
 
   const titleRef = useRef(title);
   const contentRef = useRef(content);
@@ -161,6 +108,8 @@ export function useNoteAutosave({
   const mountedRef = useRef(true);
   const savingRef = useRef(false);
   const inFlightRef = useRef<Promise<SaveFlushResult> | null>(null);
+  const draftLoadedRef = useRef(false);
+  const draftLoadRef = useRef<Promise<void> | null>(null);
   const saveRef = useRef(save);
   saveRef.current = save;
 
@@ -171,18 +120,38 @@ export function useNoteAutosave({
     []
   );
 
-  const clearDraft = useCallback(() => {
-    if (storage !== null) {
-      clearNoteDraft(storage, note.workspaceId, note.id);
-    }
-  }, [storage, note.workspaceId, note.id]);
+  const clearDraftNow = useCallback(async (): Promise<boolean> => {
+    if (store === null) {
+      if (draftStorage.failed && mountedRef.current) {
+        setDraftError("notes.draftError");
+      }
 
-  const writeDraftNow = useCallback((): boolean => {
+      return !draftStorage.failed;
+    }
+
+    try {
+      await store.remove(note.workspaceId, note.id);
+
+      if (mountedRef.current) {
+        setDraftError(null);
+      }
+
+      return true;
+    } catch {
+      if (mountedRef.current) {
+        setDraftError("notes.draftError");
+      }
+
+      return false;
+    }
+  }, [store, draftStorage.failed, note.workspaceId, note.id]);
+
+  const writeDraftNow = useCallback(async (): Promise<boolean> => {
     if (!activeRef.current) {
       return true;
     }
 
-    if (storage === null) {
+    if (store === null) {
       if (draftStorage.failed && mountedRef.current) {
         setDraftError("notes.draftError");
       }
@@ -191,33 +160,39 @@ export function useNoteAutosave({
     }
 
     if (!hasUnsaved()) {
-      clearDraft();
+      if (!draftLoadedRef.current) {
+        return true;
+      }
+
+      return clearDraftNow();
+    }
+
+    try {
+      await store.put({
+        version: 1,
+        workspaceId: note.workspaceId,
+        noteId: note.id,
+        title: titleRef.current,
+        content: contentRef.current,
+        baseTitle: savedRef.current.title,
+        baseContent: savedRef.current.content,
+        baseUpdatedAt: baseUpdatedAtRef.current,
+        savedAt: Date.now(),
+      });
 
       if (mountedRef.current) {
         setDraftError(null);
       }
 
       return true;
+    } catch {
+      if (mountedRef.current) {
+        setDraftError("notes.draftError");
+      }
+
+      return false;
     }
-
-    const written = writeNoteDraft(storage, {
-      version: 1,
-      workspaceId: note.workspaceId,
-      noteId: note.id,
-      title: titleRef.current,
-      content: contentRef.current,
-      baseTitle: savedRef.current.title,
-      baseContent: savedRef.current.content,
-      baseUpdatedAt: baseUpdatedAtRef.current,
-      savedAt: Date.now(),
-    });
-
-    if (mountedRef.current) {
-      setDraftError(written ? null : "notes.draftError");
-    }
-
-    return written;
-  }, [storage, draftStorage.failed, note.workspaceId, note.id, hasUnsaved, clearDraft]);
+  }, [store, draftStorage.failed, note.workspaceId, note.id, hasUnsaved, clearDraftNow]);
 
   const flush = useCallback(async (): Promise<SaveFlushResult> => {
     if (!activeRef.current) {
@@ -239,6 +214,10 @@ export function useNoteAutosave({
       let attempt = 0;
 
       try {
+        if (draftLoadRef.current !== null) {
+          await draftLoadRef.current;
+        }
+
         for (;;) {
           if (!activeRef.current) {
             return { ok: true };
@@ -253,17 +232,15 @@ export function useNoteAutosave({
             snapshot.title === savedRef.current.title &&
             snapshot.content === savedRef.current.content
           ) {
-            clearDraft();
-
-            if (mountedRef.current) {
-              setDraftError(null);
+            if (draftLoadedRef.current) {
+              await clearDraftNow();
             }
 
             return { ok: true };
           }
 
           if (snapshot.title.trim().length === 0) {
-            writeDraftNow();
+            await writeDraftNow();
             return { ok: false, error: new Error("Note title is required.") };
           }
 
@@ -281,7 +258,7 @@ export function useNoteAutosave({
             ) {
               const delay = SAVE_RETRY_DELAYS_MS[attempt]!;
               attempt += 1;
-              writeDraftNow();
+              await writeDraftNow();
               await wait(delay);
               continue;
             }
@@ -298,7 +275,6 @@ export function useNoteAutosave({
             setUpdatedAt(updated.updatedAt);
             setDraftRestored(false);
             setSaveError(null);
-            setDraftError(null);
           }
 
           if (revision === revisionRef.current) {
@@ -310,19 +286,15 @@ export function useNoteAutosave({
               setContentState(updated.content);
             }
 
-            clearDraft();
-
-            if (mountedRef.current) {
-              setDraftError(null);
-            }
+            await clearDraftNow();
 
             return { ok: true };
           }
 
-          writeDraftNow();
+          await writeDraftNow();
         }
       } catch (caught) {
-        writeDraftNow();
+        await writeDraftNow();
 
         if (mountedRef.current) {
           setSaveError(errorKey(caught));
@@ -344,7 +316,7 @@ export function useNoteAutosave({
 
     inFlightRef.current = request;
     return request;
-  }, [clearDraft, writeDraftNow]);
+  }, [clearDraftNow, writeDraftNow]);
 
   const setTitle = useCallback((value: string) => {
     titleRef.current = value;
@@ -360,8 +332,8 @@ export function useNoteAutosave({
 
   const deactivate = useCallback(() => {
     activeRef.current = false;
-    clearDraft();
-  }, [clearDraft]);
+    void clearDraftNow();
+  }, [clearDraftNow]);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -372,13 +344,75 @@ export function useNoteAutosave({
   }, []);
 
   useEffect(() => {
-    if (initial.ignoredDraft !== null) {
-      clearDraft();
+    let cancelled = false;
+    const revision = revisionRef.current;
+
+    if (store === null) {
+      if (draftStorage.failed && mountedRef.current) {
+        setDraftError("notes.draftError");
+      }
+
+      return;
     }
-  }, [initial.ignoredDraft, clearDraft]);
+
+    const load = (async () => {
+      let draft: NoteDraft | null;
+
+      try {
+        draft = await store.get(note.workspaceId, note.id);
+      } catch {
+        if (!cancelled && mountedRef.current) {
+          setDraftError("notes.draftError");
+        }
+
+        return;
+      }
+
+      if (cancelled || !mountedRef.current) {
+        return;
+      }
+
+      draftLoadedRef.current = true;
+
+      if (draft === null) {
+        return;
+      }
+
+      if (!isNewerDraft(note, draft)) {
+        try {
+          await store.remove(note.workspaceId, note.id);
+        } catch {
+          if (mountedRef.current) {
+            setDraftError("notes.draftError");
+          }
+        }
+
+        return;
+      }
+
+      if (revisionRef.current !== revision) {
+        return;
+      }
+
+      titleRef.current = draft.title;
+      contentRef.current = draft.content;
+      setTitleState(draft.title);
+      setContentState(draft.content);
+      setDraftRestored(true);
+      setDraftError(null);
+    })();
+
+    draftLoadRef.current = load;
+
+    return () => {
+      cancelled = true;
+    };
+  }, [store, draftStorage.failed, note]);
 
   useEffect(() => {
-    const timer = setTimeout(writeDraftNow, DRAFT_DELAY_MS);
+    const timer = setTimeout(() => {
+      void writeDraftNow();
+    }, DRAFT_DELAY_MS);
 
     return () => {
       clearTimeout(timer);
@@ -414,7 +448,7 @@ export function useNoteAutosave({
 
     return () => {
       mountedRef.current = false;
-      writeDraftNow();
+      void writeDraftNow();
       void flush();
       unregister();
     };
@@ -422,7 +456,7 @@ export function useNoteAutosave({
 
   useEffect(() => {
     function flushHiddenPage() {
-      writeDraftNow();
+      void writeDraftNow();
       void flush();
     }
 
@@ -455,7 +489,7 @@ export function useNoteAutosave({
         return;
       }
 
-      writeDraftNow();
+      void writeDraftNow();
       event.preventDefault();
       event.returnValue = "";
     }

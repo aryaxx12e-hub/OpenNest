@@ -6,14 +6,28 @@ import {
   type WorkspaceId,
 } from "@opennest/core";
 import {
+  canonicalJsonBytes,
+  openBackup,
+  sealBackup,
+  CryptoError,
+  type BackupKeySource,
+} from "@opennest/crypto";
+import {
   BACKUP_FORMAT,
   BACKUP_FORMAT_VERSION,
   backupFileSchema,
+  backupFileV2Schema,
   backupSnapshotSchema,
+  serializedBackupSnapshotSchema,
+  type BackupFile,
+  type BackupFileV2,
 } from "@opennest/validation";
 
 import { errorKey } from "../errors";
 import { browserClock, sha256Hex } from "./services";
+
+export { createBackupKey } from "@opennest/crypto";
+export type { BackupKeySource } from "@opennest/crypto";
 
 export type BackupErrorCode =
   | "missingWorkspace"
@@ -24,7 +38,11 @@ export type BackupErrorCode =
   | "unsupportedVersion"
   | "invalidBlob"
   | "invalidSnapshot"
-  | "checksumMismatch";
+  | "checksumMismatch"
+  | "missingKey"
+  | "wrongKey"
+  | "invalidEncryption"
+  | "invalidSummary";
 
 export class BackupError extends Error {
   constructor(
@@ -44,15 +62,51 @@ export interface BackupSummary {
   tags: number;
 }
 
-export interface BuiltBackup {
+export type BackupInspection =
+  | { formatVersion: 1; exportedAt: string; encrypted: false }
+  | {
+      formatVersion: 2;
+      exportedAt: string;
+      encrypted: true;
+      chunkCount: number;
+      chunkSize: number;
+      summary: BackupFileV2["summary"];
+    };
+
+interface BuiltBackupBase {
   fileName: string;
   text: string;
   snapshot: BackupSnapshot;
   summary: BackupSummary;
 }
 
+export interface BuiltPlaintextBackup extends BuiltBackupBase {
+  formatVersion: 1;
+  encrypted: false;
+}
+
+export interface BuiltEncryptedBackup extends BuiltBackupBase {
+  formatVersion: 2;
+  encrypted: true;
+  keyId: string;
+}
+
+export type BuiltBackup = BuiltPlaintextBackup | BuiltEncryptedBackup;
+
 export interface BuildBackupOptions {
   now?: () => string;
+}
+
+export type BackupExportOptions =
+  { format?: "v1" } | { format: "v2"; keySource: BackupKeySource };
+
+export interface BuildBackupV2Options extends BuildBackupOptions {
+  chunkSize?: number;
+  kid?: string;
+}
+
+export interface ParseBackupOptions {
+  targetWorkspaceId?: WorkspaceId;
 }
 
 export function backupErrorKey(error: unknown): string {
@@ -80,7 +134,166 @@ export async function buildBackup(
   storage: StorageAdapter,
   workspaceId: WorkspaceId,
   options: BuildBackupOptions = {}
-): Promise<BuiltBackup> {
+): Promise<BuiltPlaintextBackup> {
+  const { createdAt, snapshot } = await buildBackupSnapshot(
+    storage,
+    workspaceId,
+    options
+  );
+
+  return {
+    formatVersion: 1,
+    encrypted: false,
+    fileName: backupFileName(createdAt),
+    text: serializeBackup(snapshot),
+    snapshot,
+    summary: summarizeBackup(snapshot),
+  };
+}
+
+export async function buildBackupV2(
+  snapshot: BackupSnapshot,
+  keySource: BackupKeySource,
+  options: BuildBackupV2Options = {}
+): Promise<BuiltEncryptedBackup> {
+  const now = options.now ?? browserClock;
+  const parsed = backupSnapshotSchema.safeParse(snapshot);
+
+  if (!parsed.success) {
+    throw new BackupError("exportFailed", "The library could not be exported.", {
+      cause: parsed.error,
+    });
+  }
+
+  const createdAt = now();
+  const payload = serializeSnapshot(parsed.data);
+  const sealed = await sealBackup({
+    payload: canonicalJsonBytes(payload),
+    exportedAt: createdAt,
+    counts: {
+      files: parsed.data.files.length,
+      notes: parsed.data.notes.length,
+      folders: parsed.data.folders.length,
+      tags: parsed.data.tags.length,
+    },
+    keySource,
+    ...(options.chunkSize === undefined ? {} : { chunkSize: options.chunkSize }),
+    ...(options.kid === undefined ? {} : { kid: options.kid }),
+  });
+
+  const envelope = backupFileV2Schema.parse(sealed.envelope);
+
+  return {
+    formatVersion: 2,
+    encrypted: true,
+    keyId: envelope.encryption.kid,
+    fileName: backupFileName(createdAt),
+    text: serializeEnvelope(envelope),
+    snapshot: parsed.data,
+    summary: summarizeBackup(parsed.data),
+  };
+}
+
+export function inspectBackupFile(text: string): BackupInspection {
+  return readBackup(text).inspection;
+}
+
+export async function parseBackupFile(
+  text: string,
+  keySource?: BackupKeySource,
+  options: ParseBackupOptions = {}
+): Promise<BackupSnapshot> {
+  const read = readBackup(text);
+
+  if ("snapshot" in read.file) {
+    return parseV1(read.file, options);
+  }
+
+  if (keySource === undefined) {
+    throw new BackupError("missingKey", "This backup needs a passphrase or backup key.");
+  }
+
+  let opened: Awaited<ReturnType<typeof openBackup>>;
+
+  try {
+    opened = await openBackup({ envelope: read.file, keySource });
+  } catch (error) {
+    if (
+      error instanceof CryptoError &&
+      (error.code === "authentication_failed" ||
+        error.code === "invalid_recovery_key" ||
+        error.code === "invalid_passphrase")
+    ) {
+      throw new BackupError(
+        "wrongKey",
+        "The backup key is incorrect or the backup is damaged.",
+        { cause: error }
+      );
+    }
+
+    throw new BackupError(
+      "invalidEncryption",
+      "The encrypted backup header or chunk is invalid.",
+      { cause: error }
+    );
+  }
+
+  return parseV2(
+    opened.payload,
+    read.file,
+    opened.envelope.summary.totalPlaintextBytes,
+    options
+  );
+}
+
+export function mapBackupToWorkspace(
+  snapshot: BackupSnapshot,
+  targetWorkspaceId: WorkspaceId
+): BackupSnapshot {
+  const mapped: BackupSnapshot = {
+    ...snapshot,
+    workspace: { ...snapshot.workspace, id: targetWorkspaceId },
+    folders: snapshot.folders.map((folder) => ({
+      ...folder,
+      workspaceId: targetWorkspaceId,
+    })),
+    files: snapshot.files.map((file) => ({
+      ...file,
+      workspaceId: targetWorkspaceId,
+    })),
+    notes: snapshot.notes.map((note) => ({
+      ...note,
+      workspaceId: targetWorkspaceId,
+    })),
+    tags: snapshot.tags.map((tag) => ({
+      ...tag,
+      workspaceId: targetWorkspaceId,
+    })),
+  };
+  delete mapped.blobEncoding;
+
+  return mapped;
+}
+
+export function downloadTextFile(fileName: string, text: string): void {
+  const blob = new Blob([text], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+
+  link.href = url;
+  link.download = fileName;
+  link.rel = "noopener";
+  document.body.append(link);
+  link.click();
+  link.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 0);
+}
+
+async function buildBackupSnapshot(
+  storage: StorageAdapter,
+  workspaceId: WorkspaceId,
+  options: BuildBackupOptions
+): Promise<{ createdAt: string; snapshot: BackupSnapshot }> {
   const now = options.now ?? browserClock;
   const workspace = await storage.workspaces.get(workspaceId);
 
@@ -151,6 +364,12 @@ export async function buildBackup(
     });
   }
 
+  const checksums = new Map<string, string>();
+
+  for (const [key, blob] of blobsByKey) {
+    checksums.set(key, await sha256Hex(blob.data));
+  }
+
   const createdAt = now();
   const candidate = {
     snapshotVersion: 1 as const,
@@ -159,7 +378,10 @@ export async function buildBackup(
     createdAt,
     workspace,
     folders,
-    files,
+    files: files.map((file) => ({
+      ...file,
+      checksum: checksums.get(file.blobKey) ?? null,
+    })),
     notes,
     tags,
     fileTags,
@@ -175,15 +397,18 @@ export async function buildBackup(
     });
   }
 
-  return {
-    fileName: backupFileName(createdAt),
-    text: serializeBackup(parsed.data),
-    snapshot: parsed.data,
-    summary: summarizeBackup(parsed.data),
-  };
+  return { createdAt, snapshot: parsed.data };
 }
 
-export async function parseBackupFile(text: string): Promise<BackupSnapshot> {
+function readBackup(text: string):
+  | {
+      inspection: Extract<BackupInspection, { formatVersion: 1 }>;
+      file: BackupFile;
+    }
+  | {
+      inspection: Extract<BackupInspection, { formatVersion: 2 }>;
+      file: BackupFileV2;
+    } {
   let raw: unknown;
 
   try {
@@ -194,27 +419,70 @@ export async function parseBackupFile(text: string): Promise<BackupSnapshot> {
     });
   }
 
-  if (
-    typeof raw === "object" &&
-    raw !== null &&
-    (raw as { format?: unknown }).format === BACKUP_FORMAT &&
-    (raw as { formatVersion?: unknown }).formatVersion !== BACKUP_FORMAT_VERSION
-  ) {
+  if (typeof raw !== "object" || raw === null) {
+    throw new BackupError("invalidFormat", "The backup file has an invalid format.");
+  }
+
+  const record = raw as { format?: unknown; formatVersion?: unknown };
+
+  if (record.format !== BACKUP_FORMAT) {
+    throw new BackupError("invalidFormat", "The backup file has an invalid format.");
+  }
+
+  if (record.formatVersion !== 1 && record.formatVersion !== 2) {
     throw new BackupError(
       "unsupportedVersion",
       "This backup was made by an unsupported version of OpenNest."
     );
   }
 
-  const parsed = backupFileSchema.safeParse(raw);
+  if (record.formatVersion === 1) {
+    const parsed = backupFileSchema.safeParse(raw);
 
-  if (!parsed.success) {
-    throw new BackupError("invalidFormat", "The backup file has an invalid format.", {
-      cause: parsed.error,
-    });
+    if (!parsed.success) {
+      throw new BackupError("invalidFormat", "The backup file has an invalid format.", {
+        cause: parsed.error,
+      });
+    }
+
+    return {
+      inspection: {
+        formatVersion: 1,
+        exportedAt: parsed.data.exportedAt,
+        encrypted: false,
+      },
+      file: parsed.data,
+    };
   }
 
-  const serialized = parsed.data.snapshot;
+  const parsed = backupFileV2Schema.safeParse(raw);
+
+  if (!parsed.success) {
+    throw new BackupError(
+      "invalidEncryption",
+      "The encrypted backup header is invalid.",
+      { cause: parsed.error }
+    );
+  }
+
+  return {
+    inspection: {
+      formatVersion: 2,
+      exportedAt: parsed.data.exportedAt,
+      encrypted: true,
+      chunkCount: parsed.data.chunkCount,
+      chunkSize: parsed.data.chunkSize,
+      summary: parsed.data.summary,
+    },
+    file: parsed.data,
+  };
+}
+
+async function parseV1(
+  file: BackupFile,
+  options: ParseBackupOptions
+): Promise<BackupSnapshot> {
+  const serialized = file.snapshot;
   const blobs = serialized.blobs.map((blob) => ({
     key: blob.key,
     mimeType: blob.mimeType,
@@ -230,21 +498,81 @@ export async function parseBackupFile(text: string): Promise<BackupSnapshot> {
 
   await assertChecksums(snapshotResult.data);
 
-  return snapshotResult.data;
+  return options.targetWorkspaceId === undefined
+    ? snapshotResult.data
+    : mapBackupToWorkspace(snapshotResult.data, options.targetWorkspaceId);
 }
 
-export function downloadTextFile(fileName: string, text: string): void {
-  const blob = new Blob([text], { type: "application/json" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
+async function parseV2(
+  payload: Uint8Array,
+  file: BackupFileV2,
+  totalPlaintextBytes: number,
+  options: ParseBackupOptions
+): Promise<BackupSnapshot> {
+  let value: unknown;
 
-  link.href = url;
-  link.download = fileName;
-  link.rel = "noopener";
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
+  try {
+    value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(payload));
+  } catch (error) {
+    throw new BackupError("invalidSnapshot", "The backup payload is not valid.", {
+      cause: error,
+    });
+  }
+
+  const serialized = serializedBackupSnapshotSchema.safeParse(value);
+
+  if (!serialized.success) {
+    throw new BackupError("invalidSnapshot", "The backup contents are not valid.", {
+      cause: serialized.error,
+    });
+  }
+
+  const snapshotValue = serialized.data;
+  const blobs = snapshotValue.blobs.map((blob) => ({
+    key: blob.key,
+    mimeType: blob.mimeType,
+    data: decodeBase64(blob.data),
+  }));
+  const snapshotResult = backupSnapshotSchema.safeParse({
+    ...snapshotValue,
+    blobs,
+  });
+
+  if (!snapshotResult.success) {
+    throw new BackupError("invalidSnapshot", "The backup contents are not valid.", {
+      cause: snapshotResult.error,
+    });
+  }
+
+  const snapshot = snapshotResult.data;
+  const counts = file.summary.counts;
+
+  if (
+    counts.folders !== snapshot.folders.length ||
+    counts.tags !== snapshot.tags.length ||
+    counts.files !== snapshot.files.length ||
+    counts.notes !== snapshot.notes.length ||
+    totalPlaintextBytes !== payload.length
+  ) {
+    throw new BackupError("invalidSummary", "The backup summary does not match.");
+  }
+
+  await assertChecksums(snapshot);
+
+  return options.targetWorkspaceId === undefined
+    ? snapshot
+    : mapBackupToWorkspace(snapshot, options.targetWorkspaceId);
+}
+
+function serializeSnapshot(snapshot: BackupSnapshot): Record<string, unknown> {
+  return {
+    ...snapshot,
+    blobs: snapshot.blobs.map((blob) => ({
+      key: blob.key,
+      mimeType: blob.mimeType,
+      data: encodeBase64(blob.data),
+    })),
+  };
 }
 
 function serializeBackup(snapshot: BackupSnapshot): string {
@@ -252,17 +580,14 @@ function serializeBackup(snapshot: BackupSnapshot): string {
     format: BACKUP_FORMAT,
     formatVersion: BACKUP_FORMAT_VERSION,
     exportedAt: snapshot.createdAt,
-    snapshot: {
-      ...snapshot,
-      blobs: snapshot.blobs.map((blob) => ({
-        key: blob.key,
-        mimeType: blob.mimeType,
-        data: encodeBase64(blob.data),
-      })),
-    },
+    snapshot: serializeSnapshot(snapshot),
   };
 
   return `${JSON.stringify(payload, null, 2)}\n`;
+}
+
+function serializeEnvelope(envelope: BackupFileV2): string {
+  return `${JSON.stringify(envelope, null, 2)}\n`;
 }
 
 async function assertChecksums(snapshot: BackupSnapshot): Promise<void> {

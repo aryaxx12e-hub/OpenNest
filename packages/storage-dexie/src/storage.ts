@@ -992,7 +992,7 @@ export function createDexieStorage(config: DexieStorageOptions): SyncCapableStor
         withSyncWrite([db.notes], async () => {
           const at = requireAt(input.at);
           const row: NoteRow = {
-            id: generateId(),
+            id: input.id ?? generateId(),
             workspaceId: input.workspaceId,
             folderId: input.folderId,
             title: input.title,
@@ -1001,7 +1001,20 @@ export function createDexieStorage(config: DexieStorageOptions): SyncCapableStor
             createdAt: at,
             updatedAt: at,
           };
-          await db.notes.add(row);
+
+          try {
+            await db.notes.add(row);
+          } catch (error) {
+            if (isUniqueViolation(error)) {
+              throw new ConflictError(
+                "A note with that id already exists.",
+                "duplicate_id",
+                { cause: error }
+              );
+            }
+
+            throw error;
+          }
 
           return {
             result: toNote(row),

@@ -6,10 +6,14 @@ import { useTranslations } from "@opennest/localization";
 import { Card } from "@opennest/ui";
 
 import { BackupPanel } from "@/components/backup-panel";
+import { EncryptionSettings } from "@/components/encryption-settings";
+import { EncryptionSetup } from "@/components/encryption-setup";
 import { PageHeader } from "@/components/page-header";
+import { useEncryption } from "@/lib/crypto/encryption-gate";
 
 export function SettingsView() {
   const t = useTranslations();
+  const encryption = useEncryption();
 
   return (
     <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-6">
@@ -24,6 +28,8 @@ export function SettingsView() {
           {t("settings.privacyAction")}
         </Link>
       </Card>
+      {encryption.status === "plaintext" ? <EncryptionSetup /> : null}
+      {encryption.status === "unlocked" ? <EncryptionSettings /> : null}
       <BackupPanel />
     </div>
   );

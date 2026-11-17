@@ -1,0 +1,17 @@
+{
+  "name": "@opennest/crypto",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@opennest/core": "0.1.0"
+  },
+  "devDependencies": {
+    "@opennest/storage-dexie": "0.1.0",
+    "@opennest/storage-sqlite": "0.1.0",
+    "fake-indexeddb": "6.2.8"
+  }
+}

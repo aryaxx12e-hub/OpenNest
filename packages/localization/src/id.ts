@@ -49,6 +49,131 @@ export const id: typeof en = {
     errorBody:
       "OpenNest tidak bisa mengakses penyimpanan browser. Pastikan mode privat atau pembatasan penyimpanan tidak memblokir situs ini, lalu coba lagi.",
   },
+  encryption: {
+    unlock: {
+      title: "Perpustakaanmu terkunci",
+      description:
+        "Masukkan frasa sandi ruang kerjamu untuk membuka perpustakaan di perangkat ini.",
+      passphrase: "Frasa sandi",
+      passphrasePlaceholder: "Frasa sandi ruang kerja",
+      passphraseHint: "Frasa sandimu tidak pernah meninggalkan perangkat ini.",
+      recoveryKey: "Kunci pemulihan",
+      recoveryKeyPlaceholder: "ONRK1-...",
+      recoveryHint:
+        "Gunakan kunci pemulihan yang kamu simpan saat mengaktifkan enkripsi.",
+      unlock: "Buka kunci",
+      unlocking: "Membuka kunci...",
+      useRecoveryKey: "Gunakan kunci pemulihan",
+      usePassphrase: "Gunakan frasa sandi",
+      requiredPassphrase: "Masukkan frasa sandimu.",
+      requiredRecoveryKey: "Masukkan kunci pemulihanmu.",
+      errors: {
+        wrong: "Frasa sandi atau kunci pemulihan salah.",
+        rateLimited: "Terlalu banyak percobaan. Tunggu 30 detik lalu coba lagi.",
+        corrupt: "Keyring ini rusak. Pulihkan dari cadangan jika memungkinkan.",
+        failed: "Perpustakaan tidak bisa dibuka. Coba lagi.",
+      },
+    },
+    setup: {
+      title: "Aktifkan enkripsi",
+      description:
+        "Enkripsi catatan, file, folder, dan nama ruang kerja di perangkat ini dengan frasa sandi.",
+      passphrase: "Frasa sandi",
+      passphrasePlaceholder: "Minimal 12 karakter",
+      confirmPassphrase: "Konfirmasi frasa sandi",
+      passphraseHint:
+        "Gunakan minimal 12 karakter. OpenNest tidak bisa memulihkan frasa sandi yang lupa.",
+      requiredPassphrase: "Masukkan frasa sandi.",
+      passphraseTooShort: "Gunakan minimal 12 karakter.",
+      passphraseMismatch: "Frasa sandinya tidak cocok.",
+      continue: "Lanjutkan",
+      recoveryTitle: "Simpan kunci pemulihanmu",
+      recoveryDescription:
+        "Kunci ini satu-satunya jalan masuk kalau kamu lupa frasa sandi. Simpan di tempat aman.",
+      recoveryKeyLabel: "Kunci pemulihanmu",
+      recoveryHint:
+        "OpenNest tidak menyimpan kunci ini. Kunci tidak bisa ditampilkan lagi.",
+      copyKey: "Salin kunci",
+      keyCopied: "Kunci pemulihan disalin.",
+      copyUnavailable: "Fitur salin tidak tersedia. Pilih kunci dan salin manual.",
+      recoveryConfirm: "Aku sudah menyimpan kunci pemulihan ini di tempat aman.",
+      back: "Kembali",
+      enable: "Aktifkan enkripsi",
+      enabling: "Mengaktifkan enkripsi...",
+      failed: "Enkripsi tidak bisa diaktifkan. Datamu tidak berubah.",
+      success: "Enkripsi aktif.",
+      cancelled: "Pengaturan enkripsi dibatalkan.",
+    },
+    operation: {
+      setupTitle: "Mengenkripsi perpustakaanmu",
+      setupDescription:
+        "OpenNest sedang mengenkripsi data tersimpan dan menyalin draf. Biarkan tab ini tetap terbuka.",
+      rotationTitle: "Merotasi kunci ruang kerja",
+      rotationDescription:
+        "OpenNest sedang mengenkripsi ulang data tersimpan dan draf dengan kunci baru. Biarkan tab ini tetap terbuka.",
+      progressLabel: "Progres enkripsi",
+      phases: {
+        start: "Menyiapkan",
+        drafts: "Menyalin draf",
+        snapshot: "Memeriksa data tersimpan",
+        verify: "Memverifikasi data terenkripsi",
+        restore: "Memulihkan data terenkripsi",
+        cleanup: "Membersihkan",
+        active: "Menyelesaikan",
+        draftsStage: "Menyiapkan draf",
+        draftsFinalize: "Mengenkripsi ulang draf",
+        draftsDiscard: "Membuang draf lama",
+      },
+      cancel: "Batalkan pengaturan",
+      dismiss: "Kembali ke ruang kerja",
+      failed:
+        "Operasi tidak bisa diselesaikan. Datamu tetap terlindungi; coba lagi atau buka ulang OpenNest.",
+    },
+    settings: {
+      title: "Enkripsi",
+      description:
+        "Perpustakaanmu terenkripsi saat tersimpan. Kuncinya hanya ada di perangkat ini.",
+      active: "Aktif",
+      pending: "Rotasi tertunda",
+      pendingRecovery:
+        "Rotasi perlu diselesaikan. Buka kunci atau masukkan frasa sandi di bawah untuk menyelesaikannya.",
+      lockNow: "Kunci sekarang",
+      passphraseTitle: "Ubah frasa sandi",
+      passphraseDescription:
+        "Mengubah frasa sandi tetap memakai kunci data yang sama. Data tersimpan tidak dienkripsi ulang.",
+      currentPassphrase: "Frasa sandi saat ini",
+      newPassphrase: "Frasa sandi baru",
+      confirmPassphrase: "Konfirmasi frasa sandi baru",
+      passphrasePlaceholder: "Minimal 12 karakter",
+      changeAction: "Ubah frasa sandi",
+      changing: "Mengubah frasa sandi...",
+      passphraseSuccess: "Frasa sandi diubah.",
+      rotationTitle: "Rotasi kunci ruang kerja",
+      rotationDescription:
+        "Membuat kunci data baru dan mengenkripsi ulang data tersimpan serta draf. Kamu perlu frasa sandi.",
+      rotationPassphrase: "Frasa sandi",
+      rotateAction: "Rotasi kunci",
+      rotationConfirmTitle: "Rotasi kunci ruang kerja?",
+      rotationConfirmDescription:
+        "OpenNest akan mengenkripsi ulang semua data tersimpan dan draf. Proses ini bisa sebentar. Biarkan tab ini tetap terbuka.",
+      rotationWarning:
+        "Kalau rotasi terputus, buka kunci lagi untuk menyelesaikannya. Kunci pemulihanmu tetap berlaku.",
+      rotationSuccess: "Kunci ruang kerja dirotasi.",
+      rotationDraftError:
+        "Kunci ruang kerja sudah dirotasi, tetapi sebagian draf masih perlu dienkripsi ulang. Buka kunci lagi untuk menyelesaikannya.",
+      errors: {
+        currentRequired: "Masukkan frasa sandi saat ini.",
+        currentWrong: "Frasa sandi saat ini salah.",
+        rateLimited: "Terlalu banyak percobaan. Tunggu 30 detik lalu coba lagi.",
+        pendingRotation: "Selesaikan atau batalkan rotasi yang tertunda dulu.",
+        nextTooShort: "Gunakan minimal 12 karakter untuk frasa sandi baru.",
+        mismatch: "Frasa sandi baru tidak cocok.",
+        changeFailed: "Frasa sandi tidak bisa diubah. Coba lagi.",
+        rotationPassphrase: "Masukkan frasa sandi untuk merotasi kunci.",
+        rotationFailed: "Kunci ruang kerja tidak bisa dirotasi. Coba lagi.",
+      },
+    },
+  },
   settings: {
     title: "Pengaturan",
     subtitle: "Kelola data yang tersimpan di perangkat ini.",
@@ -85,7 +210,64 @@ export const id: typeof en = {
     notes: "catatan",
     folders: "folder",
     tags: "tag",
+    exportDialog: {
+      title: "Unduh cadangan?",
+      description: "Pilih cara melindungi cadangan ini sebelum keluar dari perangkat.",
+      summary: "Isi cadangan:",
+      protection: "Perlindungan",
+      passphrase: "Frasa sandi",
+      passphraseHint:
+        "Cadangan dienkripsi dengan frasa sandi ini. Kamu akan memerlukannya untuk memulihkan.",
+      backupKey: "Kunci cadangan",
+      backupKeyHint:
+        "OpenNest membuat kunci. Simpan di tempat aman. Ini satu-satunya cara memulihkan cadangan.",
+      plaintext: "Teks biasa (v1)",
+      plaintextHint:
+        "Format kompatibilitas. Siapa pun yang punya berkasnya bisa membacanya.",
+      passphraseLabel: "Frasa sandi",
+      confirmPassphraseLabel: "Ulangi frasa sandi",
+      passphrasePlaceholder: "Minimal 12 karakter",
+      passphraseTooShort: "Gunakan minimal 12 karakter.",
+      passphraseMismatch: "Frasa sandi tidak sama.",
+      generatedKeyLabel: "Kunci cadanganmu",
+      generatedKeyHint:
+        "Salin kunci ini sekarang. Kunci tidak disimpan di mana pun dan tidak bisa dipulihkan.",
+      copyKey: "Salin kunci",
+      keyCopied: "Kunci cadangan disalin.",
+      copyUnavailable: "Salin tidak tersedia. Pilih kunci dan salin manual.",
+      keySaved: "Aku sudah menyimpan kunci cadangan ini.",
+      keyRequired: "Simpan dan konfirmasi kunci cadangan dulu.",
+      encryptionNotice:
+        "Judul, isi catatan, isi berkas, dan nama ruang kerja dienkripsi dalam cadangan ini.",
+      plaintextWarning:
+        "Cadangan teks biasa tidak dienkripsi. Siapa pun yang punya berkasnya bisa membaca semua judul, catatan, dan berkas.",
+      encryptedAtRestNotice:
+        "Perpustakaanmu dienkripsi saat disimpan. Cadangan teks biasa tidak.",
+      download: "Unduh cadangan",
+      done: "Selesai",
+      success: "Cadangan berhasil diunduh. Simpan di tempat aman.",
+    },
+    importKey: {
+      title: "Buka cadangan ini",
+      description:
+        "Masukkan frasa sandi atau kunci cadangan yang dipakai saat cadangan dibuat.",
+      passphrase: "Frasa sandi",
+      backupKey: "Kunci cadangan",
+      passphrasePlaceholder: "Frasa sandi cadangan",
+      keyPlaceholder: "ONBK1-...",
+      unlock: "Buka cadangan",
+    },
+    importWarning: {
+      plaintext:
+        "Ini cadangan teks biasa v1. Judul, catatan, dan isi berkasnya tidak dienkripsi.",
+      notEncryptedAtRest:
+        "Cadangan ini terenkripsi, tetapi perpustakaanmu tidak. Data yang dipulihkan akan tersimpan tanpa enkripsi di perangkat ini.",
+    },
     errors: {
+      missingKey: "Cadangan ini memerlukan frasa sandi atau kunci cadangan.",
+      wrongKey: "Frasa sandi atau kunci cadangan salah, atau cadangan rusak.",
+      invalidEncryption: "Header atau data cadangan terenkripsi rusak.",
+      invalidSummary: "Ringkasan cadangan tidak cocok dengan isinya.",
       missingWorkspace: "Ruang kerja untuk cadangan ini tidak ditemukan.",
       missingBlob: "Salinan berkas yang disimpan tidak lengkap. Cadangan tidak dibuat.",
       exportFailed: "Cadangan tidak bisa dibuat. Coba lagi.",
@@ -117,7 +299,7 @@ export const id: typeof en = {
     },
     backup: {
       notice:
-        "Draf pemulihan, izin akses, entri audit, hasil pencarian, dan metadata sinkronisasi (termasuk outbox dan catatan konflik) tidak termasuk dalam cadangan v1.",
+        "Draf pemulihan, izin akses, entri audit, hasil pencarian, dan metadata sinkronisasi (termasuk outbox dan catatan konflik) tidak termasuk dalam cadangan v1 atau v2.",
     },
     inventory: {
       title: "Inventaris data",
@@ -152,6 +334,7 @@ export const id: typeof en = {
         blobs: "Isi berkas",
         notes: "Catatan",
         drafts: "Draf pemulihan",
+        keyring: "Keyring enkripsi",
         grants: "Izin akses",
         audit: "Catatan audit",
         search: "Hasil pencarian",

@@ -1,6 +1,6 @@
 import { act } from "react";
 import { createRoot, type Root } from "react-dom/client";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createMemoryStorage } from "@opennest/core";
 import { LocaleProvider } from "@opennest/localization";
@@ -22,8 +22,15 @@ async function settle() {
   }
 }
 
+function openDialog(host: HTMLElement): HTMLDialogElement | null {
+  return (
+    Array.from(host.querySelectorAll("dialog")).find((dialog) => dialog.open) ?? null
+  );
+}
+
 function buttonByText(host: HTMLElement, text: string): HTMLButtonElement {
-  const button = Array.from(host.querySelectorAll("button")).find(
+  const scope = openDialog(host) ?? host;
+  const button = Array.from(scope.querySelectorAll("button")).find(
     (candidate) => candidate.textContent?.trim() === text
   );
 
@@ -32,6 +39,32 @@ function buttonByText(host: HTMLElement, text: string): HTMLButtonElement {
   }
 
   return button;
+}
+
+async function waitForText(host: HTMLElement, text: string) {
+  for (let index = 0; index < 500; index += 1) {
+    if (host.textContent?.includes(text) === true) {
+      return;
+    }
+
+    await act(async () => {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    });
+  }
+
+  throw new Error(`Timed out waiting for ${text}`);
+}
+
+function change(element: HTMLInputElement, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value"
+  )?.set;
+
+  act(() => {
+    setter?.call(element, value);
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  });
 }
 
 beforeEach(() => {
@@ -58,18 +91,19 @@ afterEach(() => {
   document.body.replaceChildren();
   root = undefined;
   container = undefined;
+  vi.restoreAllMocks();
 });
 
 describe("PrivacyCenter", () => {
   it("shows the inventory and requires confirmation before deleting all data", async () => {
-    await settle();
+    await waitForText(container!, "Data inventory");
 
     expect(container?.textContent).toContain("Privacy Center");
     expect(container?.textContent).toContain("Data inventory");
     expect(container?.textContent).toContain("Audit log");
     expect(container?.textContent).toContain("Sync outbox");
     expect(container?.textContent).toContain(
-      "Recovery drafts, permission grants, audit entries, search results, and sync metadata (including outbox and conflict records) are not included in backup v1."
+      "Recovery drafts, permission grants, audit entries, search results, and sync metadata (including outbox and conflict records) are not included in backup v1 or v2."
     );
 
     await act(async () => {
@@ -88,4 +122,36 @@ describe("PrivacyCenter", () => {
       "All local data was deleted."
     );
   });
+
+  it("exports an encrypted backup through the shared export dialog", async () => {
+    let downloaded = "";
+    vi.spyOn(URL, "createObjectURL").mockReturnValue("blob:backup");
+    vi.spyOn(URL, "revokeObjectURL").mockImplementation(() => undefined);
+    vi.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(function (
+      this: HTMLAnchorElement
+    ) {
+      downloaded = this.download;
+    });
+
+    await waitForText(container!, "Export backup");
+    await act(async () => {
+      buttonByText(container!, "Export backup").click();
+    });
+    await settle();
+
+    const dialog = openDialog(container!);
+    const passwords = dialog?.querySelectorAll('input[type="password"]') ?? [];
+
+    expect(passwords).toHaveLength(2);
+    change(passwords[0] as HTMLInputElement, "correct horse battery staple");
+    change(passwords[1] as HTMLInputElement, "correct horse battery staple");
+
+    await act(async () => {
+      buttonByText(container!, "Download backup").click();
+    });
+    await waitForText(container!, "Backup downloaded.");
+
+    expect(downloaded).toMatch(/^opennest-backup-\d{4}-\d{2}-\d{2}\.json$/);
+    expect(container?.textContent).toContain("Backup downloaded.");
+  }, 15000);
 });

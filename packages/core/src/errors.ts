@@ -11,6 +11,7 @@ export type DomainErrorCode =
   | "quota_exceeded"
   | "closed"
   | "nested_transaction"
+  | "encrypted_transaction"
   | "no_random_source"
   | "multiple_workspaces"
   | "corrupt_data";
@@ -93,7 +94,7 @@ export class StorageError extends DomainError {
 export class UnsupportedError extends DomainError {
   constructor(
     message: string,
-    code: Extract<DomainErrorCode, "nested_transaction">,
+    code: Extract<DomainErrorCode, "nested_transaction" | "encrypted_transaction">,
     options?: DomainErrorOptions
   ) {
     super(message, code, options);

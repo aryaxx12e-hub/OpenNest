@@ -5,24 +5,41 @@ import {
   StorageError,
 } from "@opennest/core";
 
-function sqliteErrcode(error: unknown): number | undefined {
-  if (typeof error !== "object" || error === null) {
-    return undefined;
+function sqliteErrorCandidate(error: unknown): {
+  code?: unknown;
+  errcode?: unknown;
+} | null {
+  let current: unknown = error;
+
+  for (let depth = 0; depth < 4; depth += 1) {
+    if (typeof current !== "object" || current === null) {
+      return null;
+    }
+
+    const candidate = current as {
+      code?: unknown;
+      errcode?: unknown;
+      cause?: unknown;
+    };
+
+    if (candidate.code === "ERR_SQLITE_ERROR" || typeof candidate.errcode === "number") {
+      return candidate;
+    }
+
+    current = candidate.cause;
   }
 
-  const errcode = (error as { errcode?: unknown }).errcode;
+  return null;
+}
+
+function sqliteErrcode(error: unknown): number | undefined {
+  const errcode = sqliteErrorCandidate(error)?.errcode;
 
   return typeof errcode === "number" ? errcode : undefined;
 }
 
 function isSqliteError(error: unknown): boolean {
-  if (typeof error !== "object" || error === null) {
-    return false;
-  }
-
-  const { code, errcode } = error as { code?: unknown; errcode?: unknown };
-
-  return code === "ERR_SQLITE_ERROR" || typeof errcode === "number";
+  return sqliteErrorCandidate(error) !== null;
 }
 
 export function mapSqliteError(error: unknown): unknown {

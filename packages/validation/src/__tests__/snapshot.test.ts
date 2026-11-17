@@ -79,6 +79,17 @@ describe("backupSnapshotSchema", () => {
     expect(backupSnapshotSchema.parse(snapshot())).toBeTruthy();
   });
 
+  it("allows ciphertext blob lengths only for encrypted internal restores", () => {
+    const mismatch = snapshot({
+      blobs: [{ key: BLOB, mimeType: PDF, data: new Uint8Array([1, 2, 3, 4]) }],
+    });
+
+    expect(backupSnapshotSchema.safeParse(mismatch).success).toBe(false);
+    expect(
+      backupSnapshotSchema.safeParse({ ...mismatch, blobEncoding: "encrypted" }).success
+    ).toBe(true);
+  });
+
   it("accepts a snapshot with an empty library", () => {
     const parsed = backupSnapshotSchema.parse(
       snapshot({

@@ -1,5 +1,11 @@
 import type { Folder, Note, NoteLink, StoredFile, Tag, Workspace } from "../domain";
-import { ConstraintError, NotFoundError, StorageError, ValidationError } from "../errors";
+import {
+  ConflictError,
+  ConstraintError,
+  NotFoundError,
+  StorageError,
+  ValidationError,
+} from "../errors";
 import type { FileId, FolderId, IsoDate, NoteId, TagId, WorkspaceId } from "../ids";
 import { generateId } from "../ids";
 import type {
@@ -442,8 +448,14 @@ export function createMemoryStorage(config: MemoryStorageConfig = {}): StorageAd
     async create(input) {
       guard();
       const at = requireAt(input.at);
+      const id = input.id ?? (nextId() as NoteId);
+
+      if (state.notes.some((candidate) => candidate.id === id)) {
+        throw new ConflictError("A note with that id already exists.", "duplicate_id");
+      }
+
       const row: Note = {
-        id: nextId() as NoteId,
+        id,
         workspaceId: input.workspaceId,
         folderId: input.folderId,
         title: input.title,

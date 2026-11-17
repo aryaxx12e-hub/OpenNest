@@ -374,7 +374,7 @@ describe("ServiceWorkerUpdate", () => {
     });
 
     const container = new FakeContainer();
-    const clearDraft = vi.fn((workspaceId: string, noteId: string) =>
+    const clearDraft = vi.fn(async (workspaceId: string, noteId: string) =>
       clearNoteDraft(window.localStorage, workspaceId, noteId)
     );
     const download = vi.fn();
@@ -446,7 +446,7 @@ describe("ServiceWorkerUpdate", () => {
     });
 
     const container = new FakeContainer();
-    const clearDraft = vi.fn((workspaceId: string, noteId: string) =>
+    const clearDraft = vi.fn(async (workspaceId: string, noteId: string) =>
       clearNoteDraft(window.localStorage, workspaceId, noteId)
     );
     const host = mount(
@@ -610,7 +610,7 @@ describe("ServiceWorkerUpdate", () => {
     });
 
     const container = new FakeContainer();
-    const clearDraft = vi.fn((workspaceId: string, noteId: string) =>
+    const clearDraft = vi.fn(async (workspaceId: string, noteId: string) =>
       clearNoteDraft(window.localStorage, workspaceId, noteId)
     );
     const host = mount(
@@ -677,7 +677,7 @@ describe("ServiceWorkerUpdate", () => {
         classifyDrafts={async (drafts) =>
           drafts.map((draft) => ({ draft, exists: false }))
         }
-        clearDraft={() => false}
+        clearDraft={async () => false}
       />
     );
 
@@ -715,8 +715,8 @@ describe("ServiceWorkerUpdate", () => {
         enabled
         container={container}
         reload={vi.fn()}
-        readDrafts={() => ({ ok: false, error: new Error("blocked") })}
-        clearDrafts={() => ({ removed: 0, failed: 1 })}
+        readDrafts={async () => ({ ok: false, error: new Error("blocked") })}
+        clearDrafts={async () => ({ removed: 0, failed: 1 })}
       />
     );
 
@@ -800,11 +800,11 @@ describe("ServiceWorkerUpdate", () => {
 
   it("clears an unreadable journal before activating", async () => {
     const container = new FakeContainer();
-    const clearDrafts = vi.fn(() => ({ removed: 1, failed: 0 }));
+    const clearDrafts = vi.fn(async () => ({ removed: 1, failed: 0 }));
     const readDrafts = vi
       .fn()
-      .mockReturnValueOnce({ ok: false, error: new Error("blocked") })
-      .mockReturnValue({ ok: true, drafts: [] });
+      .mockResolvedValueOnce({ ok: false, error: new Error("blocked") })
+      .mockResolvedValue({ ok: true, drafts: [] });
     const host = mount(
       <ServiceWorkerUpdate
         enabled
@@ -850,7 +850,7 @@ describe("ServiceWorkerUpdate", () => {
         enabled
         container={container}
         reload={vi.fn()}
-        readDrafts={() => ({ ok: false, error: new Error("blocked") })}
+        readDrafts={async () => ({ ok: false, error: new Error("blocked") })}
       />
     );
 

@@ -14,7 +14,7 @@ import {
 } from "@opennest/privacy";
 import type { StorageAdapter, Workspace } from "@opennest/core";
 
-import type { DraftStorage } from "../autosave/draft-journal";
+import type { DraftStore } from "../autosave/draft-store";
 import { createDexiePrivacyStore } from "./dexie-store";
 import { createDataControls, type DataControls } from "./data-controls";
 
@@ -36,7 +36,7 @@ export interface CreatePrivacyRuntimeInput {
   storage: StorageAdapter;
   services: AppServices;
   workspace: Workspace;
-  drafts: DraftStorage;
+  drafts: DraftStore;
   openPrivacyStore?: () => Promise<PrivacyStore>;
   now?: () => number;
   generateId?: () => string;

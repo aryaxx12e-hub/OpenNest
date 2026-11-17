@@ -5,14 +5,8 @@ import { useEffect, useEffectEvent, useRef, useState } from "react";
 import { useTranslations } from "@opennest/localization";
 import { Button } from "@opennest/ui";
 
-import {
-  clearAllNoteDrafts,
-  clearNoteDraft,
-  readDraftJournal,
-  type DraftJournal,
-  type DraftStorage,
-  type NoteDraft,
-} from "@/lib/autosave/draft-journal";
+import type { DraftJournal, NoteDraft } from "@/lib/autosave/draft-journal";
+import { createBrowserPlainDraftStore } from "@/lib/autosave/draft-store";
 import { useOptionalAppRevision } from "@/lib/data/app-data-provider";
 import { useSaveCoordinator } from "@/lib/data/save-coordinator";
 import {
@@ -28,40 +22,51 @@ function reloadPage() {
   window.location.reload();
 }
 
-function readBrowserDrafts(): DraftJournal {
+async function readBrowserDrafts(): Promise<DraftJournal> {
   if (typeof window === "undefined") {
     return { ok: true, drafts: [] };
   }
 
+  const store = createBrowserPlainDraftStore();
+
+  if (store === null) {
+    return { ok: false, error: new Error("Draft storage is unavailable.") };
+  }
+
   try {
-    return readDraftJournal(window.localStorage);
+    return { ok: true, drafts: await store.list() };
   } catch (error) {
     return { ok: false, error };
   }
 }
 
-function browserDraftStorage(): DraftStorage | null {
-  if (typeof window === "undefined") {
-    return null;
+async function clearBrowserDraft(workspaceId: string, noteId: string): Promise<boolean> {
+  const store = createBrowserPlainDraftStore();
+
+  if (store === null) {
+    return false;
   }
 
   try {
-    return window.localStorage;
+    await store.remove(workspaceId, noteId);
+    return true;
   } catch {
-    return null;
+    return false;
   }
 }
 
-function clearBrowserDraft(workspaceId: string, noteId: string): boolean {
-  const storage = browserDraftStorage();
+async function clearBrowserDrafts(): Promise<{ removed: number; failed: number }> {
+  const store = createBrowserPlainDraftStore();
 
-  return storage === null ? false : clearNoteDraft(storage, workspaceId, noteId);
-}
+  if (store === null) {
+    return { removed: 0, failed: 1 };
+  }
 
-function clearBrowserDrafts(): { removed: number; failed: number } {
-  const storage = browserDraftStorage();
-
-  return storage === null ? { removed: 0, failed: 1 } : clearAllNoteDrafts(storage);
+  try {
+    return await store.clear();
+  } catch {
+    return { removed: 0, failed: 1 };
+  }
 }
 
 type UpdateError = "save" | "update";
@@ -73,10 +78,10 @@ export interface ServiceWorkerUpdateProps {
   enabled?: boolean;
   container?: PwaContainer | null;
   reload?: () => void;
-  readDrafts?: () => DraftJournal;
+  readDrafts?: () => Promise<DraftJournal>;
   classifyDrafts?: (drafts: NoteDraft[]) => Promise<DraftTarget[]>;
-  clearDraft?: (workspaceId: string, noteId: string) => boolean;
-  clearDrafts?: () => { removed: number; failed: number };
+  clearDraft?: (workspaceId: string, noteId: string) => Promise<boolean>;
+  clearDrafts?: () => Promise<{ removed: number; failed: number }>;
   download?: (fileName: string, text: string) => void;
 }
 
@@ -120,7 +125,7 @@ export function ServiceWorkerUpdate({
     let journal: DraftJournal;
 
     try {
-      journal = readDrafts();
+      journal = await readDrafts();
     } catch (error) {
       journal = { ok: false, error };
     }
@@ -268,7 +273,15 @@ export function ServiceWorkerUpdate({
     setUpdating(true);
     setRecoveryError(null);
 
-    if (!clearDraft(draft.workspaceId, draft.noteId)) {
+    let cleared = false;
+
+    try {
+      cleared = await clearDraft(draft.workspaceId, draft.noteId);
+    } catch {
+      cleared = false;
+    }
+
+    if (!cleared) {
       setUpdating(false);
       setRecoveryError("pwa.updateDraftError");
       return;
@@ -282,7 +295,13 @@ export function ServiceWorkerUpdate({
     setUpdating(true);
     setRecoveryError(null);
 
-    const result = clearDrafts();
+    let result: { removed: number; failed: number };
+
+    try {
+      result = await clearDrafts();
+    } catch {
+      result = { removed: 0, failed: 1 };
+    }
 
     if (result.failed > 0) {
       setUpdating(false);

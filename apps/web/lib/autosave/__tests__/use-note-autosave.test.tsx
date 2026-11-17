@@ -10,7 +10,8 @@ import {
   type WorkspaceId,
 } from "@opennest/core";
 
-import { readNoteDraft, writeNoteDraft } from "../draft-journal";
+import { readNoteDraft, writeNoteDraft, type NoteDraft } from "../draft-journal";
+import { createPlainDraftStore, type DraftStore } from "../draft-store";
 import { createSaveCoordinator, type SaveCoordinator } from "../save-coordinator";
 import { useNoteAutosave, type NoteSavePatch } from "../use-note-autosave";
 
@@ -30,21 +31,21 @@ const note: Note = {
 type HarnessProps = {
   save: (patch: NoteSavePatch) => Promise<Note>;
   coordinator: SaveCoordinator;
-  storage?: Storage;
+  draftStore?: DraftStore | null;
   note?: Note;
 };
 
 function Harness({
   save,
   coordinator,
-  storage = window.localStorage,
+  draftStore,
   note: activeNote = note,
 }: HarnessProps) {
   const autosave = useNoteAutosave({
     note: activeNote,
     save,
     coordinator,
-    storage,
+    draftStore,
   });
 
   return (
@@ -296,6 +297,8 @@ describe("useNoteAutosave", () => {
     const coordinator = createSaveCoordinator();
     const host = mount({ save, coordinator });
 
+    await settle();
+
     expect(titleField(host).value).toBe("Draft title");
     expect(contentField(host).value).toBe("Draft content");
     expect(host.textContent).toContain("restored");
@@ -322,6 +325,8 @@ describe("useNoteAutosave", () => {
     const coordinator = createSaveCoordinator();
     const host = mount({ save, coordinator });
 
+    await settle();
+
     expect(titleField(host).value).toBe(note.title);
     expect(readNoteDraft(window.localStorage, note.workspaceId, note.id)).toBeNull();
   });
@@ -347,6 +352,8 @@ describe("useNoteAutosave", () => {
       save,
       coordinator,
     });
+
+    await settle();
 
     expect(titleField(host).value).toBe("Draft title");
     expect(contentField(host).value).toBe("Draft content");
@@ -397,6 +404,8 @@ describe("useNoteAutosave", () => {
       coordinator,
     });
 
+    await settle();
+
     expect(titleField(host).value).toBe("Edited on another tab");
     expect(contentField(host).value).toBe("Edited content");
     expect(host.textContent).not.toContain("restored");
@@ -409,7 +418,11 @@ describe("useNoteAutosave", () => {
       savedNote(patch, "2026-11-14T10:00:02.000Z")
     );
     const coordinator = createSaveCoordinator();
-    const host = mount({ save, coordinator, storage: flaky.storage });
+    const host = mount({
+      save,
+      coordinator,
+      draftStore: createPlainDraftStore(flaky.storage),
+    });
 
     change(contentField(host), "Draft that cannot persist");
     await advance(250);
@@ -434,7 +447,11 @@ describe("useNoteAutosave", () => {
       savedNote(patch, "2026-11-14T10:00:02.000Z")
     );
     const coordinator = createSaveCoordinator();
-    const host = mount({ save, coordinator, storage: flaky.storage });
+    const host = mount({
+      save,
+      coordinator,
+      draftStore: createPlainDraftStore(flaky.storage),
+    });
 
     change(contentField(host), "Saved despite the blocked draft");
     await advance(250);
@@ -572,7 +589,86 @@ describe("useNoteAutosave", () => {
     await settle();
   });
 
-  it("prompts before unload only while work is unsaved", () => {
+  it("waits for draft recovery before saving user edits", async () => {
+    let resolveLoad!: (draft: NoteDraft | null) => void;
+    const load = new Promise<NoteDraft | null>((resolve) => {
+      resolveLoad = resolve;
+    });
+    const plain = createPlainDraftStore(window.localStorage);
+    const draftStore: DraftStore = {
+      ...plain,
+      get: vi.fn(() => load),
+    };
+    const save = vi.fn(async (patch: NoteSavePatch) =>
+      savedNote(patch, "2026-11-14T10:00:02.000Z")
+    );
+    const coordinator = createSaveCoordinator();
+    const host = mount({ save, coordinator, draftStore });
+
+    change(contentField(host), "Typed before recovery");
+    await idle();
+    expect(save).not.toHaveBeenCalled();
+
+    await act(async () => {
+      resolveLoad({
+        version: 1,
+        workspaceId: note.workspaceId,
+        noteId: note.id,
+        title: "Recovered title",
+        content: "Recovered content",
+        baseUpdatedAt: note.updatedAt,
+        savedAt: Date.now(),
+      });
+      await Promise.resolve();
+    });
+    await settle();
+
+    expect(save).toHaveBeenCalledWith({
+      title: "Original title",
+      content: "Typed before recovery",
+    });
+  });
+
+  it("does not clear an unseen draft when the editor unmounts", async () => {
+    let resolveLoad!: (draft: NoteDraft | null) => void;
+    const load = new Promise<NoteDraft | null>((resolve) => {
+      resolveLoad = resolve;
+    });
+    const plain = createPlainDraftStore(window.localStorage);
+    const remove = vi.fn(async () => undefined);
+    const put = vi.fn(async () => undefined);
+    const draftStore: DraftStore = {
+      ...plain,
+      get: vi.fn(() => load),
+      remove,
+      put,
+    };
+    const save = vi.fn(async (patch: NoteSavePatch) =>
+      savedNote(patch, "2026-11-14T10:00:02.000Z")
+    );
+    const coordinator = createSaveCoordinator();
+    mount({ save, coordinator, draftStore });
+
+    act(() => root.unmount());
+    await act(async () => {
+      resolveLoad({
+        version: 1,
+        workspaceId: note.workspaceId,
+        noteId: note.id,
+        title: "Unseen title",
+        content: "Unseen content",
+        baseUpdatedAt: note.updatedAt,
+        savedAt: Date.now(),
+      });
+      await Promise.resolve();
+    });
+    await settle();
+
+    expect(remove).not.toHaveBeenCalled();
+    expect(put).not.toHaveBeenCalled();
+  });
+
+  it("prompts before unload only while work is unsaved", async () => {
     const save = vi.fn(async (patch: NoteSavePatch) =>
       savedNote(patch, "2026-11-14T10:00:02.000Z")
     );
@@ -586,6 +682,7 @@ describe("useNoteAutosave", () => {
     change(contentField(host), "Unsaved");
     const dirty = new Event("beforeunload", { cancelable: true });
     act(() => window.dispatchEvent(dirty));
+    await settle();
 
     expect(dirty.defaultPrevented).toBe(true);
   });

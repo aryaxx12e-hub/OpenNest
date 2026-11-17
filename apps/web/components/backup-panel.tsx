@@ -6,70 +6,76 @@ import type { BackupSnapshot } from "@opennest/core";
 import { formatNumber, useLocale, useTranslations } from "@opennest/localization";
 import { Button, Card, ConfirmDialog } from "@opennest/ui";
 
+import { BackupExportDialog } from "@/components/backup-export-dialog";
+import { BackupImportDialog } from "@/components/backup-import-dialog";
+import { useEncryption } from "@/lib/crypto/encryption-gate";
 import { useAppData } from "@/lib/data/app-data-provider";
 import {
   backupErrorKey,
   downloadTextFile,
+  inspectBackupFile,
   parseBackupFile,
   summarizeBackup,
+  type BackupKeySource,
   type BackupSummary,
 } from "@/lib/data/backup";
-import type { DataOverview } from "@/lib/privacy/data-controls";
 import { dataControlErrorKey } from "@/lib/privacy/errors";
 
 export interface BackupPanelProps {
   download?: (fileName: string, text: string) => void;
+  encryptionActive?: boolean;
 }
 
 interface PendingImport {
   snapshot: BackupSnapshot;
   summary: BackupSummary;
+  encrypted: boolean;
 }
 
-export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
+interface EncryptedFile {
+  text: string;
+  summary: BackupSummary;
+}
+
+export function BackupPanel({
+  download = downloadTextFile,
+  encryptionActive = false,
+}: BackupPanelProps) {
   const t = useTranslations();
   const { locale } = useLocale();
-  const { privacy, refreshWorkspace } = useAppData();
+  const { privacy, workspace, refreshWorkspace } = useAppData();
+  const encryption = useEncryption();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [exporting, setExporting] = useState(false);
+  const [preparing, setPreparing] = useState(false);
   const [importing, setImporting] = useState(false);
   const [restoring, setRestoring] = useState(false);
+  const [exportOpen, setExportOpen] = useState(false);
+  const [exportSummary, setExportSummary] = useState<BackupSummary | null>(null);
+  const [encryptedFile, setEncryptedFile] = useState<EncryptedFile | null>(null);
   const [pending, setPending] = useState<PendingImport | null>(null);
-  const [pendingExport, setPendingExport] = useState<DataOverview | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [draftWarning, setDraftWarning] = useState<string | null>(null);
 
   async function prepareExport() {
-    setExporting(true);
+    setPreparing(true);
     setError(null);
     setSuccess(null);
     setDraftWarning(null);
 
     try {
-      setPendingExport(await privacy.data.overview());
+      const overview = await privacy.data.overview();
+      setExportSummary({
+        files: overview.files,
+        notes: overview.notes,
+        folders: overview.folders,
+        tags: overview.tags,
+      });
+      setExportOpen(true);
     } catch (caught) {
       setError(dataControlErrorKey(caught));
     } finally {
-      setExporting(false);
-    }
-  }
-
-  async function exportBackup() {
-    setExporting(true);
-    setError(null);
-    setSuccess(null);
-    setDraftWarning(null);
-
-    try {
-      const built = await privacy.data.exportAll();
-      download(built.fileName, built.text);
-      setSuccess("backup.exportSuccess");
-    } catch (caught) {
-      setError(dataControlErrorKey(caught));
-    } finally {
-      setExporting(false);
-      setPendingExport(null);
+      setPreparing(false);
     }
   }
 
@@ -80,8 +86,28 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
     setDraftWarning(null);
 
     try {
-      const snapshot = await parseBackupFile(await file.text());
-      setPending({ snapshot, summary: summarizeBackup(snapshot) });
+      const text = await file.text();
+      const inspection = inspectBackupFile(text);
+
+      if (inspection.formatVersion === 1) {
+        const snapshot = await parseBackupFile(text);
+
+        setPending({
+          snapshot,
+          summary: summarizeBackup(snapshot),
+          encrypted: false,
+        });
+      } else {
+        setEncryptedFile({
+          text,
+          summary: {
+            files: inspection.summary.counts.files,
+            notes: inspection.summary.counts.notes,
+            folders: inspection.summary.counts.folders,
+            tags: inspection.summary.counts.tags,
+          },
+        });
+      }
     } catch (caught) {
       setError(backupErrorKey(caught));
     } finally {
@@ -91,6 +117,23 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
         inputRef.current.value = "";
       }
     }
+  }
+
+  async function unlockBackup(keySource: BackupKeySource): Promise<void> {
+    if (encryptedFile === null) {
+      return;
+    }
+
+    const snapshot = await parseBackupFile(encryptedFile.text, keySource, {
+      targetWorkspaceId: workspace.id,
+    });
+
+    setPending({
+      snapshot,
+      summary: summarizeBackup(snapshot),
+      encrypted: true,
+    });
+    setEncryptedFile(null);
   }
 
   async function restoreBackup() {
@@ -125,8 +168,8 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
         </div>
 
         <div className="flex flex-wrap gap-2">
-          <Button loading={exporting} onClick={() => void prepareExport()}>
-            {exporting ? t("backup.exporting") : t("backup.export")}
+          <Button loading={preparing} onClick={() => void prepareExport()}>
+            {preparing ? t("backup.exporting") : t("backup.export")}
           </Button>
           <input
             ref={inputRef}
@@ -170,36 +213,26 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
         )}
       </Card>
 
-      <ConfirmDialog
-        open={pendingExport !== null}
-        title={t("backup.exportTitle")}
-        description={t("backup.exportDescription")}
-        confirmLabel={t("backup.exportConfirm")}
-        cancelLabel={t("common.cancel")}
-        busy={exporting}
-        onConfirm={() => void exportBackup()}
-        onClose={() => setPendingExport(null)}
-      >
-        {pendingExport === null ? null : (
-          <div className="space-y-2">
-            <ul className="text-muted grid grid-cols-2 gap-1 text-sm">
-              <li>
-                {formatNumber(locale, pendingExport.files)} {t("backup.files")}
-              </li>
-              <li>
-                {formatNumber(locale, pendingExport.notes)} {t("backup.notes")}
-              </li>
-              <li>
-                {formatNumber(locale, pendingExport.folders)} {t("backup.folders")}
-              </li>
-              <li>
-                {formatNumber(locale, pendingExport.tags)} {t("backup.tags")}
-              </li>
-            </ul>
-            <p className="text-muted text-xs leading-5">{t("backup.exportExclusion")}</p>
-          </div>
-        )}
-      </ConfirmDialog>
+      {exportOpen ? (
+        <BackupExportDialog
+          open
+          summary={exportSummary}
+          encryptionActive={encryptionActive || encryption.record !== null}
+          download={download}
+          onExport={(options) => privacy.data.exportAll(options)}
+          onExported={() => setSuccess("backup.exportSuccess")}
+          onClose={() => setExportOpen(false)}
+        />
+      ) : null}
+
+      {encryptedFile === null ? null : (
+        <BackupImportDialog
+          open
+          summary={encryptedFile.summary}
+          onSubmit={unlockBackup}
+          onClose={() => setEncryptedFile(null)}
+        />
+      )}
 
       <ConfirmDialog
         open={pending !== null}
@@ -229,6 +262,17 @@ export function BackupPanel({ download = downloadTextFile }: BackupPanelProps) {
                 {formatNumber(locale, pending.summary.tags)} {t("backup.tags")}
               </li>
             </ul>
+            {pending.encrypted ? (
+              encryptionActive ? null : (
+                <p role="alert" className="text-sm text-amber-700 dark:text-amber-300">
+                  {t("backup.importWarning.notEncryptedAtRest")}
+                </p>
+              )
+            ) : (
+              <p role="alert" className="text-sm text-amber-700 dark:text-amber-300">
+                {t("backup.importWarning.plaintext")}
+              </p>
+            )}
           </div>
         )}
       </ConfirmDialog>

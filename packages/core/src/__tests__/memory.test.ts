@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import { ConstraintError, NotFoundError, ValidationError } from "../errors";
-import type { IsoDate, WorkspaceId } from "../ids";
+import type { IsoDate, NoteId, WorkspaceId } from "../ids";
 import { createMemoryStorage } from "../testing/memory";
 import { idGenerator } from "../testing/fixtures";
 
@@ -71,6 +71,34 @@ describe("memory adapter: workspaces", () => {
     expect(await storage.tags.get(tag.id)).toBeNull();
     expect(await storage.notes.get(note.id)).toBeNull();
     expect(await storage.notes.tags(note.id)).toEqual([]);
+  });
+});
+
+describe("memory adapter: notes", () => {
+  it("uses a caller-provided id and rejects a duplicate id", async () => {
+    const storage = setup();
+    const workspace = await storage.workspaces.create({ name: "Satu", at: AT });
+    const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" as NoteId;
+    const note = await storage.notes.create({
+      id,
+      workspaceId: workspace.id,
+      folderId: null,
+      title: "Catatan tetap",
+      at: AT,
+    });
+
+    expect(note.id).toBe(id);
+    expect(await storage.notes.get(id)).toMatchObject({ id, title: "Catatan tetap" });
+
+    await expect(
+      storage.notes.create({
+        id,
+        workspaceId: workspace.id,
+        folderId: null,
+        title: "Duplikat",
+        at: AT,
+      })
+    ).rejects.toMatchObject({ code: "duplicate_id" });
   });
 });
 

@@ -19,12 +19,44 @@ const AT = "2026-11-13T12:34:56.000Z" as IsoDate;
 let root: Root | undefined;
 let container: HTMLDivElement | undefined;
 
-async function settle() {
-  for (let index = 0; index < 40; index += 1) {
+async function settle(rounds = 40) {
+  for (let index = 0; index < rounds; index += 1) {
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 5));
     });
   }
+}
+
+function openDialog(host: HTMLElement): HTMLDialogElement | null {
+  return (
+    Array.from(host.querySelectorAll("dialog")).find((dialog) => dialog.open) ?? null
+  );
+}
+
+function change(element: HTMLInputElement, value: string) {
+  const setter = Object.getOwnPropertyDescriptor(
+    HTMLInputElement.prototype,
+    "value"
+  )?.set;
+
+  act(() => {
+    setter?.call(element, value);
+    element.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+}
+
+function clickLabel(host: HTMLElement, text: string) {
+  const label = Array.from(host.querySelectorAll("label")).find((candidate) =>
+    candidate.textContent?.trim().startsWith(text)
+  );
+
+  if (label === undefined) {
+    throw new Error(`No label named ${text}`);
+  }
+
+  act(() => {
+    label.click();
+  });
 }
 
 async function createSeed() {
@@ -72,7 +104,8 @@ function mount(storage: ReturnType<typeof createMemoryStorage>, download = vi.fn
 }
 
 function buttonByText(host: HTMLElement, text: string): HTMLButtonElement {
-  const button = Array.from(host.querySelectorAll("button")).find(
+  const scope = openDialog(host) ?? host;
+  const button = Array.from(scope.querySelectorAll("button")).find(
     (candidate) => candidate.textContent?.trim() === text
   );
 
@@ -124,7 +157,7 @@ afterEach(() => {
 });
 
 describe("BackupPanel", () => {
-  it("downloads a complete backup and reports success", async () => {
+  it("downloads an encrypted backup by default and reports success", async () => {
     const { storage, workspace } = await createSeed();
     const mounted = mount(storage);
 
@@ -134,23 +167,131 @@ describe("BackupPanel", () => {
     });
     await settle();
 
-    expect(mounted.container.textContent).toContain("Download a backup?");
-    expect(mounted.container.textContent).toContain(
+    const dialog = openDialog(mounted.container);
+    expect(dialog?.textContent).toContain("Download a backup?");
+    expect(dialog?.textContent).toContain(
       "sync metadata (including outbox and conflict records) are not included"
     );
+    const passwords = dialog?.querySelectorAll('input[type="password"]') ?? [];
+
+    change(passwords[0] as HTMLInputElement, "correct horse battery staple");
+    change(passwords[1] as HTMLInputElement, "correct horse battery staple");
 
     await act(async () => {
       buttonByText(mounted.container, "Download backup").click();
     });
-    await settle();
+    await settle(240);
 
     expect(mounted.download).toHaveBeenCalledTimes(1);
     const [fileName, text] = mounted.download.mock.calls[0] as [string, string];
 
     expect(fileName).toMatch(/^opennest-backup-\d{4}-\d{2}-\d{2}\.json$/);
-    expect(text).toContain(workspace.id);
+    expect(text).toContain('"formatVersion": 2');
+    expect(text).not.toContain(workspace.id);
+    expect(text).not.toContain("Before export");
     expect(mounted.container.textContent).toContain("Backup downloaded.");
   });
+
+  it("exports a generated backup key and restores with it", async () => {
+    const { storage, services, workspace } = await createSeed();
+    const mounted = mount(storage);
+
+    await settle();
+    await act(async () => {
+      buttonByText(mounted.container, "Export backup").click();
+    });
+    await settle();
+
+    const exportDialog = openDialog(mounted.container);
+    clickLabel(exportDialog as HTMLElement, "Backup key");
+    const keyInput = exportDialog?.querySelector(
+      "input[readonly]"
+    ) as HTMLInputElement | null;
+    const backupKey = keyInput?.value ?? "";
+
+    expect(backupKey).toMatch(/^ONBK1-/);
+
+    const writeText = vi.fn().mockResolvedValue(undefined);
+    Object.defineProperty(window.navigator, "clipboard", {
+      configurable: true,
+      value: { writeText },
+    });
+    await act(async () => {
+      buttonByText(mounted.container, "Copy key").click();
+    });
+    await settle();
+    expect(writeText).toHaveBeenCalledWith(backupKey);
+    expect(exportDialog?.textContent).toContain("Backup key copied.");
+
+    await act(async () => {
+      buttonByText(mounted.container, "Download backup").click();
+    });
+    await settle();
+    expect(openDialog(mounted.container)?.textContent).toContain(
+      "Save and confirm the backup key first."
+    );
+
+    const saved = exportDialog?.querySelector(
+      'input[type="checkbox"]'
+    ) as HTMLInputElement | null;
+    act(() => {
+      saved?.click();
+    });
+
+    await act(async () => {
+      buttonByText(mounted.container, "Download backup").click();
+    });
+    await settle(240);
+    const [, text] = mounted.download.mock.calls[0] as [string, string];
+
+    act(() => {
+      buttonByText(mounted.container, "Done").click();
+    });
+    await services.note.create({
+      workspaceId: workspace.id,
+      folderId: null,
+      title: "After export",
+    });
+
+    await chooseFile(mounted.container, text);
+
+    const importDialog = openDialog(mounted.container);
+    clickLabel(importDialog as HTMLElement, "Backup key");
+    const importKey = importDialog?.querySelector(
+      'input[placeholder="ONBK1-..."]'
+    ) as HTMLInputElement | null;
+    change(importKey as HTMLInputElement, "ONBK1-not-the-right-key");
+
+    await act(async () => {
+      buttonByText(mounted.container, "Unlock backup").click();
+    });
+    await settle();
+
+    expect(mounted.container.textContent).toContain(
+      "The passphrase or backup key is incorrect, or the backup is damaged."
+    );
+
+    change(importKey as HTMLInputElement, backupKey);
+
+    await act(async () => {
+      buttonByText(mounted.container, "Unlock backup").click();
+    });
+    await settle(240);
+
+    expect(openDialog(mounted.container)?.textContent).toContain("Replace all data?");
+    expect(openDialog(mounted.container)?.textContent).toContain(
+      "This backup is encrypted, but your library is not. Restored data will be stored unencrypted on this device."
+    );
+    await act(async () => {
+      buttonByText(mounted.container, "Replace data").click();
+    });
+    await settle();
+
+    expect(mounted.container.textContent).toContain("Backup restored.");
+    expect(
+      (await services.note.list(workspace.id, {})).items.map((note) => note.title)
+    ).toEqual(["Before export"]);
+  }, 15000);
 
   it("rejects an invalid file without changing stored data", async () => {
     const { storage, services, workspace } = await createSeed();
@@ -181,6 +322,9 @@ describe("BackupPanel", () => {
     await chooseFile(mounted.container, built.text);
 
     expect(mounted.container.textContent).toContain("Replace all data?");
+    expect(mounted.container.textContent).toContain(
+      "This is a plaintext v1 backup. Its titles, notes, and file contents are not encrypted."
+    );
     expect((await services.note.list(workspace.id, {})).total).toBe(2);
 
     await act(async () => {

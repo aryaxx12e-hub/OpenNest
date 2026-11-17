@@ -108,6 +108,7 @@ export interface FileRepository {
 
 export interface NoteRepository {
   create(input: {
+    id?: NoteId;
     workspaceId: WorkspaceId;
     folderId: FolderId | null;
     title: string;
@@ -196,6 +197,8 @@ export interface BackupSnapshot {
   snapshotVersion: 1;
   schemaVersion: number;
   kind: "dexie" | "sqlite";
+  /** Internal restores mark encrypted blobs so plaintext sizes stay metadata. */
+  blobEncoding?: "plaintext" | "encrypted";
   createdAt: IsoDate;
   workspace: Workspace;
   folders: Folder[];

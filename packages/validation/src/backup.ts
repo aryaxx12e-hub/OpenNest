@@ -11,7 +11,7 @@ const serializedBlobSchema = z.strictObject({
   data: z.string({ error: "Blob data must be a base64 string." }),
 });
 
-const serializedSnapshotSchema = z.strictObject({
+export const serializedBackupSnapshotSchema = z.strictObject({
   snapshotVersion: z.literal(1),
   schemaVersion: z.number().int().min(0),
   kind: z.enum(["dexie", "sqlite"]),
@@ -31,7 +31,9 @@ export const backupFileSchema = z.strictObject({
   format: z.literal(BACKUP_FORMAT),
   formatVersion: z.literal(BACKUP_FORMAT_VERSION),
   exportedAt: isoDateSchema,
-  snapshot: serializedSnapshotSchema,
+  snapshot: serializedBackupSnapshotSchema,
 });
+
+export const backupFileV1Schema = backupFileSchema;
 
 export type BackupFile = z.infer<typeof backupFileSchema>;

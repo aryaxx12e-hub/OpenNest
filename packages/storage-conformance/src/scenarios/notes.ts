@@ -1,6 +1,11 @@
 import { describe, expect, it } from "vitest";
 
-import { NotFoundError, createNoteService, type NoteRepository } from "@opennest/core";
+import {
+  NotFoundError,
+  createNoteService,
+  type NoteId,
+  type NoteRepository,
+} from "@opennest/core";
 
 import { withHarness } from "../harness";
 import type { StorageFactory } from "../index";
@@ -52,6 +57,32 @@ export function registerNoteScenarios(create: StorageFactory): void {
 
         await services.note.delete(note.id);
         expect(await storage.notes.get(note.id)).toBeNull();
+      });
+    });
+
+    it("uses a caller-provided note id and rejects a duplicate id", async () => {
+      await withHarness(create, async ({ clock, storage, workspace }) => {
+        const id = "aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa" as NoteId;
+        const note = await storage.notes.create({
+          id,
+          workspaceId: workspace.id,
+          folderId: null,
+          title: "Catatan tetap",
+          at: clock(),
+        });
+
+        expect(note.id).toBe(id);
+        expect(await storage.notes.get(id)).toMatchObject({ id, title: "Catatan tetap" });
+
+        await expect(
+          storage.notes.create({
+            id,
+            workspaceId: workspace.id,
+            folderId: null,
+            title: "Duplikat",
+            at: clock(),
+          })
+        ).rejects.toMatchObject({ code: "duplicate_id" });
       });
     });
 

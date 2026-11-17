@@ -10,6 +10,8 @@ import {
 import { createMemoryPrivacyStore, createSequenceIds } from "@opennest/privacy";
 
 import { readDraftJournal, writeNoteDraft } from "@/lib/autosave/draft-journal";
+import { createPlainDraftStore } from "@/lib/autosave/draft-store";
+import { parseBackupFile } from "@/lib/data/backup";
 import { createAppServices, sha256Hex } from "@/lib/data/services";
 
 import { createPrivacyRuntime, type PrivacyRuntime } from "../runtime";
@@ -40,7 +42,7 @@ async function setup(): Promise<RuntimeFixture> {
     storage,
     services,
     workspace,
-    drafts: window.localStorage,
+    drafts: createPlainDraftStore(window.localStorage),
     openPrivacyStore,
     now: () => NOW,
     generateId: createSequenceIds("control"),
@@ -131,6 +133,34 @@ describe("privacy data controls", () => {
 
     expect(built.text).toContain(workspace.id);
     expect(built.summary.notes).toBe(1);
+    expect(audit.some((entry) => entry.event === "data.exported")).toBe(true);
+    await runtime.dispose();
+  });
+
+  it("exports an encrypted v2 backup through the broker and audits it", async () => {
+    const { runtime, workspace } = await setup();
+    await runtime.services.note.create({
+      workspaceId: workspace.id,
+      folderId: null,
+      title: "Encrypted export",
+      content: "secret body",
+    });
+    const keySource = {
+      kind: "passphrase" as const,
+      passphrase: "correct horse battery staple",
+    };
+
+    const built = await runtime.data.exportAll({ format: "v2", keySource });
+    const parsed = await parseBackupFile(built.text, keySource, {
+      targetWorkspaceId: workspace.id,
+    });
+    const audit = await runtime.audit.list();
+
+    expect(built.formatVersion).toBe(2);
+    expect(built.encrypted).toBe(true);
+    expect(built.text).not.toContain("Encrypted export");
+    expect(built.text).not.toContain("secret body");
+    expect(parsed.notes.map((note) => note.title)).toEqual(["Encrypted export"]);
     expect(audit.some((entry) => entry.event === "data.exported")).toBe(true);
     await runtime.dispose();
   });

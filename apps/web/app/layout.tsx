@@ -3,6 +3,7 @@ import type { Metadata, Viewport } from "next";
 import { LocaleProvider } from "@opennest/localization";
 
 import { AppShell } from "@/components/app-shell";
+import { EncryptionGate } from "@/lib/crypto/encryption-gate";
 import { AppDataProvider } from "@/lib/data/app-data-provider";
 import { SaveCoordinatorProvider } from "@/lib/data/save-coordinator";
 import { themeColors, themeScript } from "@/lib/theme";
@@ -39,9 +40,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <LocaleProvider>
           <AppDataProvider>
-            <SaveCoordinatorProvider>
-              <AppShell>{children}</AppShell>
-            </SaveCoordinatorProvider>
+            <EncryptionGate>
+              <SaveCoordinatorProvider>
+                <AppShell>{children}</AppShell>
+              </SaveCoordinatorProvider>
+            </EncryptionGate>
           </AppDataProvider>
         </LocaleProvider>
       </body>

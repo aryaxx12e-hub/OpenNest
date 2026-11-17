@@ -1318,7 +1318,7 @@ export function createSqliteStorage(config: SqliteStorageOptions): SyncCapableSt
         syncWrite(async () => {
           const at = requireAt(input.at);
           const row: NoteRow = {
-            id: generateId(),
+            id: input.id ?? generateId(),
             workspaceId: input.workspaceId,
             folderId: input.folderId,
             title: input.title,

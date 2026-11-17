@@ -47,6 +47,129 @@ export const en = {
     errorBody:
       "OpenNest could not access browser storage. Check that private browsing or storage restrictions are not blocking this site, then try again.",
   },
+  encryption: {
+    unlock: {
+      title: "Your library is locked",
+      description:
+        "Enter your workspace passphrase to decrypt your library on this device.",
+      passphrase: "Passphrase",
+      passphrasePlaceholder: "Workspace passphrase",
+      passphraseHint: "Your passphrase never leaves this device.",
+      recoveryKey: "Recovery key",
+      recoveryKeyPlaceholder: "ONRK1-...",
+      recoveryHint: "Use the recovery key you saved when you turned on encryption.",
+      unlock: "Unlock",
+      unlocking: "Unlocking...",
+      useRecoveryKey: "Use a recovery key",
+      usePassphrase: "Use passphrase",
+      requiredPassphrase: "Enter your passphrase.",
+      requiredRecoveryKey: "Enter your recovery key.",
+      errors: {
+        wrong: "The passphrase or recovery key is incorrect.",
+        rateLimited: "Too many attempts. Wait 30 seconds and try again.",
+        corrupt: "This keyring is damaged. Restore from a backup if possible.",
+        failed: "The library could not be unlocked. Try again.",
+      },
+    },
+    setup: {
+      title: "Turn on encryption",
+      description:
+        "Encrypt notes, files, folders, and workspace names on this device with a passphrase.",
+      passphrase: "Passphrase",
+      passphrasePlaceholder: "At least 12 characters",
+      confirmPassphrase: "Confirm passphrase",
+      passphraseHint:
+        "Use at least 12 characters. OpenNest cannot recover a forgotten passphrase.",
+      requiredPassphrase: "Enter a passphrase.",
+      passphraseTooShort: "Use at least 12 characters.",
+      passphraseMismatch: "The passphrases do not match.",
+      continue: "Continue",
+      recoveryTitle: "Save your recovery key",
+      recoveryDescription:
+        "This key is the only way back in if you forget your passphrase. Store it somewhere safe.",
+      recoveryKeyLabel: "Your recovery key",
+      recoveryHint: "OpenNest does not store this key. It cannot be shown again.",
+      copyKey: "Copy key",
+      keyCopied: "Recovery key copied.",
+      copyUnavailable: "Copying is unavailable. Select the key and copy it manually.",
+      recoveryConfirm: "I saved this recovery key somewhere safe.",
+      back: "Back",
+      enable: "Turn on encryption",
+      enabling: "Turning on encryption...",
+      failed: "Encryption could not be turned on. Your data was not changed.",
+      success: "Encryption is on.",
+      cancelled: "Encryption setup was cancelled.",
+    },
+    operation: {
+      setupTitle: "Encrypting your library",
+      setupDescription:
+        "OpenNest is encrypting stored data and copying drafts. Keep this tab open.",
+      rotationTitle: "Rotating the workspace key",
+      rotationDescription:
+        "OpenNest is re-encrypting stored data and drafts with a new key. Keep this tab open.",
+      progressLabel: "Encryption progress",
+      phases: {
+        start: "Preparing",
+        drafts: "Copying drafts",
+        snapshot: "Checking saved data",
+        verify: "Verifying encrypted data",
+        restore: "Restoring encrypted data",
+        cleanup: "Cleaning up",
+        active: "Finishing",
+        draftsStage: "Preparing drafts",
+        draftsFinalize: "Re-encrypting drafts",
+        draftsDiscard: "Discarding old drafts",
+      },
+      cancel: "Cancel setup",
+      dismiss: "Back to workspace",
+      failed:
+        "The operation could not finish. Your data is still protected; try again or reopen OpenNest.",
+    },
+    settings: {
+      title: "Encryption",
+      description:
+        "Your library is encrypted at rest. The key is stored only on this device.",
+      active: "On",
+      pending: "Rotation pending",
+      pendingRecovery:
+        "Rotation needs to finish. Unlock or enter your passphrase below to complete it.",
+      lockNow: "Lock now",
+      passphraseTitle: "Change passphrase",
+      passphraseDescription:
+        "Changing the passphrase keeps the same data key. It does not re-encrypt stored data.",
+      currentPassphrase: "Current passphrase",
+      newPassphrase: "New passphrase",
+      confirmPassphrase: "Confirm new passphrase",
+      passphrasePlaceholder: "At least 12 characters",
+      changeAction: "Change passphrase",
+      changing: "Changing passphrase...",
+      passphraseSuccess: "Passphrase changed.",
+      rotationTitle: "Rotate workspace key",
+      rotationDescription:
+        "Creates a new data key and re-encrypts stored data and drafts. You need your passphrase.",
+      rotationPassphrase: "Passphrase",
+      rotateAction: "Rotate key",
+      rotationConfirmTitle: "Rotate the workspace key?",
+      rotationConfirmDescription:
+        "OpenNest will re-encrypt all stored data and drafts. This can take a moment. Keep this tab open.",
+      rotationWarning:
+        "If rotation is interrupted, unlock again to finish it. Your recovery key stays valid.",
+      rotationSuccess: "Workspace key rotated.",
+      rotationDraftError:
+        "The workspace key was rotated, but some drafts still need re-encryption. Unlock again to finish.",
+      errors: {
+        currentRequired: "Enter your current passphrase.",
+        currentWrong: "The current passphrase is incorrect.",
+        rateLimited: "Too many attempts. Wait 30 seconds and try again.",
+        pendingRotation: "Finish or cancel the pending rotation first.",
+        nextTooShort: "Use at least 12 characters for the new passphrase.",
+        mismatch: "The new passphrases do not match.",
+        changeFailed: "The passphrase could not be changed. Try again.",
+        rotationPassphrase: "Enter your passphrase to rotate the key.",
+        rotationFailed: "The workspace key could not be rotated. Try again.",
+      },
+    },
+  },
   settings: {
     title: "Settings",
     subtitle: "Manage the data stored on this device.",
@@ -83,7 +206,63 @@ export const en = {
     notes: "notes",
     folders: "folders",
     tags: "tags",
+    exportDialog: {
+      title: "Download a backup?",
+      description: "Choose how this backup is protected before it leaves this device.",
+      summary: "This backup contains:",
+      protection: "Protection",
+      passphrase: "Passphrase",
+      passphraseHint:
+        "The backup is encrypted with this passphrase. You will need it to restore.",
+      backupKey: "Backup key",
+      backupKeyHint:
+        "OpenNest generates a key. Save it somewhere safe. It is the only way to restore this backup.",
+      plaintext: "Plaintext (v1)",
+      plaintextHint: "Compatibility format. Anyone with the file can read it.",
+      passphraseLabel: "Passphrase",
+      confirmPassphraseLabel: "Confirm passphrase",
+      passphrasePlaceholder: "At least 12 characters",
+      passphraseTooShort: "Use at least 12 characters.",
+      passphraseMismatch: "The passphrases do not match.",
+      generatedKeyLabel: "Your backup key",
+      generatedKeyHint:
+        "Copy this key now. It is not stored anywhere and cannot be recovered.",
+      copyKey: "Copy key",
+      keyCopied: "Backup key copied.",
+      copyUnavailable: "Copying is unavailable. Select the key and copy it manually.",
+      keySaved: "I saved this backup key.",
+      keyRequired: "Save and confirm the backup key first.",
+      encryptionNotice:
+        "Titles, note content, file contents, and workspace names are encrypted in this backup.",
+      plaintextWarning:
+        "A plaintext backup is not encrypted. Anyone with the file can read every title, note, and file.",
+      encryptedAtRestNotice:
+        "Your library is encrypted at rest. A plaintext backup is not.",
+      download: "Download backup",
+      done: "Done",
+      success: "Backup downloaded. Store it somewhere safe.",
+    },
+    importKey: {
+      title: "Unlock this backup",
+      description:
+        "Enter the passphrase or backup key used when this backup was created.",
+      passphrase: "Passphrase",
+      backupKey: "Backup key",
+      passphrasePlaceholder: "Backup passphrase",
+      keyPlaceholder: "ONBK1-...",
+      unlock: "Unlock backup",
+    },
+    importWarning: {
+      plaintext:
+        "This is a plaintext v1 backup. Its titles, notes, and file contents are not encrypted.",
+      notEncryptedAtRest:
+        "This backup is encrypted, but your library is not. Restored data will be stored unencrypted on this device.",
+    },
     errors: {
+      missingKey: "This backup needs a passphrase or backup key.",
+      wrongKey: "The passphrase or backup key is incorrect, or the backup is damaged.",
+      invalidEncryption: "The encrypted backup header or data is damaged.",
+      invalidSummary: "The backup summary does not match its contents.",
       missingWorkspace: "The workspace for this backup could not be found.",
       missingBlob: "The stored copy of a file is missing. The backup was not created.",
       exportFailed: "The backup could not be created. Try again.",
@@ -116,7 +295,7 @@ export const en = {
     },
     backup: {
       notice:
-        "Recovery drafts, permission grants, audit entries, search results, and sync metadata (including outbox and conflict records) are not included in backup v1.",
+        "Recovery drafts, permission grants, audit entries, search results, and sync metadata (including outbox and conflict records) are not included in backup v1 or v2.",
     },
     inventory: {
       title: "Data inventory",
@@ -150,6 +329,7 @@ export const en = {
         blobs: "File contents",
         notes: "Notes",
         drafts: "Recovery drafts",
+        keyring: "Encryption keyring",
         grants: "Permission grants",
         audit: "Audit log",
         search: "Search results",

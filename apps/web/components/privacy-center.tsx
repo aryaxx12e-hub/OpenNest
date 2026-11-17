@@ -5,21 +5,23 @@ import { useState } from "react";
 import { useTranslations } from "@opennest/localization";
 import { Button, ConfirmDialog, Skeleton } from "@opennest/ui";
 
+import { BackupExportDialog } from "@/components/backup-export-dialog";
 import { PageHeader } from "@/components/page-header";
 import { PrivacyAudit } from "@/components/privacy-audit";
 import { PrivacyGrants } from "@/components/privacy-grants";
 import { PrivacyInventory } from "@/components/privacy-inventory";
 import { PrivacyOverview } from "@/components/privacy-overview";
+import { useEncryption } from "@/lib/crypto/encryption-gate";
 import { useAppData } from "@/lib/data/app-data-provider";
-import { downloadTextFile } from "@/lib/data/backup";
 import { useAsyncData } from "@/lib/data/hooks";
 import { dataControlErrorKey } from "@/lib/privacy/errors";
 
-type Action = "export" | "delete" | null;
+type Action = "delete" | null;
 
 export function PrivacyCenter() {
   const t = useTranslations();
   const { privacy, invalidate, refreshWorkspace } = useAppData();
+  const encryption = useEncryption();
   const [exportOpen, setExportOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [action, setAction] = useState<Action>(null);
@@ -35,25 +37,6 @@ export function PrivacyCenter() {
     return { overview, grants, audit };
   });
 
-  async function exportAll() {
-    setAction("export");
-    setActionError(null);
-    setActionSuccess(null);
-
-    try {
-      const built = await privacy.data.exportAll();
-      downloadTextFile(built.fileName, built.text);
-      setExportOpen(false);
-      setActionSuccess("privacy.export.success");
-      state.reload();
-    } catch (caught) {
-      setExportOpen(false);
-      setActionError(dataControlErrorKey(caught));
-    } finally {
-      setAction(null);
-    }
-  }
-
   async function deleteAll() {
     setAction("delete");
     setActionError(null);
@@ -61,7 +44,13 @@ export function PrivacyCenter() {
 
     try {
       await privacy.data.deleteAll();
-      await refreshWorkspace();
+
+      if (encryption.record === null) {
+        await refreshWorkspace();
+      } else {
+        await encryption.resetEncryption();
+      }
+
       invalidate();
       state.reload();
       setDeleteOpen(false);
@@ -104,11 +93,7 @@ export function PrivacyCenter() {
         description={t("privacy.subtitle")}
         actions={
           <>
-            <Button
-              variant="secondary"
-              loading={action === "export"}
-              onClick={() => setExportOpen(true)}
-            >
+            <Button variant="secondary" onClick={() => setExportOpen(true)}>
               {t("privacy.export.action")}
             </Button>
             <Button
@@ -141,18 +126,23 @@ export function PrivacyCenter() {
       <PrivacyGrants grants={grants} />
       <PrivacyAudit entries={audit} />
 
-      <ConfirmDialog
-        open={exportOpen}
-        title={t("privacy.export.title")}
-        description={t("privacy.export.description")}
-        confirmLabel={t("privacy.export.confirm")}
-        cancelLabel={t("common.cancel")}
-        busy={action === "export"}
-        onConfirm={() => void exportAll()}
-        onClose={() => setExportOpen(false)}
-      >
-        <p className="text-muted text-xs leading-5">{t("privacy.export.exclusion")}</p>
-      </ConfirmDialog>
+      {exportOpen ? (
+        <BackupExportDialog
+          open
+          summary={{
+            files: overview.files,
+            notes: overview.notes,
+            folders: overview.folders,
+            tags: overview.tags,
+          }}
+          onExport={(options) => privacy.data.exportAll(options)}
+          onExported={() => {
+            setActionSuccess("backup.exportSuccess");
+            state.reload();
+          }}
+          onClose={() => setExportOpen(false)}
+        />
+      ) : null}
 
       <ConfirmDialog
         open={deleteOpen}

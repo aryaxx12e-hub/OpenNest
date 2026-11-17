@@ -2,8 +2,20 @@ export {
   BACKUP_FORMAT,
   BACKUP_FORMAT_VERSION,
   backupFileSchema,
+  backupFileV1Schema,
+  serializedBackupSnapshotSchema,
   type BackupFile,
 } from "./backup";
+export {
+  BACKUP_CHUNK_SIZE,
+  BACKUP_FORMAT_VERSION_V2,
+  BACKUP_KDF_MIN_ITERATIONS,
+  BACKUP_KEK_DOMAIN,
+  backupEnvelopeSchema,
+  backupFileV2Schema,
+  type BackupEnvelope,
+  type BackupFileV2,
+} from "./backup-v2";
 export { fileFilterSchema, noteFilterSchema } from "./filter";
 export { fileInputSchema, filePatchSchema } from "./file";
 export { folderInputSchema, folderPatchSchema } from "./folder";

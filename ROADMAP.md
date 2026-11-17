@@ -97,6 +97,10 @@ Goal: Strengthen user control and prepare for future integrations.
 - [x] Sync-compatible data model (local-only); ADR 0012 audit remediation complete.
 - [x] D2 transaction and migration remediation: per-workspace revisions, nested rollback, atomic SQLite migrations, and restore guard before blob writes.
 - [ ] SQLite interrupted-restore orphan blob and stale `.tmp` cleanup.
+- [x] Optional workspace content encryption for note bodies and file bytes (D3 implementation complete; external review pending).
+- [x] Encrypted drafts and encrypted backup v2 (D3 implementation complete; external review pending).
+- [x] Plaintext-to-encrypted migration, recovery, and key rotation (D3 implementation complete; external review pending).
+- [ ] External cryptographic review and E2EE claim gate (D3 implementation complete; independent review not started, so no E2EE claim).
 
 Phase 5: Community Ecosystem
 

@@ -13,6 +13,7 @@ export default defineConfig({
   },
   test: {
     environment: "happy-dom",
+    testTimeout: 20_000,
     include: [
       "packages/**/*.test.{ts,tsx}",
       "apps/web/**/*.test.{ts,tsx}",

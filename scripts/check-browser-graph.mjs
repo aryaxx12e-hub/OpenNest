@@ -3,7 +3,10 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-const entry = path.join(rootDir, "packages/storage-dexie/src/index.ts");
+const entries = [
+  path.join(rootDir, "packages/storage-dexie/src/index.ts"),
+  path.join(rootDir, "packages/crypto/src/index.ts"),
+];
 
 const FORBIDDEN_MODULES = new Set([
   "@opennest/storage-sqlite",
@@ -116,8 +119,8 @@ function importsOf(source) {
   return [...found];
 }
 
-async function readManifestDependencies() {
-  const manifestPath = path.join(rootDir, "packages/storage-dexie/package.json");
+async function readManifestDependencies(packageDir) {
+  const manifestPath = path.join(rootDir, packageDir, "package.json");
   const manifest = JSON.parse(await readFile(manifestPath, "utf8"));
 
   return Object.keys(manifest.dependencies ?? {});
@@ -126,16 +129,18 @@ async function readManifestDependencies() {
 async function main() {
   const violations = [];
   const visited = new Set();
-  const queue = [entry];
+  const queue = [...entries];
 
-  for (const dependency of await readManifestDependencies()) {
-    if (
-      FORBIDDEN_MANIFEST_DEPENDENCIES.has(packageNameOf(dependency)) ||
-      dependency.startsWith("node:")
-    ) {
-      violations.push(
-        `packages/storage-dexie/package.json depends on ${dependency}, which cannot ship to the browser.`
-      );
+  for (const packageDir of ["packages/storage-dexie", "packages/crypto"]) {
+    for (const dependency of await readManifestDependencies(packageDir)) {
+      if (
+        FORBIDDEN_MANIFEST_DEPENDENCIES.has(packageNameOf(dependency)) ||
+        dependency.startsWith("node:")
+      ) {
+        violations.push(
+          `${packageDir}/package.json depends on ${dependency}, which cannot ship to the browser.`
+        );
+      }
     }
   }
 
@@ -212,7 +217,7 @@ async function main() {
   }
 
   console.log(
-    `Browser dependency graph is clean (${visited.size} files reachable from packages/storage-dexie/src/index.ts).`
+    `Browser dependency graph is clean (${visited.size} files reachable from browser entry points).`
   );
 }
 

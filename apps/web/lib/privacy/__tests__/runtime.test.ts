@@ -12,6 +12,7 @@ import {
   createSequenceIds,
 } from "@opennest/privacy";
 
+import { createPlainDraftStore } from "@/lib/autosave/draft-store";
 import { createAppServices, sha256Hex } from "@/lib/data/services";
 
 import { createPrivacyRuntime, type PrivacyRuntime } from "../runtime";
@@ -37,7 +38,7 @@ async function setup(): Promise<PrivacyRuntime> {
     storage,
     services,
     workspace,
-    drafts: window.localStorage,
+    drafts: createPlainDraftStore(window.localStorage),
     openPrivacyStore,
     now: () => NOW,
     generateId: createSequenceIds("id"),

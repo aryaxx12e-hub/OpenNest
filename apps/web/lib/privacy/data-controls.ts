@@ -17,12 +17,13 @@ import {
   type GrantRegistry,
 } from "@opennest/privacy";
 
+import type { DraftStore } from "../autosave/draft-store";
 import {
-  clearAllNoteDrafts,
-  readDraftJournal,
-  type DraftStorage,
-} from "../autosave/draft-journal";
-import { buildBackup, type BuiltBackup } from "../data/backup";
+  buildBackup,
+  buildBackupV2,
+  type BackupExportOptions,
+  type BuiltBackup,
+} from "../data/backup";
 
 export interface DataOverview {
   bytes: number;
@@ -45,7 +46,7 @@ export interface DataControls {
   overview(): Promise<DataOverview>;
   inventory(): readonly DataInventoryEntry[];
   flows(): readonly FlowMatrixEntry[];
-  exportAll(): Promise<BuiltBackup>;
+  exportAll(options?: BackupExportOptions): Promise<BuiltBackup>;
   restore(snapshot: BackupSnapshot): Promise<RestoreResult>;
   deleteAll(): Promise<void>;
   readBlob(blobKey: BlobKey): Promise<Blob | null>;
@@ -53,7 +54,7 @@ export interface DataControls {
 
 export interface DataControlsInput {
   storage: StorageAdapter;
-  drafts: DraftStorage;
+  drafts: DraftStore;
   workspaceName: string;
   broker: CapabilityBroker;
   grants: GrantRegistry;
@@ -82,15 +83,17 @@ export function createDataControls(input: DataControlsInput): DataControls {
 
   async function overview(): Promise<DataOverview> {
     const workspace = getWorkspace();
-    const [files, notes, folders, tags, usage, grantRows, auditRows] = await Promise.all([
-      storage.files.list(workspace.id, {}, { limit: 1 }),
-      storage.notes.list(workspace.id, {}, { limit: 1 }),
-      storage.folders.list(workspace.id, { limit: 1 }),
-      storage.tags.list(workspace.id, { limit: 1 }),
-      storage.blobs.usage(),
-      grants.list(),
-      audit.list(),
-    ]);
+    const [files, notes, folders, tags, usage, grantRows, auditRows, draftRows] =
+      await Promise.all([
+        storage.files.list(workspace.id, {}, { limit: 1 }),
+        storage.notes.list(workspace.id, {}, { limit: 1 }),
+        storage.folders.list(workspace.id, { limit: 1 }),
+        storage.tags.list(workspace.id, { limit: 1 }),
+        storage.blobs.usage(),
+        grants.list(),
+        audit.list(),
+        drafts.count().catch(() => 0),
+      ]);
 
     return {
       bytes: usage.bytes,
@@ -102,7 +105,7 @@ export function createDataControls(input: DataControlsInput): DataControls {
       totalItems: files.total + notes.total + folders.total + tags.total,
       grants: grantRows.length,
       auditEntries: auditRows.length,
-      drafts: draftCount(drafts),
+      drafts: draftRows,
     };
   }
 
@@ -129,7 +132,7 @@ export function createDataControls(input: DataControlsInput): DataControls {
   }
 
   async function clearDraftsOrThrow(): Promise<void> {
-    const result = clearAllNoteDrafts(drafts);
+    const result = await drafts.clear();
 
     if (result.failed > 0) {
       throw new PrivacyError(
@@ -147,18 +150,28 @@ export function createDataControls(input: DataControlsInput): DataControls {
     flows() {
       return flowMatrix;
     },
-    async exportAll() {
+    async exportAll(options: BackupExportOptions = { format: "v1" }) {
       const workspace = getWorkspace();
       const counts = await overview();
+      const exportedAt = new Date(now()).toISOString();
       const built = await runHighRisk(
         "workspace.export",
         workspace.id,
         counts.totalItems,
         "Export all local data",
-        () =>
-          buildBackup(storage, workspace.id, {
-            now: () => new Date(now()).toISOString(),
-          })
+        async () => {
+          const plaintext = await buildBackup(storage, workspace.id, {
+            now: () => exportedAt,
+          });
+
+          if (options.format !== "v2") {
+            return plaintext;
+          }
+
+          return buildBackupV2(plaintext.snapshot, options.keySource, {
+            now: () => exportedAt,
+          });
+        }
       );
 
       await audit.append({
@@ -201,7 +214,7 @@ export function createDataControls(input: DataControlsInput): DataControls {
       setWorkspace(snapshot.workspace);
       await reconcileBuiltIns(snapshot.workspace.id, true);
 
-      return { draftClearFailed: clearAllNoteDrafts(drafts).failed > 0 };
+      return { draftClearFailed: (await drafts.clear()).failed > 0 };
     },
     async deleteAll() {
       await clearDraftsOrThrow();
@@ -235,10 +248,4 @@ export function createDataControls(input: DataControlsInput): DataControls {
       return broker.invoke(handle, () => storage.blobs.get(blobKey));
     },
   };
-}
-
-function draftCount(drafts: DraftStorage): number {
-  const journal = readDraftJournal(drafts);
-
-  return journal.ok ? journal.drafts.length : 0;
 }
