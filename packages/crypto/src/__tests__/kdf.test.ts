@@ -2,10 +2,13 @@ import { describe, expect, it } from "vitest";
 
 import {
   BACKUP_KEK_DOMAIN,
+  MAX_PBKDF2_ITERATIONS,
   MIN_PBKDF2_ITERATIONS,
   WORKSPACE_KEK_DOMAIN,
+  createKdfParameters,
   deriveKekBytes,
   hkdfBits,
+  parseKdfParameters,
   pbkdf2Bits,
 } from "../index";
 
@@ -51,6 +54,22 @@ describe("KDF", () => {
     ).rejects.toMatchObject({ code: "invalid_kdf_parameters" });
     await expect(
       deriveKekBytes("password", salt, MIN_PBKDF2_ITERATIONS - 1, BACKUP_KEK_DOMAIN)
+    ).rejects.toMatchObject({ code: "invalid_kdf_parameters" });
+  });
+
+  it("refuses KDF parameters above the supported ceiling", async () => {
+    const salt = new Uint8Array(16).fill(7);
+    const parameters = {
+      ...createKdfParameters(WORKSPACE_KEK_DOMAIN),
+      iterations: MAX_PBKDF2_ITERATIONS + 1,
+    };
+
+    expect(() => parseKdfParameters(parameters)).toThrowError(/iterations/);
+    await expect(
+      deriveKekBytes("password", salt, MAX_PBKDF2_ITERATIONS + 1, WORKSPACE_KEK_DOMAIN)
+    ).rejects.toMatchObject({ code: "invalid_kdf_parameters" });
+    await expect(
+      pbkdf2Bits("password", salt, MAX_PBKDF2_ITERATIONS + 1, 32)
     ).rejects.toMatchObject({ code: "invalid_kdf_parameters" });
   });
 

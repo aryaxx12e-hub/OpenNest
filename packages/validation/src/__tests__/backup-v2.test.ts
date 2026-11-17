@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { backupFileSchema, BACKUP_FORMAT } from "../backup";
 import {
   BACKUP_CHUNK_SIZE,
+  BACKUP_KDF_MAX_ITERATIONS,
   BACKUP_KDF_MIN_ITERATIONS,
   backupEnvelopeSchema,
   backupFileV2Schema,
@@ -96,6 +97,13 @@ describe("backupFileV2Schema", () => {
   it("rejects KDF parameters below the production floor", () => {
     expect(
       backupFileV2Schema.safeParse(withKdf({ iterations: BACKUP_KDF_MIN_ITERATIONS - 1 }))
+        .success
+    ).toBe(false);
+  });
+
+  it("rejects KDF parameters above the supported ceiling", () => {
+    expect(
+      backupFileV2Schema.safeParse(withKdf({ iterations: BACKUP_KDF_MAX_ITERATIONS + 1 }))
         .success
     ).toBe(false);
   });

@@ -50,6 +50,11 @@ export const id: typeof en = {
       "OpenNest tidak bisa mengakses penyimpanan browser. Pastikan mode privat atau pembatasan penyimpanan tidak memblokir situs ini, lalu coba lagi.",
   },
   encryption: {
+    missingKeyring: {
+      title: "Keyring enkripsi hilang",
+      body: "Ruang kerja ini berisi data terenkripsi, tetapi keyring-nya hilang. Pulihkan keyring atau buka ulang ruang kerja. OpenNest tidak akan menampilkan data terenkripsi sebagai teks biasa.",
+      retry: "Coba lagi",
+    },
     unlock: {
       title: "Perpustakaanmu terkunci",
       description:
@@ -77,7 +82,7 @@ export const id: typeof en = {
     setup: {
       title: "Aktifkan enkripsi",
       description:
-        "Enkripsi catatan, file, folder, dan nama ruang kerja di perangkat ini dengan frasa sandi.",
+        "Enkripsi isi catatan dan isi berkas di perangkat ini dengan frasa sandi. Judul, nama berkas, nama folder dan tag, nama ruang kerja, ukuran, serta waktu tetap menjadi metadata lokal.",
       passphrase: "Frasa sandi",
       passphrasePlaceholder: "Minimal 12 karakter",
       confirmPassphrase: "Konfirmasi frasa sandi",
@@ -127,12 +132,12 @@ export const id: typeof en = {
       cancel: "Batalkan pengaturan",
       dismiss: "Kembali ke ruang kerja",
       failed:
-        "Operasi tidak bisa diselesaikan. Datamu tetap terlindungi; coba lagi atau buka ulang OpenNest.",
+        "Operasi tidak bisa diselesaikan. Coba lagi atau buka ulang OpenNest untuk melanjutkan.",
     },
     settings: {
       title: "Enkripsi",
       description:
-        "Perpustakaanmu terenkripsi saat tersimpan. Kuncinya hanya ada di perangkat ini.",
+        "Isi catatan dan isi berkas terenkripsi saat tersimpan. Judul, nama berkas, nama folder dan tag, nama ruang kerja, ukuran, serta waktu tetap berupa metadata yang tidak terenkripsi. Kuncinya hanya ada di perangkat ini.",
       active: "Aktif",
       pending: "Rotasi tertunda",
       pendingRecovery:
@@ -242,7 +247,7 @@ export const id: typeof en = {
       plaintextWarning:
         "Cadangan teks biasa tidak dienkripsi. Siapa pun yang punya berkasnya bisa membaca semua judul, catatan, dan berkas.",
       encryptedAtRestNotice:
-        "Perpustakaanmu dienkripsi saat disimpan. Cadangan teks biasa tidak.",
+        "Isi catatan dan isi berkas dienkripsi saat disimpan. Cadangan teks biasa ini tidak.",
       download: "Unduh cadangan",
       done: "Selesai",
       success: "Cadangan berhasil diunduh. Simpan di tempat aman.",
@@ -305,6 +310,8 @@ export const id: typeof en = {
       title: "Inventaris data",
       description:
         "Setiap kelas data, tempat penyimpanannya, dan apakah cadangan memasukkannya.",
+      metadataNotice:
+        "Enkripsi melindungi isi catatan dan isi berkas. Nama ruang kerja, folder, tag, catatan, dan berkas, ukuran, serta waktu tetap menjadi metadata lokal yang bisa dibaca.",
       columns: {
         data: "Data",
         class: "Kelas",

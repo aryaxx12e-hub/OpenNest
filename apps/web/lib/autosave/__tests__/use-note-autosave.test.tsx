@@ -38,7 +38,7 @@ type HarnessProps = {
 function Harness({
   save,
   coordinator,
-  draftStore,
+  draftStore = createPlainDraftStore(window.localStorage),
   note: activeNote = note,
 }: HarnessProps) {
   const autosave = useNoteAutosave({

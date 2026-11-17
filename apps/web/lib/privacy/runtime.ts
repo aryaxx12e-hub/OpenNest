@@ -37,6 +37,7 @@ export interface CreatePrivacyRuntimeInput {
   services: AppServices;
   workspace: Workspace;
   drafts: DraftStore;
+  auxiliaryDrafts?: DraftStore;
   openPrivacyStore?: () => Promise<PrivacyStore>;
   now?: () => number;
   generateId?: () => string;
@@ -119,6 +120,9 @@ export async function createPrivacyRuntime(
   const data = createDataControls({
     storage: input.storage,
     drafts: input.drafts,
+    ...(input.auxiliaryDrafts === undefined
+      ? {}
+      : { auxiliaryDrafts: input.auxiliaryDrafts }),
     workspaceName: currentWorkspace.name,
     broker,
     grants,

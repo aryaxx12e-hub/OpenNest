@@ -52,7 +52,7 @@ export function UnlockScreen({ onUnlock, onUnlockWithRecoveryKey }: UnlockScreen
       return;
     }
 
-    const secret = value.trim();
+    const secret = mode === "passphrase" ? value : value.trim();
 
     if (secret.length === 0) {
       setError(

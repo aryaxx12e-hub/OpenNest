@@ -169,6 +169,19 @@ describe("parseBackupFile", () => {
     });
   });
 
+  it("rejects duplicate keys in the outer backup JSON", async () => {
+    const { storage, workspace } = await seed();
+    const built = await buildBackup(storage, workspace.id, { now: () => AT });
+    const duplicated = built.text.replace(
+      '"format": "opennest-backup"',
+      '"format": "opennest-backup", "format": "opennest-backup"'
+    );
+
+    await expect(parseBackupFile(duplicated)).rejects.toMatchObject({
+      code: "invalidJson",
+    });
+  });
+
   it("rejects a different format marker", async () => {
     const { storage, workspace } = await seed();
     const built = await buildBackup(storage, workspace.id, { now: () => AT });

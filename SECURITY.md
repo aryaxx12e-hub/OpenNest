@@ -44,7 +44,8 @@ credential-vault keys are separate domains.
 The implementation and required automated tests are complete. The E2EE claim
 gate remains open until:
 
-- Rollback and replay protection (R-13-7) is defined.
+- Rollback and replay protection (R-13-7) is resolved, or the claim explicitly
+  excludes sync and says so everywhere.
 - The external cryptographic and implementation review passes.
 - Documentation and UI copy disclose metadata leakage and key-loss risk.
 

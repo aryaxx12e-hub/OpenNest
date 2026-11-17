@@ -5,7 +5,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 
 import { errorKey } from "../errors";
 import type { NoteDraft } from "./draft-journal";
-import { createBrowserPlainDraftStore, type DraftStore } from "./draft-store";
+import type { DraftStore } from "./draft-store";
 import { SAVE_RETRY_DELAYS_MS, isRetryableSaveError } from "./retry";
 import type { SaveCoordinator, SaveFlushResult } from "./save-coordinator";
 
@@ -18,7 +18,7 @@ export interface NoteAutosaveOptions {
   note: Note;
   save: (patch: NoteSavePatch) => Promise<Note>;
   coordinator: SaveCoordinator;
-  draftStore?: DraftStore | null;
+  draftStore: DraftStore | null;
 }
 
 export interface NoteAutosave {
@@ -68,16 +68,8 @@ interface ResolvedDraftStore {
   failed: boolean;
 }
 
-function resolveDraftStore(
-  storeOption: DraftStore | null | undefined
-): ResolvedDraftStore {
-  if (storeOption !== undefined) {
-    return { store: storeOption, failed: false };
-  }
-
-  const store = createBrowserPlainDraftStore();
-
-  return { store, failed: store === null };
+function resolveDraftStore(storeOption: DraftStore | null): ResolvedDraftStore {
+  return { store: storeOption, failed: storeOption === null };
 }
 
 export function useNoteAutosave({

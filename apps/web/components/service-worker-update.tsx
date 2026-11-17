@@ -6,8 +6,11 @@ import { useTranslations } from "@opennest/localization";
 import { Button } from "@opennest/ui";
 
 import type { DraftJournal, NoteDraft } from "@/lib/autosave/draft-journal";
-import { createBrowserPlainDraftStore } from "@/lib/autosave/draft-store";
-import { useOptionalAppRevision } from "@/lib/data/app-data-provider";
+import {
+  createBrowserPlainDraftStore,
+  type DraftStore,
+} from "@/lib/autosave/draft-store";
+import { useOptionalAppData, useOptionalAppRevision } from "@/lib/data/app-data-provider";
 import { useSaveCoordinator } from "@/lib/data/save-coordinator";
 import {
   browserPwaContainer,
@@ -22,12 +25,12 @@ function reloadPage() {
   window.location.reload();
 }
 
-async function readBrowserDrafts(): Promise<DraftJournal> {
+async function readBrowserDrafts(activeStore?: DraftStore | null): Promise<DraftJournal> {
   if (typeof window === "undefined") {
     return { ok: true, drafts: [] };
   }
 
-  const store = createBrowserPlainDraftStore();
+  const store = activeStore ?? createBrowserPlainDraftStore();
 
   if (store === null) {
     return { ok: false, error: new Error("Draft storage is unavailable.") };
@@ -40,8 +43,12 @@ async function readBrowserDrafts(): Promise<DraftJournal> {
   }
 }
 
-async function clearBrowserDraft(workspaceId: string, noteId: string): Promise<boolean> {
-  const store = createBrowserPlainDraftStore();
+async function clearBrowserDraft(
+  workspaceId: string,
+  noteId: string,
+  activeStore?: DraftStore | null
+): Promise<boolean> {
+  const store = activeStore ?? createBrowserPlainDraftStore();
 
   if (store === null) {
     return false;
@@ -55,8 +62,10 @@ async function clearBrowserDraft(workspaceId: string, noteId: string): Promise<b
   }
 }
 
-async function clearBrowserDrafts(): Promise<{ removed: number; failed: number }> {
-  const store = createBrowserPlainDraftStore();
+async function clearBrowserDrafts(
+  activeStore?: DraftStore | null
+): Promise<{ removed: number; failed: number }> {
+  const store = activeStore ?? createBrowserPlainDraftStore();
 
   if (store === null) {
     return { removed: 0, failed: 1 };
@@ -105,14 +114,21 @@ export function ServiceWorkerUpdate({
   enabled = process.env.NODE_ENV === "production",
   container,
   reload = reloadPage,
-  readDrafts = readBrowserDrafts,
+  readDrafts,
   classifyDrafts = classifyAsUnverified,
-  clearDraft = clearBrowserDraft,
-  clearDrafts = clearBrowserDrafts,
+  clearDraft,
+  clearDrafts,
   download,
 }: ServiceWorkerUpdateProps) {
   const t = useTranslations();
   const coordinator = useSaveCoordinator();
+  const appData = useOptionalAppData();
+  const activeDrafts = appData?.drafts;
+  const readRecoveryDrafts = readDrafts ?? (() => readBrowserDrafts(activeDrafts));
+  const clearRecoveryDraft =
+    clearDraft ??
+    ((workspaceId, noteId) => clearBrowserDraft(workspaceId, noteId, activeDrafts));
+  const clearRecoveryDrafts = clearDrafts ?? (() => clearBrowserDrafts(activeDrafts));
   const handleRef = useRef<PwaHandle | null>(null);
   const [ready, setReady] = useState(false);
   const [updating, setUpdating] = useState(false);
@@ -125,7 +141,7 @@ export function ServiceWorkerUpdate({
     let journal: DraftJournal;
 
     try {
-      journal = await readDrafts();
+      journal = await readRecoveryDrafts();
     } catch (error) {
       journal = { ok: false, error };
     }
@@ -276,7 +292,7 @@ export function ServiceWorkerUpdate({
     let cleared = false;
 
     try {
-      cleared = await clearDraft(draft.workspaceId, draft.noteId);
+      cleared = await clearRecoveryDraft(draft.workspaceId, draft.noteId);
     } catch {
       cleared = false;
     }
@@ -298,7 +314,7 @@ export function ServiceWorkerUpdate({
     let result: { removed: number; failed: number };
 
     try {
-      result = await clearDrafts();
+      result = await clearRecoveryDrafts();
     } catch {
       result = { removed: 0, failed: 1 };
     }

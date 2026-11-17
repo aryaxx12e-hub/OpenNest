@@ -466,7 +466,7 @@ drafts.
 - Added `unlockPendingWithRecoveryKey` to the keyring so recovery unlocks can finish a rotation whose pending key encrypts the workspace.
 - Added the keyring to the privacy inventory and delete-all now clears the keyring after encrypted data and drafts are gone. Backup and privacy export expose the encrypted-at-rest notice.
 - Added English and Indonesian strings for setup, operation progress, settings, rotation, and notices.
-- Tests: setup 3, settings 4, privacy inventory 2, keyring 8, pending rotation recovery 3, rotation journal 7, rotation 4. Full suite: 1110 passed, 94 files. Typecheck, format, ESLint, browser graph, and production build pass. Manual 412 x 915 setup, recovery-key, and encrypted-settings screens have no horizontal overflow.
+- Tests: setup 3, settings 4, privacy inventory 2, keyring 8, pending rotation recovery 3, rotation journal 7, rotation 4. Full suite at that milestone: 1,110 passed, 94 files. Typecheck, format, ESLint, browser graph, and production build pass. Manual 412 x 915 setup, recovery-key, and encrypted-settings screens have no horizontal overflow.
 
 ### Task 10: Add encryption E2E and close the implementation gate
 
@@ -500,7 +500,8 @@ drafts.
 - Marked the three D3 implementation items complete in `ROADMAP.md`; the external review and E2EE claim gate remain open.
 - Updated README, SECURITY, and the security review with implementation evidence and unresolved risks.
 - Follow-up hardening: text envelope parsing rejects duplicate JSON keys at any depth, including escaped duplicates. Empty ciphertext remains valid only when authenticated as empty plaintext; a tampered tag still fails. The protocol documentation now states this explicitly.
-- Verification after hardening: `npm test` 1112 passed in 94 files; `npm run test:e2e:encryption` passed all 12 checks; typecheck, lint, format, browser graph, and production build passed.
+- Verification after hardening: `npm test` 1,119 passed in 95 files; `npm run test:e2e:encryption` passed all 12 checks; typecheck, lint, format, browser graph, and production build passed.
+- Internal review follow-up fixed the plaintext draft leak in encrypted workspaces, fail-closed startup without a keyring, raw passphrase unlock, metadata copy, security headers, backup KDF ceilings, duplicate outer backup JSON keys, dual-store draft cleanup, and PWA recovery through the active encrypted draft store.
 - No commits. External security review and R-13-7 remain open.
 
 ## Out of Scope

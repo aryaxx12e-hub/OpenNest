@@ -1,17 +1,18 @@
 # E2EE security review
 
-Status: implementation and automated tests complete; independent review not
-started. This document is a release gate and checklist, not a report. OpenNest
-does not claim end-to-end encryption until the review is complete and the claim
-criteria are met.
+Status: implementation and automated tests complete; internal review follow-up
+complete; independent review not started. This document is a release gate and
+checklist, not a report. OpenNest does not claim end-to-end encryption until the
+review is complete and the claim criteria are met.
 
 ## Implementation evidence
 
 Recorded 2026-11-17 for the D3 implementation:
 
-- `npm test`: 1110 tests in 94 files passed, including envelope, keyring,
+- `npm test`: 1,119 tests in 95 files passed, including envelope, keyring,
   migration, rotation, encrypted Dexie/SQLite storage, encrypted drafts, backup
-  v2, localization parity, and privacy inventory coverage.
+  v2, localization parity, privacy inventory, and the encrypted-note draft
+  regression coverage.
 - `npm run test:e2e:encryption`: passed at 412 x 915. It covers setup and
   recovery-key confirmation, encrypted note autosave, encrypted file upload and
   preview, encrypted search, reload lock with deep-link preservation, wrong
@@ -21,6 +22,13 @@ Recorded 2026-11-17 for the D3 implementation:
 - Envelope parsing rejects duplicate JSON keys at any depth, including escaped
   duplicates, and empty plaintext is accepted only with a valid authentication
   tag. Regression tests cover duplicate keys and empty-plaintext authentication.
+- Internal review follow-up fixed the plaintext draft leak in encrypted
+  workspaces, fail-closed startup when an encrypted base has no keyring,
+  passphrase trimming, metadata copy, missing security headers, unbounded backup
+  KDF parameters, duplicate outer backup JSON keys, dual-store draft cleanup,
+  PWA recovery through the active encrypted draft store, the Privacy Center
+  export encryption notice, and restored workspace identity for encrypted
+  imports. Each fix has regression coverage.
 - Typecheck, ESLint, Prettier check, browser dependency graph, and the production
   build passed.
 
@@ -39,6 +47,9 @@ Recorded 2026-11-17 for the D3 implementation:
 5. Memory zeroization is best effort; a compromised device or XSS while the
    workspace is unlocked is outside the D3 threat model.
 6. Credential-vault encryption and multi-device key wrapping are out of scope.
+7. Setup, rotation, and delete-all are not fully serialized against in-flight
+   autosaves in other tabs. The current implementation reduces the window but
+   does not provide a cross-tab exclusive operation barrier.
 
 ## Purpose
 

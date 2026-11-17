@@ -7,6 +7,7 @@ import { getWebCrypto, randomBytes } from "./random";
 export const WORKSPACE_KEK_DOMAIN = "opennest:workspace-kek:v1";
 export const BACKUP_KEK_DOMAIN = "opennest:backup-kek:v1";
 export const MIN_PBKDF2_ITERATIONS = 600_000;
+export const MAX_PBKDF2_ITERATIONS = 2_000_000;
 export const KDF_SALT_BYTES = 16;
 export const KEK_BYTES = 32;
 
@@ -47,11 +48,12 @@ export function parseKdfParameters(value: unknown): KdfParameters {
   if (
     typeof iterations !== "number" ||
     !Number.isInteger(iterations) ||
-    iterations < MIN_PBKDF2_ITERATIONS
+    iterations < MIN_PBKDF2_ITERATIONS ||
+    iterations > MAX_PBKDF2_ITERATIONS
   ) {
     throw new CryptoError(
       "invalid_kdf_parameters",
-      `PBKDF2 must use at least ${MIN_PBKDF2_ITERATIONS} iterations`
+      `PBKDF2 must use between ${MIN_PBKDF2_ITERATIONS} and ${MAX_PBKDF2_ITERATIONS} iterations`
     );
   }
 
@@ -94,8 +96,15 @@ export async function pbkdf2Bits(
   iterations: number,
   length = KEK_BYTES
 ): Promise<Uint8Array> {
-  if (!Number.isInteger(iterations) || iterations < 1) {
-    throw new CryptoError("invalid_kdf_parameters", "PBKDF2 iterations must be positive");
+  if (
+    !Number.isInteger(iterations) ||
+    iterations < 1 ||
+    iterations > MAX_PBKDF2_ITERATIONS
+  ) {
+    throw new CryptoError(
+      "invalid_kdf_parameters",
+      "PBKDF2 iterations are outside the supported range"
+    );
   }
 
   if (salt.length === 0) {
@@ -177,10 +186,10 @@ export async function deriveKekBytes(
 ): Promise<Uint8Array> {
   assertAllowedDomain(domain);
 
-  if (iterations < MIN_PBKDF2_ITERATIONS) {
+  if (iterations < MIN_PBKDF2_ITERATIONS || iterations > MAX_PBKDF2_ITERATIONS) {
     throw new CryptoError(
       "invalid_kdf_parameters",
-      `PBKDF2 must use at least ${MIN_PBKDF2_ITERATIONS} iterations`
+      `PBKDF2 must use between ${MIN_PBKDF2_ITERATIONS} and ${MAX_PBKDF2_ITERATIONS} iterations`
     );
   }
 

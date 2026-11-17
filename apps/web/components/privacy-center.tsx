@@ -135,6 +135,7 @@ export function PrivacyCenter() {
             folders: overview.folders,
             tags: overview.tags,
           }}
+          encryptionActive={encryption.record !== null}
           onExport={(options) => privacy.data.exportAll(options)}
           onExported={() => {
             setActionSuccess("backup.exportSuccess");

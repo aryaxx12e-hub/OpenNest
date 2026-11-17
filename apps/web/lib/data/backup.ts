@@ -8,6 +8,7 @@ import {
 import {
   canonicalJsonBytes,
   openBackup,
+  parseStrictJson,
   sealBackup,
   CryptoError,
   type BackupKeySource,
@@ -412,7 +413,7 @@ function readBackup(text: string):
   let raw: unknown;
 
   try {
-    raw = JSON.parse(text);
+    raw = parseStrictJson(text);
   } catch (error) {
     throw new BackupError("invalidJson", "The backup file is not valid JSON.", {
       cause: error,
@@ -512,7 +513,7 @@ async function parseV2(
   let value: unknown;
 
   try {
-    value = JSON.parse(new TextDecoder("utf-8", { fatal: true }).decode(payload));
+    value = parseStrictJson(new TextDecoder("utf-8", { fatal: true }).decode(payload));
   } catch (error) {
     throw new BackupError("invalidSnapshot", "The backup payload is not valid.", {
       cause: error,

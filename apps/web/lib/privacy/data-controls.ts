@@ -55,6 +55,7 @@ export interface DataControls {
 export interface DataControlsInput {
   storage: StorageAdapter;
   drafts: DraftStore;
+  auxiliaryDrafts?: DraftStore;
   workspaceName: string;
   broker: CapabilityBroker;
   grants: GrantRegistry;
@@ -70,6 +71,7 @@ export function createDataControls(input: DataControlsInput): DataControls {
   const {
     storage,
     drafts,
+    auxiliaryDrafts,
     workspaceName,
     broker,
     grants,
@@ -80,6 +82,34 @@ export function createDataControls(input: DataControlsInput): DataControls {
     resetPrivacy,
     reconcileBuiltIns,
   } = input;
+
+  const draftStores = [
+    drafts,
+    ...(auxiliaryDrafts === undefined ? [] : [auxiliaryDrafts]),
+  ];
+
+  async function countDrafts(): Promise<number> {
+    let total = 0;
+
+    for (const store of draftStores) {
+      total += await store.count().catch(() => 0);
+    }
+
+    return total;
+  }
+
+  async function clearDrafts(): Promise<{ removed: number; failed: number }> {
+    let removed = 0;
+    let failed = 0;
+
+    for (const store of draftStores) {
+      const result = await store.clear();
+      removed += result.removed;
+      failed += result.failed;
+    }
+
+    return { removed, failed };
+  }
 
   async function overview(): Promise<DataOverview> {
     const workspace = getWorkspace();
@@ -92,7 +122,7 @@ export function createDataControls(input: DataControlsInput): DataControls {
         storage.blobs.usage(),
         grants.list(),
         audit.list(),
-        drafts.count().catch(() => 0),
+        countDrafts(),
       ]);
 
     return {
@@ -132,7 +162,7 @@ export function createDataControls(input: DataControlsInput): DataControls {
   }
 
   async function clearDraftsOrThrow(): Promise<void> {
-    const result = await drafts.clear();
+    const result = await clearDrafts();
 
     if (result.failed > 0) {
       throw new PrivacyError(
@@ -211,10 +241,15 @@ export function createDataControls(input: DataControlsInput): DataControls {
         capability: "workspace.delete",
         itemCount,
       });
-      setWorkspace(snapshot.workspace);
-      await reconcileBuiltIns(snapshot.workspace.id, true);
+      const restoredWorkspace = await storage.workspaces.ensureWorkspace({
+        name: workspaceName,
+        at: new Date(now()).toISOString() as IsoDate,
+      });
 
-      return { draftClearFailed: (await drafts.clear()).failed > 0 };
+      setWorkspace(restoredWorkspace);
+      await reconcileBuiltIns(restoredWorkspace.id, true);
+
+      return { draftClearFailed: (await clearDrafts()).failed > 0 };
     },
     async deleteAll() {
       await clearDraftsOrThrow();

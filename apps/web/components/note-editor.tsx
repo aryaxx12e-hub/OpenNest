@@ -107,7 +107,7 @@ function NoteEditorForm({
   const t = useTranslations();
   const { locale } = useLocale();
   const router = useRouter();
-  const { services, workspace, invalidate } = useAppData();
+  const { drafts, services, workspace, invalidate } = useAppData();
   const titleErrorId = useId();
   const tabPrefix = useId();
   const editTabId = `${tabPrefix}-edit-tab`;
@@ -119,7 +119,12 @@ function NoteEditorForm({
     (patch: NoteSavePatch) => services.note.update(note.id, patch),
     [services, note.id]
   );
-  const autosave = useNoteAutosave({ note, save, coordinator });
+  const autosave = useNoteAutosave({
+    note,
+    save,
+    coordinator,
+    draftStore: drafts,
+  });
   const {
     title,
     content,

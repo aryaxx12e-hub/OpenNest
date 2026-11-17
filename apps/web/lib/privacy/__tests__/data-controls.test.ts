@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it } from "vitest";
 
 import {
+  createEncryptedStorage,
+  createKeyring,
+  createMemoryKeyringStore,
+} from "@opennest/crypto";
+import {
   createMemoryStorage,
   type BackupSnapshot,
   type IsoDate,
@@ -162,6 +167,57 @@ describe("privacy data controls", () => {
     expect(built.text).not.toContain("secret body");
     expect(parsed.notes.map((note) => note.title)).toEqual(["Encrypted export"]);
     expect(audit.some((entry) => entry.event === "data.exported")).toBe(true);
+    await runtime.dispose();
+  });
+
+  it("restores into the encrypted workspace identity instead of the backup source", async () => {
+    const base = createMemoryStorage();
+    const workspace = await base.workspaces.ensureWorkspace({
+      name: "My Library",
+      at: AT,
+    });
+    const keyring = createKeyring({
+      store: createMemoryKeyringStore(),
+      workspaceId: workspace.id,
+    });
+    await keyring.setup({ passphrase: "correct horse battery staple" });
+    const storage = createEncryptedStorage({
+      base,
+      context: await keyring.unlock("correct horse battery staple"),
+    });
+    const { services } = await createAppServices(storage, {
+      defaultWorkspaceName: "My Library",
+      clock: () => AT,
+      hash: sha256Hex,
+      generateBlobKey: () => "22222222-2222-4222-8222-222222222222",
+    });
+    const openPrivacyStore = async () => {
+      const store = createMemoryPrivacyStore();
+      await store.init();
+      return store;
+    };
+    const runtime = await createPrivacyRuntime({
+      storage,
+      services,
+      workspace,
+      drafts: createPlainDraftStore(window.localStorage),
+      openPrivacyStore,
+      now: () => NOW,
+      generateId: createSequenceIds("encrypted-control"),
+    });
+
+    await runtime.data.restore(snapshotForWorkspace("w2"));
+
+    const overview = await runtime.data.overview();
+    const grants = await runtime.grants.list();
+
+    expect(overview.notes).toBe(0);
+    expect(
+      grants.every(
+        (grant) =>
+          grant.scope.kind === "workspace" && grant.scope.workspaceId === workspace.id
+      )
+    ).toBe(true);
     await runtime.dispose();
   });
 

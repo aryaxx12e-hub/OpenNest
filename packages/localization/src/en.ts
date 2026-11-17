@@ -48,6 +48,11 @@ export const en = {
       "OpenNest could not access browser storage. Check that private browsing or storage restrictions are not blocking this site, then try again.",
   },
   encryption: {
+    missingKeyring: {
+      title: "Encryption keyring missing",
+      body: "This workspace contains encrypted data, but its keyring is missing. Restore the keyring or reopen the workspace. OpenNest will not expose encrypted data as plaintext.",
+      retry: "Try again",
+    },
     unlock: {
       title: "Your library is locked",
       description:
@@ -74,7 +79,7 @@ export const en = {
     setup: {
       title: "Turn on encryption",
       description:
-        "Encrypt notes, files, folders, and workspace names on this device with a passphrase.",
+        "Encrypt note bodies and file contents on this device with a passphrase. Titles, filenames, folder and tag names, workspace names, sizes, and timestamps remain local metadata.",
       passphrase: "Passphrase",
       passphrasePlaceholder: "At least 12 characters",
       confirmPassphrase: "Confirm passphrase",
@@ -122,13 +127,12 @@ export const en = {
       },
       cancel: "Cancel setup",
       dismiss: "Back to workspace",
-      failed:
-        "The operation could not finish. Your data is still protected; try again or reopen OpenNest.",
+      failed: "The operation could not finish. Try again or reopen OpenNest to resume.",
     },
     settings: {
       title: "Encryption",
       description:
-        "Your library is encrypted at rest. The key is stored only on this device.",
+        "Note bodies and file contents are encrypted at rest. Titles, filenames, folder and tag names, workspace names, sizes, and timestamps remain unencrypted metadata. The key is stored only on this device.",
       active: "On",
       pending: "Rotation pending",
       pendingRecovery:
@@ -237,7 +241,7 @@ export const en = {
       plaintextWarning:
         "A plaintext backup is not encrypted. Anyone with the file can read every title, note, and file.",
       encryptedAtRestNotice:
-        "Your library is encrypted at rest. A plaintext backup is not.",
+        "Note bodies and file contents are encrypted at rest. This plaintext backup is not.",
       download: "Download backup",
       done: "Done",
       success: "Backup downloaded. Store it somewhere safe.",
@@ -300,6 +304,8 @@ export const en = {
     inventory: {
       title: "Data inventory",
       description: "Every data class, where it lives, and whether a backup includes it.",
+      metadataNotice:
+        "Encryption protects note bodies and file contents. Workspace, folder, tag, note and file names, sizes, and timestamps remain readable local metadata.",
       columns: {
         data: "Data",
         class: "Class",

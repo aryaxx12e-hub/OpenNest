@@ -22,6 +22,9 @@ export function PrivacyInventory({
           <p className="text-muted text-sm leading-6">
             {t("privacy.inventory.description")}
           </p>
+          <p className="text-muted text-xs leading-5">
+            {t("privacy.inventory.metadataNotice")}
+          </p>
         </div>
 
         <div className="overflow-x-auto">

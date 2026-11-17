@@ -14,6 +14,7 @@ import { concatBytes, copyBytes, decodeUtf8, utf8 } from "./bytes";
 import { canonicalJson } from "./canonical-json";
 import { CryptoError } from "./errors";
 import { randomBytes } from "./random";
+import { parseStrictJson } from "./strict-json";
 import type { WrappedKey } from "./aes";
 
 const TEXT_PREFIX = "enc1:";
@@ -219,7 +220,7 @@ export function parseTextEnvelope(envelope: string): ParsedTextEnvelope {
 
   try {
     const bytes = base64UrlDecode(envelope.slice(TEXT_PREFIX.length));
-    bodyValue = parseUniqueJson(decodeUtf8(bytes));
+    bodyValue = parseStrictJson(decodeUtf8(bytes));
   } catch (error) {
     throw new CryptoError(
       "invalid_envelope",
@@ -467,93 +468,6 @@ function decodeTextField(value: unknown, label: string): Uint8Array {
     throw new CryptoError("invalid_envelope", `${label} is not valid base64url`, {
       cause: error,
     });
-  }
-}
-
-function parseUniqueJson(text: string): unknown {
-  assertUniqueJsonKeys(text);
-  return JSON.parse(text) as unknown;
-}
-
-function assertUniqueJsonKeys(text: string): void {
-  const stack: Array<Set<string> | null> = [];
-  let index = 0;
-
-  while (index < text.length) {
-    const char = text.charAt(index);
-
-    if (char === "{") {
-      stack.push(new Set());
-      index += 1;
-      continue;
-    }
-
-    if (char === "[") {
-      stack.push(null);
-      index += 1;
-      continue;
-    }
-
-    if (char === "}" || char === "]") {
-      stack.pop();
-      index += 1;
-      continue;
-    }
-
-    if (char !== '"') {
-      index += 1;
-      continue;
-    }
-
-    const start = index;
-    index += 1;
-
-    while (index < text.length) {
-      if (text.charAt(index) === "\\") {
-        index += 2;
-        continue;
-      }
-
-      if (text.charAt(index) === '"') {
-        index += 1;
-        break;
-      }
-
-      index += 1;
-    }
-
-    let cursor = index;
-
-    while (cursor < text.length && /\s/.test(text.charAt(cursor))) {
-      cursor += 1;
-    }
-
-    const keys = stack[stack.length - 1];
-
-    if (text.charAt(cursor) !== ":" || !keys) {
-      continue;
-    }
-
-    let key: unknown;
-
-    try {
-      key = JSON.parse(text.slice(start, index)) as unknown;
-    } catch {
-      continue;
-    }
-
-    if (typeof key !== "string") {
-      continue;
-    }
-
-    if (keys.has(key)) {
-      throw new CryptoError(
-        "invalid_envelope",
-        "Text envelope contains duplicate fields"
-      );
-    }
-
-    keys.add(key);
   }
 }
 

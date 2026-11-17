@@ -86,6 +86,11 @@ export type {
   SealedBackup,
 } from "./backup";
 export { CryptoError } from "./errors";
+export {
+  DuplicateJsonKeyError,
+  assertUniqueJsonKeys,
+  parseStrictJson,
+} from "./strict-json";
 export type { CryptoErrorCode } from "./errors";
 export { createIndexedDbKeyringStore } from "./indexeddb-keyring-store";
 export type { IndexedDbKeyringStoreOptions } from "./indexeddb-keyring-store";
@@ -93,6 +98,7 @@ export {
   BACKUP_KEK_DOMAIN,
   KDF_SALT_BYTES,
   KEK_BYTES,
+  MAX_PBKDF2_ITERATIONS,
   MIN_PBKDF2_ITERATIONS,
   WORKSPACE_KEK_DOMAIN,
   createKdfParameters,

@@ -3,6 +3,7 @@ import { createRoot, type Root } from "react-dom/client";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
 
 import {
+  createEncryptedStorage,
   createKeyring,
   createMemoryKeyringStore,
   type Keyring,
@@ -18,6 +19,7 @@ import { LocaleProvider } from "@opennest/localization";
 import { createMemoryPrivacyStore } from "@opennest/privacy";
 
 import { AppDataProvider, useAppData } from "@/lib/data/app-data-provider";
+import { createAppServices } from "@/lib/data/services";
 
 import { EncryptionGate, useEncryption } from "../encryption-gate";
 import type { TabCoordinator, TabCoordinatorEvent } from "../tab-coordinator";
@@ -67,7 +69,10 @@ class FakeTabCoordinator implements TabCoordinator {
   }
 }
 
-async function createFixture(encrypted: boolean): Promise<Fixture> {
+async function createFixture(
+  encrypted: boolean,
+  passphrase = PASSPHRASE
+): Promise<Fixture> {
   const storage = createMemoryStorage();
   const workspace = await storage.workspaces.ensureWorkspace({
     name: "My Library",
@@ -89,7 +94,7 @@ async function createFixture(encrypted: boolean): Promise<Fixture> {
     store: keyringStore,
     workspaceId: workspace.id,
   });
-  const setup = await keyring.setup({ passphrase: PASSPHRASE });
+  const setup = await keyring.setup({ passphrase });
 
   return {
     storage,
@@ -304,6 +309,38 @@ describe("encryption gate", () => {
     act(() => root.unmount());
   });
 
+  it("refuses to open encrypted data when the keyring is missing", async () => {
+    const fixture = await createFixture(true);
+    const context = await fixture.keyring!.unlock(PASSPHRASE);
+    const encryptedStorage = createEncryptedStorage({
+      base: fixture.storage,
+      context,
+    });
+    const { services } = await createAppServices(encryptedStorage, {
+      defaultWorkspaceName: "My Library",
+    });
+    await services.note.create({
+      workspaceId: fixture.workspace.id,
+      folderId: null,
+      title: "Secret",
+      content: "hidden body",
+    });
+    await fixture.keyringStore.delete(fixture.workspace.id);
+
+    const coordinator = new FakeTabCoordinator();
+    const { container, root } = mount(fixture, coordinator);
+
+    await waitFor(
+      () => container.textContent?.includes("Encryption keyring missing") === true,
+      "the missing-keyring screen"
+    );
+
+    expect(container.querySelector('[data-testid="app-probe"]')).toBeNull();
+    expect(container.textContent).not.toContain("My Library");
+
+    act(() => root.unmount());
+  });
+
   it("shows a focused unlock form without mounting the app when locked", async () => {
     const fixture = await createFixture(true);
     const coordinator = new FakeTabCoordinator();
@@ -352,6 +389,26 @@ describe("encryption gate", () => {
     expect(notes.items).toHaveLength(1);
     expect(notes.items[0]?.title).toBe("Secret");
     expect(notes.items[0]?.content.startsWith("enc1:")).toBe(true);
+
+    act(() => root.unmount());
+  });
+
+  it("does not trim whitespace from a workspace passphrase", async () => {
+    const spacedPassphrase = "  spaced passphrase  ";
+    const fixture = await createFixture(true, spacedPassphrase);
+    const coordinator = new FakeTabCoordinator();
+    const { container, root } = mount(fixture, coordinator);
+
+    await waitForLocked(container);
+    change(input(container), spacedPassphrase);
+    submit(container);
+
+    await waitFor(
+      () =>
+        container.querySelector('[data-testid="encryption-status"]')?.textContent ===
+        "unlocked",
+      "the unlocked workspace"
+    );
 
     act(() => root.unmount());
   });

@@ -6,6 +6,7 @@ import { BACKUP_FORMAT, backupFileV1Schema } from "./backup";
 export const BACKUP_FORMAT_VERSION_V2 = 2;
 export const BACKUP_CHUNK_SIZE = 4 * 1024 * 1024;
 export const BACKUP_KDF_MIN_ITERATIONS = 600_000;
+export const BACKUP_KDF_MAX_ITERATIONS = 2_000_000;
 export const BACKUP_KEK_DOMAIN = "opennest:backup-kek:v1";
 
 const base64UrlSchema = z
@@ -25,7 +26,11 @@ const wrappedKeySchema = z.strictObject({
 const kdfSchema = z.strictObject({
   name: z.literal("PBKDF2-SHA-256"),
   hash: z.literal("SHA-256"),
-  iterations: z.number().int().min(BACKUP_KDF_MIN_ITERATIONS),
+  iterations: z
+    .number()
+    .int()
+    .min(BACKUP_KDF_MIN_ITERATIONS)
+    .max(BACKUP_KDF_MAX_ITERATIONS),
   salt: base64UrlSchema,
   domain: z.literal(BACKUP_KEK_DOMAIN),
 });

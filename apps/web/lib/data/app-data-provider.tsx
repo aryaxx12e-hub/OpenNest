@@ -58,6 +58,7 @@ import {
 } from "@/lib/crypto/rotation-journal";
 import { createTabCoordinator, type TabCoordinator } from "@/lib/crypto/tab-coordinator";
 import { createDexiePrivacyStore } from "@/lib/privacy/dexie-store";
+import type { DraftStore } from "@/lib/autosave/draft-store";
 import {
   createPrivacyRuntime,
   type BrokeredAppServices,
@@ -86,6 +87,7 @@ interface SetupSession {
 type LoadState =
   | { status: "loading" }
   | { status: "error" }
+  | { status: "missing-keyring" }
   | { status: "locked"; session: CryptoSession }
   | {
       status: "ready";
@@ -95,6 +97,7 @@ type LoadState =
       workspace: Workspace;
       session: CryptoSession;
       encryptionStatus: "plaintext" | "unlocked";
+      drafts: DraftStore;
     };
 
 interface ReadyAppData {
@@ -102,12 +105,14 @@ interface ReadyAppData {
   privacy: PrivacyRuntime;
   services: BrokeredAppServices;
   workspace: Workspace;
+  drafts: DraftStore;
   revisionStore: RevisionStore;
   invalidate: () => void;
   refreshWorkspace: () => Promise<void>;
 }
 
 interface BuiltRuntime {
+  drafts: DraftStore;
   privacy: PrivacyRuntime;
   rawServices: AppServices;
   services: BrokeredAppServices;
@@ -166,10 +171,14 @@ async function buildRuntime(input: {
     services: result.services,
     workspace: result.workspace,
     drafts,
+    ...(input.context === null
+      ? {}
+      : { auxiliaryDrafts: createPlainDraftStore(window.localStorage) }),
     openPrivacyStore: input.openPrivacyStore ?? openDefaultPrivacyStore,
   });
 
   return {
+    drafts,
     privacy,
     rawServices: result.services,
     services: privacy.services,
@@ -439,6 +448,13 @@ export function AppDataProvider({
           return;
         }
 
+        const inspection = await inspectBaseEncryption(base, workspace.id);
+
+        if (inspection.state === "encrypted" || inspection.state === "mixed") {
+          setState({ status: "missing-keyring" });
+          return;
+        }
+
         const built = await buildRuntime({
           base,
           workspace,
@@ -464,6 +480,7 @@ export function AppDataProvider({
             workspace: built.workspace,
           },
           encryptionStatus: "plaintext",
+          drafts: built.drafts,
         });
       })
       .catch(() => {
@@ -521,6 +538,7 @@ export function AppDataProvider({
           context,
         },
         encryptionStatus: "unlocked",
+        drafts: built.drafts,
       });
     },
     [defaultWorkspaceName, openPrivacyStore]
@@ -1229,6 +1247,7 @@ export function AppDataProvider({
           context: null,
         },
         encryptionStatus: "plaintext",
+        drafts: built.drafts,
       });
       coordinatorRef.current?.notifyReset();
     });
@@ -1317,6 +1336,7 @@ export function AppDataProvider({
       privacy: state.privacy,
       services: state.services,
       workspace: state.workspace,
+      drafts: state.drafts,
       revisionStore,
       invalidate,
       refreshWorkspace,
@@ -1324,7 +1344,11 @@ export function AppDataProvider({
   }, [invalidate, refreshWorkspace, revisionStore, state]);
 
   const encryption = useMemo<EncryptionContextValue>(() => {
-    if (state.status === "loading" || state.status === "error") {
+    if (
+      state.status === "loading" ||
+      state.status === "error" ||
+      state.status === "missing-keyring"
+    ) {
       return {
         status: "locked",
         record: null,
@@ -1396,6 +1420,22 @@ export function AppDataProvider({
           <h1 className="text-xl font-semibold">{t("data.errorTitle")}</h1>
           <p className="text-muted text-sm leading-6">{t("data.errorBody")}</p>
           <Button onClick={retry}>{t("common.retry")}</Button>
+        </div>
+      </main>
+    );
+  }
+
+  if (state.status === "missing-keyring") {
+    return (
+      <main className="grid min-h-dvh place-items-center px-6">
+        <div role="alert" className="max-w-md space-y-4 text-center">
+          <h1 className="text-xl font-semibold">
+            {t("encryption.missingKeyring.title")}
+          </h1>
+          <p className="text-muted text-sm leading-6">
+            {t("encryption.missingKeyring.body")}
+          </p>
+          <Button onClick={retry}>{t("encryption.missingKeyring.retry")}</Button>
         </div>
       </main>
     );
