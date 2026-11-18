@@ -10,7 +10,15 @@ const NEXT_STATIC_DIR = path.join(WEB_DIR, ".next/static");
 const PUBLIC_DIR = path.join(WEB_DIR, "public");
 const TEMPLATE_PATH = path.join(ROOT_DIR, "scripts/pwa/service-worker.js");
 const OUTPUT_PATH = path.join(PUBLIC_DIR, "sw.js");
-const ROUTES = ["/", "/library", "/notes", "/search", "/settings", "/offline"];
+const ROUTES = [
+  "/",
+  "/library",
+  "/notes",
+  "/search",
+  "/settings",
+  "/extensions",
+  "/offline",
+];
 
 async function walk(directory) {
   const entries = await readdir(directory, { withFileTypes: true });

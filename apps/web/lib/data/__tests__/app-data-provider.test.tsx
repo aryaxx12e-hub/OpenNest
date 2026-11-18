@@ -5,6 +5,12 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createAiProviderRegistry, type AiProviderInput } from "@opennest/ai";
 import { createMemoryCredentialVaultStore } from "@opennest/credential-vault";
 import { createMemoryStorage, type StorageAdapter } from "@opennest/core";
+import {
+  createExtensionPackage,
+  createMemoryExtensionStore,
+  type ExtensionManifest,
+  type StoredExtension,
+} from "@opennest/extensions";
 import { LocaleProvider } from "@opennest/localization";
 import { createMemoryPrivacyStore, type PrivacyStore } from "@opennest/privacy";
 
@@ -32,6 +38,38 @@ const PROVIDER_INPUT: AiProviderInput = {
   maxOutputTokens: null,
 };
 
+const EXTENSION_MANIFEST: ExtensionManifest = {
+  id: "com.example.demo",
+  name: "Demo extension",
+  version: "1.0.0",
+  publisher: "Example",
+  description: "A demo extension.",
+  tier: 1,
+  entry: "index.js",
+  capabilities: ["workspace.read.metadata"],
+  dataScopes: ["notes"],
+  networkOrigins: [],
+  minHostVersion: "0.1.0",
+};
+
+async function extensionRecord(): Promise<StoredExtension> {
+  const code = "opennest.ready();";
+  const pkg = await createExtensionPackage({
+    manifest: EXTENSION_MANIFEST,
+    code,
+  });
+
+  return {
+    id: EXTENSION_MANIFEST.id,
+    manifest: EXTENSION_MANIFEST,
+    code,
+    integrity: pkg.integrity,
+    installedAt: 1,
+    updatedAt: 1,
+    enabled: true,
+  };
+}
+
 function Probe({ onReady }: { onReady?: (data: ReadyAppData) => void }) {
   const data = useAppData();
   const revision = useAppRevision();
@@ -46,6 +84,9 @@ function Probe({ onReady }: { onReady?: (data: ReadyAppData) => void }) {
       <span data-testid="ai">{data.ai === undefined ? "missing" : "ready"}</span>
       <span data-testid="credentials">
         {data.credentials === undefined ? "missing" : "ready"}
+      </span>
+      <span data-testid="extensions">
+        {data.extensions === undefined ? "missing" : "ready"}
       </span>
       <span data-testid="storage">{"storage" in data ? "exposed" : "hidden"}</span>
       <button type="button" onClick={data.invalidate}>
@@ -122,6 +163,9 @@ describe("AppDataProvider", () => {
     expect(container.querySelector('[data-testid="privacy"]')?.textContent).toBe("ready");
     expect(container.querySelector('[data-testid="ai"]')?.textContent).toBe("ready");
     expect(container.querySelector('[data-testid="credentials"]')?.textContent).toBe(
+      "ready"
+    );
+    expect(container.querySelector('[data-testid="extensions"]')?.textContent).toBe(
       "ready"
     );
     expect(container.querySelector('[data-testid="storage"]')?.textContent).toBe(
@@ -222,6 +266,39 @@ describe("AppDataProvider", () => {
     act(() => root.unmount());
   });
 
+  it("loads extensions and clears extension data on delete all without disposing", async () => {
+    const storage = createMemoryStorage();
+    const extensionStore = createMemoryExtensionStore();
+    const record = await extensionRecord();
+    await extensionStore.extensions.put(record);
+    await extensionStore.storage.set(record.id, "count", "1");
+    let ready: ReadyAppData | null = null;
+    const { container, root } = mount(async () => storage, {
+      provider: {
+        openExtensionStore: async () => extensionStore,
+      },
+      onReady: (data) => {
+        ready = data;
+      },
+    });
+
+    await settle();
+
+    const data = capturedRuntime(container, () => ready);
+    await expect(data.extensions.registry.list()).resolves.toEqual([record]);
+
+    await data.privacy.data.deleteAll();
+
+    expect(await extensionStore.extensions.list()).toEqual([]);
+    expect(await extensionStore.storage.keys(record.id)).toEqual([]);
+    await expect(data.extensions.registry.list()).resolves.toEqual([]);
+
+    await extensionStore.extensions.put(record);
+    await expect(data.extensions.registry.list()).resolves.toEqual([record]);
+
+    act(() => root.unmount());
+  });
+
   it("exposes AI and disposes AI, credentials, then privacy on unmount", async () => {
     const storage = createMemoryStorage();
     const order: string[] = [];
@@ -245,12 +322,21 @@ describe("AppDataProvider", () => {
         order.push("credentials");
       },
     };
+    const baseExtensionStore = createMemoryExtensionStore();
+    const extensionStore = {
+      ...baseExtensionStore,
+      async close() {
+        order.push("extensions");
+        await baseExtensionStore.close();
+      },
+    };
     let ready: ReadyAppData | null = null;
     const { container, root } = mount(async () => storage, {
       provider: {
         openAiStore: async () => aiStore,
         openPrivacyStore: async () => privacyStore,
         openCredentialStore: async () => credentialStore,
+        openExtensionStore: async () => extensionStore,
       },
       onReady: (data) => {
         ready = data;
@@ -265,8 +351,11 @@ describe("AppDataProvider", () => {
       await new Promise((resolve) => setTimeout(resolve, 0));
     });
 
-    expect(order).toEqual(["ai", "credentials", "privacy"]);
+    expect(order).toEqual(["ai", "credentials", "extensions", "privacy"]);
     await expect(data.ai.isEnabled()).rejects.toMatchObject({
+      code: "runtime_disposed",
+    });
+    await expect(data.extensions.start("com.example.demo")).rejects.toMatchObject({
       code: "runtime_disposed",
     });
     await expect(

@@ -6,7 +6,7 @@ OpenNest is an open-source personal digital workspace designed to help people or
 
 Built around privacy-first and local-first principles, OpenNest aims to give users control over their digital information without forcing them into subscriptions, accounts, or cloud-dependent workflows.
 
-Status: MVP in progress · Library, notes, search, backup, and offline access work locally in the browser. Optional content encryption and optional BYOK AI providers are implemented but have not been independently reviewed.
+Status: MVP in progress · Library, notes, search, backup, and offline access work locally in the browser. Optional content encryption and optional BYOK AI providers are implemented. Local sideload extensions are implemented with a sandboxed, read-only host API. Independent security review is still pending.
 
 🌱 Our Vision
 
@@ -27,6 +27,7 @@ My Library| Organize files and digital resources
 Smart Documents| Create and organize Markdown notes
 Offline ready| Install the app and reopen cached content without a connection
 Optional AI console| Review and send a prompt to a provider you configure yourself
+Local extensions| Install sandboxed, read-only extensions from a local JSON package
 
 Planned for later milestones:
 
@@ -50,8 +51,9 @@ MVP capabilities:
 - [x] Data export and restore from a local backup
 - [x] Offline-ready Progressive Web App (PWA)
 - [x] Indonesian and English interface
+- [x] Local sandboxed extensions with explicit read-only capabilities (review pending)
 
-Optional AI providers are available behind explicit consent. AI tools, MCP execution, document context, AI chat history, cloud synchronization, collaboration, and community extensions remain deferred until the core experience is stable.
+Optional AI providers are available behind explicit consent. Local sideload extensions are also available behind explicit capability consent. AI tools, MCP execution, document context, AI chat history, cloud synchronization, collaboration, extension registries, and extension marketplaces remain deferred until the core experience is stable.
 
 🧱 Technology Stack
 
@@ -105,6 +107,15 @@ unlocked remains a residual risk. See `SECURITY.md` and
 `docs/ai-security-review.md`; the AI and credential-vault security review is not
 complete.
 
+Local extensions are optional and are installed only from a JSON file you
+choose. Extension code runs in an opaque-origin iframe and a blob worker with no
+DOM, network, browser storage, or credential access. OpenNest exposes only the
+workspace reads you approve, stores extension data in an isolated namespace,
+removes that data on uninstall, and excludes it from backups. D4A supports local
+sideload only: there is no registry, publisher signature, auto-update, network
+grant, or workspace write access. See `docs/extensions.md`. The independent
+extension security review is not complete.
+
 🌍 Community & Contributions
 
 OpenNest is intended to grow with its community.
@@ -131,6 +142,7 @@ The project will evolve incrementally.
 - [x] Notes and knowledge organization
 - [x] Search and local data portability
 - [x] PWA and offline experience
+- [x] Local extension sandbox and install flow (D4A; independent review pending)
 - [ ] Accessibility and localization improvements
 - [ ] Community ecosystem
 
@@ -164,6 +176,7 @@ Before contributing, read:
 1. "PRD.md" (./PRD.md)
 2. "AGENTS.md" (./AGENTS.md)
 3. "docs/development.md" (./docs/development.md)
+4. "docs/extensions.md" (./docs/extensions.md)
 
 ❤️ Support the Project
 
@@ -193,7 +206,7 @@ OpenNest adalah ruang kerja digital pribadi berbasis open-source yang dirancang 
 
 Dibangun dengan prinsip privacy-first dan local-first, OpenNest bertujuan memberikan kendali penuh kepada pengguna atas informasi digital mereka tanpa ketergantungan wajib pada langganan, akun, atau layanan cloud.
 
-Status: MVP dalam pengembangan · Perpustakaan, catatan, pencarian, cadangan, dan akses offline sudah berjalan lokal di browser. Enkripsi konten opsional masih dalam implementasi dan belum ditinjau secara independen.
+Status: MVP dalam pengembangan · Perpustakaan, catatan, pencarian, cadangan, dan akses offline sudah berjalan lokal di browser. Enkripsi konten opsional dan penyedia AI BYOK opsional sudah tersedia. Ekstensi lokal dengan sandbox dan API baca-saja sudah tersedia. Tinjauan keamanan independen belum dilakukan.
 
 🌱 Visi Kami
 
@@ -212,6 +225,7 @@ Sudah tersedia di MVP lokal:
 - My Library: Mengatur file dan sumber daya digital.
 - Smart Documents: Membuat serta mengatur catatan Markdown.
 - Siap offline: Pasang aplikasi dan buka kembali konten yang sudah di-cache tanpa koneksi.
+- Ekstensi lokal: Memasang ekstensi baca-saja dari paket JSON lokal di dalam sandbox.
 
 Masih direncanakan:
 
@@ -234,8 +248,9 @@ Fitur MVP:
 - [x] Export data dan pemulihan dari cadangan lokal.
 - [x] PWA yang siap digunakan secara offline.
 - [x] Antarmuka Bahasa Indonesia dan Inggris.
+- [x] Ekstensi lokal dengan sandbox dan izin baca-saja (tinjauan keamanan belum selesai).
 
-Fitur AI, sinkronisasi cloud, kolaborasi, dan ekstensi komunitas akan dikembangkan setelah fondasi utama stabil.
+Fitur AI, sinkronisasi cloud, kolaborasi, registri ekstensi, dan marketplace ekstensi akan dikembangkan setelah fondasi utama stabil.
 
 🔒 Privasi sebagai Prioritas
 
@@ -250,6 +265,15 @@ encryption atau enkripsi seluruh database. Judul catatan, nama file, tag, nama
 dan struktur folder, ukuran, timestamp, serta metadata sync tetap plaintext
 sesuai keputusan produk. Lihat `SECURITY.md` dan `docs/e2ee-threat-model.md`
 untuk gate dan batasan saat ini.
+
+Ekstensi lokal bersifat opsional dan hanya dipasang dari file JSON yang kamu
+pilih. Kode ekstensi berjalan di iframe ber-origin opaque dan blob worker tanpa
+akses DOM, jaringan, penyimpanan browser, atau kredensial. OpenNest hanya
+memberikan data workspace yang kamu setujui, menyimpan data ekstensi secara
+terisolasi, menghapusnya saat uninstall, dan mengecualikannya dari backup. D4A
+hanya mendukung sideload lokal: belum ada registri, tanda tangan publisher,
+auto-update, izin jaringan, atau akses tulis ke workspace. Lihat
+`docs/extensions.md`. Tinjauan keamanan ekstensi independen belum selesai.
 
 🤝 Bergabung dengan Komunitas
 

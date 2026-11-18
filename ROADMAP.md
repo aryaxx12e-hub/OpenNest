@@ -3,7 +3,7 @@ OpenNest Roadmap 🪺
 This document outlines the planned development direction of OpenNest.
 
 Project status: MVP in progress
-Current milestone: D3 encryption implementation complete; D4B AI provider and credential implementation complete, independent security review pending
+Current milestone: D3 encryption complete; D4A extension sandbox and local sideload complete; D4B AI provider and credential implementation complete; independent security review pending
 Last updated: November 2026
 
 Phase 0 foundation and Stage B core architecture are complete. Stage C now
@@ -93,9 +93,12 @@ Goal: Strengthen user control and prepare for future integrations.
 - [ ] Optional storage adapters.
 - [ ] Self-hosting architecture evaluation.
 - [ ] Security review.
-- [ ] D4A extension architecture and sandbox (separate from D4B).
-- [x] D4B AI provider and credential architecture accepted under ADR 0011;
-  implementation not started.
+- [x] D4A extension architecture and sandbox: Tier 1 local sideload, manifest
+  integrity, opaque-origin iframe and blob worker, capability consent, read-only
+  host API, isolated storage, safe mode, audit, PWA, and browser E2E. No registry,
+  signature, network grant, or workspace write access. Independent security
+  review pending.
+- [x] D4B AI provider and credential architecture accepted under ADR 0011.
 - [x] D4B AI provider implementation: off-by-default providers, session-only and
   vault BYOK credentials, one-time payload-bound consent, and local and remote
   OpenAI-compatible adapters (implementation complete; independent review

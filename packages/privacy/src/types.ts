@@ -191,7 +191,16 @@ export type AuditEvent =
   | "ai.requested"
   | "ai.completed"
   | "ai.failed"
-  | "ai.aborted";
+  | "ai.aborted"
+  | "extension.installed"
+  | "extension.updated"
+  | "extension.enabled"
+  | "extension.disabled"
+  | "extension.uninstalled"
+  | "extension.started"
+  | "extension.terminated"
+  | "extension.integrity_failed"
+  | "extension.safe_mode";
 
 export type AuditOutcome = "allowed" | "denied" | "completed" | "failed" | "info";
 

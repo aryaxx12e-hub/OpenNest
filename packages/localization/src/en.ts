@@ -181,6 +181,119 @@ export const en = {
     privacyBody:
       "Review the data inventory, built-in grants, audit log, export, and deletion controls.",
     privacyAction: "Open Privacy Center",
+    extensionsTitle: "Extensions",
+    extensionsBody:
+      "Install local extensions that run in a sandbox and read only what you allow.",
+    extensionsAction: "Manage extensions",
+  },
+  extensions: {
+    title: "Extensions",
+    subtitle:
+      "Install local extensions that run in a sandbox and can only read the data you allow.",
+    loadError: "Extensions could not be loaded.",
+    empty: {
+      title: "No extensions installed",
+      description:
+        "Install an extension file to add read-only tools for notes and files.",
+    },
+    install: {
+      title: "Install extension",
+      updateTitle: "Update extension",
+      help: "Choose an extension JSON file. Nothing is sent to a server.",
+      unsigned:
+        "This package is not signed. Install it only if you trust the person who made it.",
+      fileLabel: "Extension file",
+      version: "Version",
+      publisher: "Publisher",
+      permissions: "Permissions requested:",
+      newPermissions: "New permissions in this update:",
+      noPermissions: "This extension does not request any permissions.",
+      networkNone: "This extension cannot access the network",
+      storage: "Extension data stays in this browser and can use up to 1 MiB.",
+      consent: "I understand and allow these permissions.",
+      confirm: "Install",
+      update: "Update",
+    },
+    safeMode: {
+      title: "Safe mode",
+      description:
+        "Safe mode stops every extension and blocks new sessions until you turn it off.",
+      enable: "Turn on safe mode",
+      disable: "Turn off safe mode",
+      on: "Safe mode is on.",
+      off: "Safe mode is off.",
+    },
+    card: {
+      version: "Version",
+      publisher: "By",
+      enabled: "Enabled",
+      disabled: "Disabled",
+      enable: "Enabled",
+      open: "Open",
+      uninstall: "Uninstall",
+    },
+    uninstall: {
+      title: "Uninstall this extension?",
+      description:
+        "The extension and its saved data are removed from this browser. This cannot be undone.",
+      confirm: "Uninstall extension",
+    },
+    runner: {
+      title: "Extension",
+      stop: "Stop extension",
+      output: "Extension output",
+      empty: "This extension has not rendered anything yet.",
+      back: "Back to extensions",
+      statuses: {
+        starting: "Starting",
+        running: "Running",
+        stopped: "Stopped",
+        error: "Error",
+      },
+    },
+    capabilities: {
+      metadata: "Read workspace metadata",
+      content: "Read note text",
+    },
+    dataScopes: {
+      notes: "Notes",
+      files: "Files",
+      folders: "Folders",
+      tags: "Tags",
+    },
+    notices: {
+      installed: "Extension installed.",
+      uninstalled: "Extension uninstalled.",
+      safeModeOn: "Safe mode is on. Extensions cannot start.",
+      safeModeOff: "Safe mode is off.",
+    },
+    errors: {
+      generic: "The extension action failed. Try again.",
+      invalidPackage: "That extension file is not valid.",
+      unsupportedTier:
+        "This extension needs a newer, less restricted runtime and cannot be installed.",
+      unsupportedCapability:
+        "This extension asks for a permission that this version does not support.",
+      unsupportedNetwork:
+        "Extensions cannot access the network, so this extension cannot be installed.",
+      tooLarge: "The extension package is too large.",
+      integrity: "The extension file is damaged or has been changed.",
+      uiInvalid: "The extension sent an invalid interface.",
+      version: "This extension version cannot be installed.",
+      publisher: "An update cannot change the extension publisher.",
+      hostVersion: "This extension needs a newer version of OpenNest.",
+      consent: "Accept the requested permissions before installing.",
+      notFound: "This extension is not installed.",
+      disabled: "This extension is disabled. Enable it before running.",
+      safeMode: "Safe mode is on. Turn it off before running extensions.",
+      rateLimited: "The extension is sending requests too quickly. Wait a moment.",
+      expired: "The extension session expired. Reload the page to start again.",
+      busy: "The extension is busy. Try again in a moment.",
+      unavailable: "Extensions are not available right now.",
+      protocol: "The extension sent an invalid request.",
+      responseTooLarge: "The result is too large to send to the extension.",
+      storage: "The extension could not use its storage.",
+    },
   },
   backup: {
     title: "Backup and restore",
@@ -344,6 +457,8 @@ export const en = {
         aiCredentialsSession: "AI session credentials",
         aiCredentialVault: "Credential vault",
         aiConsents: "AI consent history",
+        extensions: "Installed extensions",
+        extensionStorage: "Extension storage",
         search: "Search results",
         syncMeta: "Sync metadata",
         syncFieldMeta: "Sync field metadata",
@@ -358,7 +473,7 @@ export const en = {
     flows: {
       title: "Data flows",
       description:
-        "Where data can go. Local and backup flows are available, and AI provider flows only run after you approve each request.",
+        "Where data can go. Local, backup, and extension flows are available, and AI provider flows only run after you approve each request.",
       columns: {
         flow: "Flow",
         from: "From",
@@ -471,6 +586,17 @@ export const en = {
           completed: "AI request completed",
           failed: "AI request failed",
           aborted: "AI request cancelled",
+        },
+        extension: {
+          installed: "Extension installed",
+          updated: "Extension updated",
+          enabled: "Extension enabled",
+          disabled: "Extension disabled",
+          uninstalled: "Extension uninstalled",
+          started: "Extension started",
+          terminated: "Extension stopped",
+          integrity_failed: "Extension integrity check failed",
+          safe_mode: "Extension safe mode changed",
         },
       },
     },

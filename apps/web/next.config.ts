@@ -15,6 +15,7 @@ const contentSecurityPolicy = [
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
+  "frame-src 'self'",
   "frame-ancestors 'none'",
 ].join("; ");
 
@@ -43,12 +44,22 @@ const nextConfig: NextConfig = {
     "@opennest/crypto",
     "@opennest/credential-vault",
     "@opennest/ai",
+    "@opennest/extensions",
   ],
   async headers() {
     return [
       {
         source: "/(.*)",
         headers: securityHeaders,
+      },
+      {
+        source: "/extension-sandbox.js",
+        headers: [
+          {
+            key: "Cross-Origin-Resource-Policy",
+            value: "cross-origin",
+          },
+        ],
       },
       {
         source: "/sw.js",

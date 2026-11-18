@@ -12,6 +12,15 @@ const EVENT_KEYS: Partial<Record<AuditEntry["event"], string>> = {
   "ai.completed": "privacy.audit.events.ai.completed",
   "ai.failed": "privacy.audit.events.ai.failed",
   "ai.aborted": "privacy.audit.events.ai.aborted",
+  "extension.installed": "privacy.audit.events.extension.installed",
+  "extension.updated": "privacy.audit.events.extension.updated",
+  "extension.enabled": "privacy.audit.events.extension.enabled",
+  "extension.disabled": "privacy.audit.events.extension.disabled",
+  "extension.uninstalled": "privacy.audit.events.extension.uninstalled",
+  "extension.started": "privacy.audit.events.extension.started",
+  "extension.terminated": "privacy.audit.events.extension.terminated",
+  "extension.integrity_failed": "privacy.audit.events.extension.integrity_failed",
+  "extension.safe_mode": "privacy.audit.events.extension.safe_mode",
 };
 
 export function PrivacyAudit({ entries }: { entries: readonly AuditEntry[] }) {

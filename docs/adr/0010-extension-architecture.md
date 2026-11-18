@@ -1,7 +1,7 @@
 # ADR 0010: Extension architecture
 
-- Status: Proposed, pending Stage D0 approval
-- Date: 2026-11-14
+- Status: Accepted
+- Date: 2026-11-18
 - Context: Stage D0 Privacy and Extensibility
 - Related: ADR 0008, ADR 0009, ADR 0011, ADR 0013
 - Product conflict: scope clarification, no direct contradiction
@@ -99,12 +99,37 @@ Required fields:
 3. Show requested capabilities in plain language.
 4. Install and enable.
 5. Re-consent when an update expands capabilities.
-6. Disable or uninstall, with a choice to remove extension-owned data.
+6. Disable or uninstall; D4A removes extension-owned data on uninstall.
 
 Local sideload is the first distribution model. There is no auto-update and no
 marketplace in this phase.
 
-### Relationship to MCP and Local Bridge
+### D4A implementation note
+
+D4A implements the accepted boundary for Tier 1 local sideload only:
+
+- A strict one-file JSON package with a canonical SHA-256 integrity hash.
+- No publisher signature, registry, marketplace, auto-update, or remote
+  distribution. Local sideload packages are unsigned.
+- A trusted same-origin shell inside an opaque-origin iframe with
+  `sandbox="allow-scripts"`, plus a blob worker that inherits the opaque origin.
+- A read-only host API for workspace metadata and note content, gated by
+  `workspace.read.metadata` and `workspace.read.content`.
+- `networkOrigins` must be empty and there is no network method, so D4A is
+  stricter than the host-mediated network path described above.
+- No workspace writes, file bytes, exports, deletes, credentials, or raw storage
+  handles.
+- Host-mediated extension storage with a 1 MiB quota, removed on uninstall and
+  excluded from backups.
+- Safe mode, single-active-session lifecycle, and privacy audit events for
+  install, update, enable, disable, uninstall, start, termination, integrity
+  failure, and safe mode.
+
+The independent extension security review has not been completed. The remaining
+network broker, signature, registry, Tier 0, and marketplace work is still
+future scope.
+
+## Relationship to MCP and Local Bridge
 
 MCP servers and a future Local Bridge are external integrations, not extensions.
 They use ADR 0011 provider or tool adapters and separate capability grants. The
@@ -133,7 +158,11 @@ change the local-sideload distribution decision.
    `allow-top-navigation`, `allow-popups`, `allow-forms`, `allow-modals`, or
    `allow-downloads`. A dedicated worker inherits its origin, so untrusted code
    may use a worker only when the worker is served from a separate origin. If
-   that is not possible, a worker is not an acceptable sandbox.
+   that is not possible, a worker is not an acceptable sandbox. D4A resolves
+   this by running extension code in a blob worker created by the trusted shell
+   inside the opaque-origin iframe. The worker inherits the iframe's opaque
+   origin, not the application origin; the shell is same-origin code, but
+   extension code never runs in the shell.
 2. **R-10-2, restrictive CSP.** The extension document uses
    `default-src 'none'`, packaged code only, no inline script, no `eval`, no
    remote imports, and `connect-src 'none'`. Images, fonts, and frames are denied

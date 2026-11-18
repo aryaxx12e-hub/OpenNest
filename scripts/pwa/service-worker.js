@@ -79,7 +79,8 @@ self.addEventListener("fetch", (event) => {
     url.pathname.startsWith("/icons/") ||
     url.pathname === "/icon.svg" ||
     url.pathname === "/favicon.ico" ||
-    url.pathname === "/apple-touch-icon.png"
+    url.pathname === "/apple-touch-icon.png" ||
+    url.pathname === "/extension-sandbox.js"
   ) {
     event.respondWith(handleStatic(request));
     return;

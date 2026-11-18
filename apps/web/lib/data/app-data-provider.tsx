@@ -30,6 +30,7 @@ import {
 } from "@opennest/crypto";
 import type { StorageAdapter, Workspace, WorkspaceId } from "@opennest/core";
 import { createMemoryCredentialVaultStore } from "@opennest/credential-vault";
+import { createMemoryExtensionStore, type ExtensionStore } from "@opennest/extensions";
 import { useTranslations } from "@opennest/localization";
 import { createMemoryPrivacyStore, type PrivacyStore } from "@opennest/privacy";
 import { Button } from "@opennest/ui";
@@ -68,6 +69,9 @@ import {
   type CredentialRuntimeStore,
 } from "@/lib/credentials/runtime";
 import { createDexiePrivacyStore } from "@/lib/privacy/dexie-store";
+import { createDexieExtensionStore } from "@/lib/extensions/dexie-store";
+import { createFrameTransport } from "@/lib/extensions/frame";
+import { createExtensionRuntime, type ExtensionRuntime } from "@/lib/extensions/runtime";
 import type { DraftStore } from "@/lib/autosave/draft-store";
 import {
   createPrivacyRuntime,
@@ -76,6 +80,7 @@ import {
 } from "@/lib/privacy/runtime";
 
 const ENCRYPTED_DRAFT_PREFIX = "opennest:edraft:note:";
+const EXTENSION_HOST_VERSION = "0.1.0";
 
 interface CryptoSession {
   base: StorageAdapter;
@@ -103,6 +108,7 @@ type LoadState =
       status: "ready";
       ai: AiRuntime;
       credentials: CredentialRuntime;
+      extensions: ExtensionRuntime;
       privacy: PrivacyRuntime;
       rawServices: AppServices;
       services: BrokeredAppServices;
@@ -116,6 +122,7 @@ export interface ReadyAppData {
   status: "ready";
   ai: AiRuntime;
   credentials: CredentialRuntime;
+  extensions: ExtensionRuntime;
   privacy: PrivacyRuntime;
   services: BrokeredAppServices;
   workspace: Workspace;
@@ -129,6 +136,8 @@ interface AppRuntime {
   ai: AiRuntime;
   aiStore: AiStore;
   credentials: CredentialRuntime;
+  extensionStore: ExtensionStore;
+  extensions: ExtensionRuntime;
   privacy: PrivacyRuntime;
 }
 
@@ -147,6 +156,7 @@ export interface AppDataProviderProps {
   openAiStore?: () => Promise<AiStore>;
   openCredentialStore?: () => Promise<CredentialRuntimeStore>;
   openPrivacyStore?: () => Promise<PrivacyStore>;
+  openExtensionStore?: () => Promise<ExtensionStore>;
   openKeyringStore?: () => Promise<KeyringStore>;
   tabCoordinator?: TabCoordinator;
 }
@@ -165,6 +175,14 @@ function openDefaultAiStore(): Promise<AiStore> {
   }
 
   return Promise.resolve(createDexieAiStore());
+}
+
+function openDefaultExtensionStore(): Promise<ExtensionStore> {
+  if (typeof indexedDB === "undefined") {
+    return Promise.resolve(createMemoryExtensionStore());
+  }
+
+  return Promise.resolve(createDexieExtensionStore());
 }
 
 function openDefaultCredentialStore(): Promise<CredentialRuntimeStore> {
@@ -197,6 +215,18 @@ async function disposeRuntime(runtime: AppRuntime): Promise<void> {
   }
 
   try {
+    await runtime.extensions.dispose();
+  } catch (error) {
+    failure ??= error;
+  }
+
+  try {
+    await runtime.extensionStore.close();
+  } catch (error) {
+    failure ??= error;
+  }
+
+  try {
     await runtime.privacy.dispose();
   } catch (error) {
     failure ??= error;
@@ -215,6 +245,7 @@ async function buildRuntime(input: {
   openAiStore?: () => Promise<AiStore>;
   openCredentialStore?: () => Promise<CredentialRuntimeStore>;
   openPrivacyStore?: () => Promise<PrivacyStore>;
+  openExtensionStore?: () => Promise<ExtensionStore>;
 }): Promise<BuiltRuntime> {
   const storage =
     input.context === null
@@ -252,6 +283,8 @@ async function buildRuntime(input: {
   let ai: AiRuntime | null = null;
   let aiStore: AiStore | null = null;
   let credentials: CredentialRuntime | null = null;
+  let extensions: ExtensionRuntime | null = null;
+  let extensionStore: ExtensionStore | null = null;
 
   try {
     const credentialRuntime = await createCredentialRuntime({
@@ -267,6 +300,24 @@ async function buildRuntime(input: {
         resolveCredential: (handle) => credentialRuntime.resolve(handle),
       }),
     });
+    extensionStore = await (input.openExtensionStore ?? openDefaultExtensionStore)();
+    await extensionStore.init();
+    extensions = createExtensionRuntime({
+      privacy: { grants: privacy.grants, audit: privacy.audit },
+      services: result.services,
+      store: extensionStore,
+      workspace: result.workspace,
+      hostVersion: EXTENSION_HOST_VERSION,
+      now: () => Date.now(),
+      generateId: () => crypto.randomUUID(),
+      transportFactory: (handlers) =>
+        createFrameTransport({
+          container: document.body,
+          origin: window.location.origin,
+          onMessage: handlers.onMessage,
+          onFault: handlers.onFault,
+        }),
+    });
   } catch (error) {
     if (ai !== null) {
       await ai.dispose().catch(() => undefined);
@@ -280,27 +331,47 @@ async function buildRuntime(input: {
       await credentials.dispose().catch(() => undefined);
     }
 
+    if (extensions !== null) {
+      await extensions.dispose().catch(() => undefined);
+    }
+
+    if (extensionStore !== null) {
+      await extensionStore.close().catch(() => undefined);
+    }
+
     await privacy.dispose().catch(() => undefined);
     throw error;
   }
 
-  if (ai === null || aiStore === null || credentials === null) {
-    throw new Error("The AI runtime could not be created.");
+  if (
+    ai === null ||
+    aiStore === null ||
+    credentials === null ||
+    extensions === null ||
+    extensionStore === null
+  ) {
+    throw new Error("The app runtime could not be created.");
   }
 
   const readyAi = ai;
   const readyAiStore = aiStore;
   const readyCredentials = credentials;
+  const readyExtensions = extensions;
+  const readyExtensionStore = extensionStore;
   privacy.setAuxiliaryCleanup(async () => {
     await readyAi.setEnabled(false);
     await readyAiStore.reset();
     await readyCredentials.clearAllData();
+    await readyExtensions.stopAll();
+    await readyExtensionStore.reset();
   });
 
   return {
     ai: readyAi,
     aiStore: readyAiStore,
     credentials: readyCredentials,
+    extensionStore: readyExtensionStore,
+    extensions: readyExtensions,
     drafts,
     privacy,
     rawServices: result.services,
@@ -478,6 +549,7 @@ export function AppDataProvider({
   openAiStore,
   openCredentialStore,
   openPrivacyStore,
+  openExtensionStore,
   openKeyringStore,
   tabCoordinator,
 }: AppDataProviderProps) {
@@ -588,6 +660,7 @@ export function AppDataProvider({
           ...(openAiStore === undefined ? {} : { openAiStore }),
           ...(openCredentialStore === undefined ? {} : { openCredentialStore }),
           ...(openPrivacyStore === undefined ? {} : { openPrivacyStore }),
+          ...(openExtensionStore === undefined ? {} : { openExtensionStore }),
         });
 
         if (cancelled || request.current !== current) {
@@ -599,12 +672,15 @@ export function AppDataProvider({
           ai: built.ai,
           aiStore: built.aiStore,
           credentials: built.credentials,
+          extensionStore: built.extensionStore,
+          extensions: built.extensions,
           privacy: built.privacy,
         };
         setState({
           status: "ready",
           ai: built.ai,
           credentials: built.credentials,
+          extensions: built.extensions,
           privacy: built.privacy,
           rawServices: built.rawServices,
           services: built.services,
@@ -641,6 +717,7 @@ export function AppDataProvider({
     defaultWorkspaceName,
     openAiStore,
     openCredentialStore,
+    openExtensionStore,
     openKeyringStore,
     openPrivacyStore,
     openStorage,
@@ -656,6 +733,7 @@ export function AppDataProvider({
         ...(openAiStore === undefined ? {} : { openAiStore }),
         ...(openCredentialStore === undefined ? {} : { openCredentialStore }),
         ...(openPrivacyStore === undefined ? {} : { openPrivacyStore }),
+        ...(openExtensionStore === undefined ? {} : { openExtensionStore }),
       });
 
       if (!mountedRef.current) {
@@ -668,6 +746,8 @@ export function AppDataProvider({
         ai: built.ai,
         aiStore: built.aiStore,
         credentials: built.credentials,
+        extensionStore: built.extensionStore,
+        extensions: built.extensions,
         privacy: built.privacy,
       };
 
@@ -679,6 +759,7 @@ export function AppDataProvider({
         status: "ready",
         ai: built.ai,
         credentials: built.credentials,
+        extensions: built.extensions,
         privacy: built.privacy,
         rawServices: built.rawServices,
         services: built.services,
@@ -692,7 +773,13 @@ export function AppDataProvider({
         drafts: built.drafts,
       });
     },
-    [defaultWorkspaceName, openAiStore, openCredentialStore, openPrivacyStore]
+    [
+      defaultWorkspaceName,
+      openAiStore,
+      openCredentialStore,
+      openExtensionStore,
+      openPrivacyStore,
+    ]
   );
 
   const unlock = useCallback(
@@ -1378,6 +1465,7 @@ export function AppDataProvider({
         ...(openAiStore === undefined ? {} : { openAiStore }),
         ...(openCredentialStore === undefined ? {} : { openCredentialStore }),
         ...(openPrivacyStore === undefined ? {} : { openPrivacyStore }),
+        ...(openExtensionStore === undefined ? {} : { openExtensionStore }),
       });
 
       if (!mountedRef.current) {
@@ -1389,12 +1477,15 @@ export function AppDataProvider({
         ai: built.ai,
         aiStore: built.aiStore,
         credentials: built.credentials,
+        extensionStore: built.extensionStore,
+        extensions: built.extensions,
         privacy: built.privacy,
       };
       setState({
         status: "ready",
         ai: built.ai,
         credentials: built.credentials,
+        extensions: built.extensions,
         privacy: built.privacy,
         rawServices: built.rawServices,
         services: built.services,
@@ -1415,6 +1506,7 @@ export function AppDataProvider({
     defaultWorkspaceName,
     openAiStore,
     openCredentialStore,
+    openExtensionStore,
     openPrivacyStore,
     runExclusive,
   ]);
@@ -1501,6 +1593,7 @@ export function AppDataProvider({
       status: "ready",
       ai: state.ai,
       credentials: state.credentials,
+      extensions: state.extensions,
       privacy: state.privacy,
       services: state.services,
       workspace: state.workspace,

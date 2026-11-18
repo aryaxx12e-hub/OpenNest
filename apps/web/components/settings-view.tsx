@@ -31,6 +31,16 @@ export function SettingsView() {
           {t("settings.privacyAction")}
         </Link>
       </Card>
+      <Card className="space-y-2">
+        <h2 className="text-lg font-semibold">{t("settings.extensionsTitle")}</h2>
+        <p className="text-muted text-sm leading-6">{t("settings.extensionsBody")}</p>
+        <Link
+          href="/extensions"
+          className="text-primary inline-flex min-h-11 items-center text-sm font-medium underline"
+        >
+          {t("settings.extensionsAction")}
+        </Link>
+      </Card>
       <AiSettings ai={ai} credentials={credentials} />
       {encryption.status === "plaintext" ? <EncryptionSetup /> : null}
       {encryption.status === "unlocked" ? <EncryptionSettings /> : null}

@@ -24,9 +24,10 @@
     "check:browser-graph": "node scripts/check-browser-graph.mjs",
     "test": "node scripts/check-browser-graph.mjs && node scripts/vitest.mjs run",
     "test:watch": "node scripts/vitest.mjs",
-    "test:e2e": "node scripts/e2e-stage-c.mjs && node scripts/e2e-pwa.mjs && node scripts/e2e-encryption.mjs && node scripts/e2e-ai.mjs",
+    "test:e2e": "node scripts/e2e-stage-c.mjs && node scripts/e2e-pwa.mjs && node scripts/e2e-encryption.mjs && node scripts/e2e-ai.mjs && node scripts/e2e-extensions.mjs",
     "test:e2e:ai": "node scripts/e2e-ai.mjs",
     "test:e2e:encryption": "node scripts/e2e-encryption.mjs",
+    "test:e2e:extensions": "node scripts/e2e-extensions.mjs",
     "test:e2e:pwa": "node scripts/e2e-pwa.mjs",
     "benchmark:library": "node scripts/vitest.mjs run --config vitest.benchmark.config.ts"
   },

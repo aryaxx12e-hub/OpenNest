@@ -234,6 +234,33 @@ describe("AI data backup exclusion", () => {
     }
   });
 
+  it("keeps extension metadata and isolated storage out of v1 and v2 backups", async () => {
+    const environment = await setupEnvironment();
+
+    try {
+      const plaintext = await environment.privacy.data.exportAll({ format: "v1" });
+      const encrypted = await environment.privacy.data.exportAll({
+        format: "v2",
+        keySource: { kind: "passphrase", passphrase: VAULT_PASSPHRASE },
+      });
+
+      for (const snapshot of [plaintext.snapshot, encrypted.snapshot]) {
+        expect(Object.keys(snapshot)).not.toEqual(
+          expect.arrayContaining(["extensions", "extensionStorage"])
+        );
+      }
+
+      expect(dataInventory.find((entry) => entry.id === "extensions")).toMatchObject({
+        includedInBackup: false,
+      });
+      expect(
+        dataInventory.find((entry) => entry.id === "extension-storage")
+      ).toMatchObject({ includedInBackup: false });
+    } finally {
+      await environment.cleanup();
+    }
+  });
+
   it("keeps workspace recovery and vault passphrases independent", async () => {
     const keyring = createKeyring({
       store: createMemoryKeyringStore(),

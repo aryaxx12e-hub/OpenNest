@@ -67,4 +67,32 @@ describe("data inventory", () => {
     expect(ai?.consent).toBe("explicit");
     expect(ai?.revocationLimitKey).toBe("privacy.flows.revocationLimit");
   });
+
+  it("lists extension packages and isolated storage outside backup", () => {
+    expect(dataInventory.find((entry) => entry.id === "extensions")).toMatchObject({
+      dataClass: "D1",
+      storage: "indexeddb",
+      includedInBackup: false,
+      deletedWithSource: false,
+      retention: "until-delete",
+    });
+    expect(dataInventory.find((entry) => entry.id === "extension-storage")).toMatchObject(
+      {
+        dataClass: "D2",
+        storage: "indexeddb",
+        includedInBackup: false,
+        derivedFrom: ["extensions"],
+        deletedWithSource: true,
+        retention: "until-delete",
+      }
+    );
+  });
+
+  it("marks the extension flow available with explicit consent", () => {
+    const extension = flowMatrix.find((flow) => flow.id === "extension");
+
+    expect(extension?.available).toBe(true);
+    expect(extension?.consent).toBe("explicit");
+    expect(extension?.revocationLimitKey).toBe("privacy.flows.revocationLimit");
+  });
 });

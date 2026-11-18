@@ -8,6 +8,7 @@ const entries = [
   path.join(rootDir, "packages/crypto/src/index.ts"),
   path.join(rootDir, "packages/credential-vault/src/index.ts"),
   path.join(rootDir, "packages/ai/src/index.ts"),
+  path.join(rootDir, "packages/extensions/src/index.ts"),
 ];
 
 const FORBIDDEN_MODULES = new Set([
@@ -138,6 +139,7 @@ async function main() {
     "packages/crypto",
     "packages/credential-vault",
     "packages/ai",
+    "packages/extensions",
   ]) {
     for (const dependency of await readManifestDependencies(packageDir)) {
       if (

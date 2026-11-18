@@ -24,6 +24,16 @@ releases begin.
   enforcement in the browser transport.
 - AI end-to-end coverage for off-by-default behavior, consent, local providers,
   session and vault credentials, HTML-as-text rendering, and delete-all.
+- Tier 1 local sideload extensions with a strict JSON package format, canonical
+  SHA-256 integrity, host-version checks, publisher and version update rules, and
+  explicit capability consent.
+- An extension runner with a trusted shell, opaque-origin iframe, blob worker,
+  read-only workspace host API, isolated storage, safe tree UI rendering, and
+  per-extension enable, disable, uninstall, and safe mode controls.
+- Extension privacy audit events, inventory entries, delete-all cleanup, backup
+  exclusions, PWA assets, localization, and a browser end-to-end journey covering
+  install, update consent, sandbox probes, storage, disable, safe mode, uninstall,
+  reinstall, and privacy history.
 
 ### Security
 
@@ -34,3 +44,10 @@ releases begin.
   reviewed. There are no automatic retries, and remote providers remain subject
   to browser CORS behavior. XSS while the vault is unlocked remains a residual
   risk. No E2EE or AI confidentiality claim is made.
+- The extension runtime denies DOM, network, browser storage, credential, and
+  workspace write access, enforces package, message, UI, rate, time, and storage
+  limits, and isolates extension data from backups and other extensions. The file
+  picker checks package size before reading, oversized host responses are
+  replaced with a small failure, UI updates are rate-limited, and the install
+  dialog warns that local sideload packages are unsigned. The independent
+  extension security review has not been completed.

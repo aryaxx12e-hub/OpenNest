@@ -44,7 +44,10 @@ not something a flag or configuration can work around.
 | `npm run typecheck`           | Generate Next route types, then `tsc --noEmit`         |
 | `npm test`                    | Browser-graph check, then Vitest single run            |
 | `npm run test:watch`          | Vitest, watch mode                                     |
-| `npm run test:e2e`            | Stage C and PWA browser E2E against the current build  |
+| `npm run test:e2e`            | All browser E2E journeys against the current build     |
+| `npm run test:e2e:ai`         | AI consent, credentials, vault, and transport E2E      |
+| `npm run test:e2e:encryption` | Encryption setup, backup, restore, and unlock E2E      |
+| `npm run test:e2e:extensions` | Extension install, sandbox, storage, and privacy E2E   |
 | `npm run test:e2e:pwa`        | PWA install, offline, and update browser E2E           |
 | `npm run benchmark:library`   | Storage benchmark with 2,000 files and 2,000 notes     |
 | `npm run check:browser-graph` | Verify nothing Node-only reaches the browser adapter   |
@@ -125,17 +128,24 @@ const browser = await chromium.launch({
 This is how the A2 screenshot check (mobile and desktop, dark mode, Indonesian
 locale, console errors) was done.
 
-### Stage C browser E2E
+### Browser E2E
 
-`npm run test:e2e` runs `scripts/e2e-stage-c.mjs` and `scripts/e2e-pwa.mjs`
-against a production build. Each script starts the built server on a free local
-port and opens Chromium at a 412x915 viewport. The Stage C suite checks dashboard
-structure, the skip link, note autosave, title validation, tab keyboard
-navigation, tag creation, notes list, search status and tag grouping, dialog
-focus and Escape, folder creation, file upload and preview, backup export and
-restore, desktop layout, horizontal overflow, and console errors.
+`npm run test:e2e` runs five scripts against a production build:
 
-Build first, because the script serves `.next`:
+- `scripts/e2e-stage-c.mjs`: dashboard, notes, search, folders, file upload,
+  backup, privacy delete-all, desktop layout, and console errors.
+- `scripts/e2e-pwa.mjs`: manifest, service worker, offline reload, navigation,
+  fallback, and user-confirmed updates.
+- `scripts/e2e-encryption.mjs`: encryption setup, recovery, locked reload,
+  encrypted backup and restore, and mobile overflow.
+- `scripts/e2e-ai.mjs`: off-by-default AI, consent, session and vault
+  credentials, HTML-as-text rendering, and delete-all.
+- `scripts/e2e-extensions.mjs`: extension install, update consent, sandbox
+  probes, read-only host API, worker storage, stop/reload, disable, safe mode,
+  uninstall, reinstall, and privacy audit and inventory.
+
+Each script starts the built server on a free local port and opens Chromium at a
+412x915 viewport. Build first, because the scripts serve `.next`:
 
 ```bash
 npm run build
@@ -182,16 +192,18 @@ editor.
 
 ```
 apps/web             Next.js application
-  app/               App Router: dashboard, library, files, notes, search, offline
-  components/        screens, dialogs, editor, shell, theme, locale, PWA controls
+  app/               App Router: dashboard, library, files, notes, search, extensions, privacy, offline
+  components/        screens, dialogs, editor, shell, theme, locale, extension UI, PWA controls
   lib/data/          browser storage singleton, services, provider, async hook
+  lib/extensions/    extension runtime, frame transport, session, host API, Dexie store
   lib/               formatting, file, folder, note, error, token, PWA helpers
-  public/            icons and the generated service worker
+  public/            icons, extension sandbox shell, and generated service worker
 packages/ui          React primitives: Button, Card, Input, cn
 packages/localization  en/id catalogs, provider, Intl formatting
+packages/extensions  manifest, package, registry, store, protocol, UI, host API DTOs
 scripts/pwa/         service worker template, generator, generator tests
 scripts/             Node-based command resolvers and browser E2E
-docs/                Development notes and ADRs
+docs/                Development notes, extension spec, and ADRs
 ```
 
 Stage B adds, with real consumers and tests (see ADR 0003):
@@ -223,10 +235,10 @@ component. Browser storage is the source of truth, so screens are client
 components; there is no server API in Stage C.
 
 Routes: `/`, `/library`, `/library/[folderId]`, `/files/[fileId]`, `/notes`,
-`/notes/[noteId]`, `/search`, `/settings`, and `/offline`. Search state lives in URL
-parameters. File previews use local blob URLs and revoke them on unmount.
-Markdown preview uses `react-markdown` with GFM, skips raw HTML, and blocks
-remote images.
+`/notes/[noteId]`, `/search`, `/extensions`, `/extensions/[extensionId]`,
+`/privacy`, `/settings`, and `/offline`. Search state lives in URL parameters.
+File previews use local blob URLs and revoke them on unmount. Markdown preview
+uses `react-markdown` with GFM, skips raw HTML, and blocks remote images.
 
 Note autosave lives in `apps/web/lib/autosave`. It saves after a 500 ms idle
 delay, on blur, and through lifecycle flushes on unmount, `pagehide`, hidden
@@ -241,6 +253,36 @@ records the durability decision and its limits.
 `useAsyncData` is key-aware: changing the key hides the previous record's data
 and error and shows the loading state. Reloading the same key keeps the current
 data visible until the replacement arrives.
+
+### Extension runtime
+
+D4A extensions are local sideload packages. The complete package, host API, and
+limits specification lives in `docs/extensions.md`.
+
+- `packages/extensions` owns manifest validation, canonical package integrity,
+  the registry, extension and storage ports, protocol types, and safe UI nodes.
+- `apps/web/lib/extensions` owns the registry-backed runtime, session lifecycle,
+  frame transport, host API, request protocol, and Dexie store.
+- `apps/web/public/extension-sandbox.js` is the trusted shell. It listens for
+  `shell:ready`, receives a `MessageChannel`, starts the extension code in a blob
+  worker inside the opaque-origin iframe, enforces message size, and forwards
+  host responses to the worker.
+- `apps/web/app/extensions` and the components in
+  `apps/web/components/extension-*.tsx` implement install, update consent,
+  enable, disable, uninstall, safe mode, and the runner.
+- `AppDataProvider` exposes the runtime as `extensions` alongside storage,
+  services, AI, and privacy.
+
+The iframe uses `sandbox="allow-scripts"` and a restrictive `srcdoc` CSP.
+`/extension-sandbox.js` overrides the global `Cross-Origin-Resource-Policy`
+with `cross-origin` because the sandboxed iframe has an opaque origin; every
+other response keeps `same-origin`. Do not add `allow-same-origin`, remote
+scripts, direct network access, or a same-origin worker.
+
+Extension sessions are single-active. Install, update, uninstall, safe mode,
+session start and end, and integrity failures write privacy audit events.
+Extension storage is isolated per extension and removed on uninstall. Extension
+records and storage are excluded from backup v1 and backup v2.
 
 ### Backup format and restore
 
@@ -268,9 +310,10 @@ the Apple web app metadata, and keeps the existing theme-color sync.
 `scripts/pwa/service-worker.js` into `apps/web/public/sw.js`. The generated file
 is gitignored: it is a build artifact, so deploy the output of `npm run build`,
 not a stale checked-in worker. The generator versions the cache from the Next
-build ID, the worker template, and the actual precache list, which includes the six shell routes
-(`/`, `/library`, `/notes`, `/search`, `/settings`, `/offline`), the manifest and
-icons, every file under `.next/static`, and the public assets.
+build ID, the worker template, and the actual precache list, which includes the
+seven shell routes (`/`, `/library`, `/notes`, `/search`, `/settings`,
+`/extensions`, `/offline`), the manifest and icons, every file under
+`.next/static`, and the public assets including `/extension-sandbox.js`.
 
 Cache policy (ADR 0006):
 
