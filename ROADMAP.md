@@ -92,11 +92,30 @@ Offline and recovery follow-ups:
 - [x] Installable application.
 - [x] Offline application shell.
 - [x] Offline access to locally stored content.
-- [ ] Storage status information.
-- [ ] Backup reminders.
-- [ ] Guided recovery workflows.
+- [x] Storage usage display in the Privacy Center (bytes and item counts).
+- [ ] Persistence and quota diagnostics, including eviction guidance.
+- [ ] Backup reminders that surface the last successful backup.
+- [ ] Guided recovery workflows for storage eviction and interrupted restore.
 
-Completion criteria: The MVP core is accepted, and the Knowledge Hub and recovery follow-ups are either delivered or explicitly deferred.
+### PRD Gap Register
+
+These items appear in the PRD but are not fully delivered. A checked umbrella
+item such as "Knowledge Hub foundation" does not close them. Each item needs an
+explicit decision: deliver before MVP acceptance or defer with an owner and a
+reason.
+
+| Item | PRD reference | Current state | Decision |
+| --- | --- | --- | --- |
+| Note Markdown export | Module 02; Epic C acceptance | Not implemented | Pending owner decision |
+| Basic revision history | Module 02 | Not implemented; autosave and draft recovery only | Pending owner decision |
+| Library sort and filter | Module 01; Stage C filters | Sort fixed to updatedAt desc; filters only in Search | Pending owner decision |
+| Collection export | Module 01 | Full-workspace backup only | Pending owner decision |
+| Note link UI | Module 02; US-014 | Data model and service only | Tracked under Knowledge Hub follow-ups |
+
+Completion criteria: The MVP core is accepted; every item in the PRD Gap
+Register is delivered or explicitly deferred with an owner and reason; and the
+Knowledge Hub and recovery follow-ups are either delivered or explicitly
+deferred.
 
 Stage D: Privacy, Security, and Extensibility
 
