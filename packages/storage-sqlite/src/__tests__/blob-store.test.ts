@@ -1,6 +1,7 @@
 // @vitest-environment node
 
-import { mkdtemp, rm } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { access, mkdtemp, rm, utimes, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 
@@ -88,6 +89,65 @@ describe("FileSystemBlobStore", () => {
     expect(await store.has(kept)).toBe(true);
     expect(await store.has(orphan)).toBe(false);
     expect(await store.usage()).toEqual({ bytes: 2, items: 1 });
+  });
+
+  it("removes orphan blobs, metadata, and stale temporary files", async () => {
+    const store = await makeStore();
+    const nextKey = idGenerator(120);
+    const kept = nextKey() as BlobKey;
+    const orphan = nextKey() as BlobKey;
+
+    await store.put(kept, new Blob([new Uint8Array([1])], { type: "text/plain" }));
+    await store.put(orphan, new Blob([new Uint8Array([2, 3])], { type: "text/plain" }));
+
+    const directory = path.join(store.rootDir, "blobs", kept.slice(0, 2));
+    const stale = path.join(directory, `.${kept}.${randomUUID()}.tmp`);
+    const fresh = path.join(directory, `.${kept}.${randomUUID()}.tmp`);
+    const now = Date.now();
+    const old = new Date(now - 25 * 60 * 60 * 1000);
+
+    await writeFile(stale, new Uint8Array([4]));
+    await writeFile(fresh, new Uint8Array([5]));
+    await utimes(stale, old, old);
+    await utimes(fresh, new Date(now), new Date(now));
+
+    const result = await store.reconcile([kept], {
+      staleTempAgeMs: 24 * 60 * 60 * 1000,
+      now: () => now,
+    });
+
+    expect(result).toEqual({
+      removedBlobs: 1,
+      removedMetadata: 1,
+      removedTemporaryFiles: 1,
+    });
+    expect(await store.has(kept)).toBe(true);
+    expect(await store.has(orphan)).toBe(false);
+    await expect(access(stale)).rejects.toMatchObject({ code: "ENOENT" });
+    await expect(access(fresh)).resolves.toBeUndefined();
+  });
+
+  it("keeps referenced blobs and metadata while ignoring unrelated files", async () => {
+    const store = await makeStore();
+    const key = idGenerator(121)() as BlobKey;
+
+    await store.put(key, new Blob([new Uint8Array([7])], { type: "text/plain" }));
+
+    const directory = path.join(store.rootDir, "blobs", key.slice(0, 2));
+    const unrelated = path.join(directory, "notes.txt");
+    const metadata = path.join(directory, `${key}.meta.json`);
+    await writeFile(unrelated, "keep");
+
+    const result = await store.reconcile([key], { staleTempAgeMs: 0 });
+
+    expect(result).toEqual({
+      removedBlobs: 0,
+      removedMetadata: 0,
+      removedTemporaryFiles: 0,
+    });
+    expect(await store.has(key)).toBe(true);
+    await expect(access(metadata)).resolves.toBeUndefined();
+    await expect(access(unrelated)).resolves.toBeUndefined();
   });
 });
 

@@ -130,9 +130,10 @@ Goal: Strengthen user control, security, and integration boundaries.
 - [x] Privacy Center.
 - [x] Data management controls.
 - [x] Storage diagnostics (usage, quota, persistence, and eviction guidance).
-- [ ] Optional storage adapters.
-- [ ] Self-hosting architecture evaluation.
-- [ ] Security review.
+- [x] Optional storage adapters: explicitly deferred by ADR 0014.
+- [x] Self-hosting architecture evaluation: ADR 0015.
+- [ ] Security review. Internal Stage D dossier complete; independent review not
+      started.
 - [x] D4A extension architecture and sandbox: Tier 1 local sideload, manifest
   integrity, opaque-origin iframe and blob worker, capability consent, read-only
   host API, isolated storage, safe mode, audit, PWA, and browser E2E. No registry,
@@ -145,7 +146,7 @@ Goal: Strengthen user control, security, and integration boundaries.
   pending).
 - [x] Sync-compatible data model (local-only); ADR 0012 audit remediation complete.
 - [x] D2 transaction and migration remediation: per-workspace revisions, nested rollback, atomic SQLite migrations, and restore guard before blob writes.
-- [ ] SQLite interrupted-restore orphan blob and stale `.tmp` cleanup.
+- [x] SQLite interrupted-restore orphan blob and stale `.tmp` cleanup.
 - [x] Optional workspace content encryption for note bodies and file bytes (D3 implementation complete; external review pending).
 - [x] Encrypted drafts and encrypted backup v2 (D3 implementation complete; external review pending).
 - [x] Plaintext-to-encrypted migration, recovery, and key rotation (D3 implementation complete; external review pending).
@@ -195,8 +196,9 @@ These gates are mandatory before a later stage is accepted:
 - Performance review for user-facing changes.
 - Unit tests, integration tests, and E2E coverage for critical journeys.
 - Documentation updates for architecture, behavior, and limitations.
-- CI workflow covering the repository quality gates. CI is not yet implemented;
-  it remains an open gap and blocks later stage acceptance.
+- [ ] CI workflow covering the repository quality gates. The workflow is defined
+      at `.github/workflows/ci.yml`; the first hosted run is pending because the
+      repository has no remote.
 - Security review sign-off for security-sensitive changes. The Stage D security
   review remains the canonical review, and no Stage E release may close while it,
   the external cryptographic review, or the E2EE claim gate is open.

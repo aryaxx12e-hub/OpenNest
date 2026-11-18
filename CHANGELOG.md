@@ -56,6 +56,11 @@ releases begin.
   exclusions, PWA assets, localization, and a browser end-to-end journey covering
   install, update consent, sandbox probes, storage, disable, safe mode, uninstall,
   reinstall, and privacy history.
+- SQLite startup reconciliation for orphan blobs and stale temporary files.
+- Explicit optional storage adapter deferral in ADR 0014.
+- A self-hosting boundary evaluation and ADR 0015.
+- A Stage D security dossier, extension review gate, and reviewer handoff packet.
+- A CI workflow for non-browser quality gates.
 
 ### Security
 
@@ -73,3 +78,6 @@ releases begin.
   replaced with a small failure, UI updates are rate-limited, and the install
   dialog warns that local sideload packages are unsigned. The independent
   extension security review has not been completed.
+- The Stage D internal security dossier and reviewer handoff are prepared.
+  Independent extension, AI, and cryptographic reviews have not started, and the
+  E2EE claim gate remains open.

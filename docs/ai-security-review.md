@@ -14,7 +14,9 @@ gate below.
 
 Binding decisions are in ADR 0011. Architecture is in
 [ai-provider-architecture.md](./ai-provider-architecture.md) and
-[credential-vault.md](./credential-vault.md).
+[credential-vault.md](./credential-vault.md). The canonical Stage D internal
+dossier and external sign-off record are in
+[stage-d-security-review.md](./stage-d-security-review.md).
 
 ## Scope
 

@@ -16,8 +16,25 @@ import { assertSafeBlobKey, type BlobKey, type BlobStore } from "@opennest/core"
 const BLOB_FILE = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/;
 const META_SUFFIX = ".meta.json";
 
+export const DEFAULT_STALE_TEMP_AGE_MS = 24 * 60 * 60 * 1000;
+
 export interface FileSystemBlobStoreConfig {
   rootDir: string;
+}
+
+export interface BlobReconcileOptions {
+  staleTempAgeMs?: number;
+  now?: () => number;
+}
+
+export interface BlobReconcileResult {
+  removedBlobs: number;
+  removedMetadata: number;
+  removedTemporaryFiles: number;
+}
+
+function isTemporaryFile(name: string): boolean {
+  return name.startsWith(".") && name.endsWith(".tmp");
 }
 
 function isNotFound(error: unknown): boolean {
@@ -167,6 +184,88 @@ export class FileSystemBlobStore implements BlobStore {
     }
 
     return { bytes, items };
+  }
+
+  async reconcile(
+    knownKeys: BlobKey[],
+    options: BlobReconcileOptions = {}
+  ): Promise<BlobReconcileResult> {
+    const known = new Set<string>();
+
+    for (const key of knownKeys) {
+      assertSafeBlobKey(key);
+      known.add(key);
+    }
+
+    const staleTempAgeMs = options.staleTempAgeMs ?? DEFAULT_STALE_TEMP_AGE_MS;
+    const now = options.now?.() ?? Date.now();
+    const root = this.blobsDir();
+    let entries: import("node:fs").Dirent[];
+
+    try {
+      entries = await readdir(root, { withFileTypes: true });
+    } catch (error) {
+      if (isNotFound(error)) {
+        return { removedBlobs: 0, removedMetadata: 0, removedTemporaryFiles: 0 };
+      }
+
+      throw error;
+    }
+
+    let removedBlobs = 0;
+    let removedMetadata = 0;
+    let removedTemporaryFiles = 0;
+
+    for (const entry of entries) {
+      if (!entry.isDirectory()) {
+        continue;
+      }
+
+      const directory = path.join(root, entry.name);
+      const files = await readdir(directory, { withFileTypes: true });
+
+      for (const file of files) {
+        if (!file.isFile()) {
+          continue;
+        }
+
+        const filePath = path.join(directory, file.name);
+
+        if (isTemporaryFile(file.name)) {
+          const info = await stat(filePath);
+
+          if (now - info.mtimeMs >= staleTempAgeMs) {
+            await rm(filePath, { force: true });
+            removedTemporaryFiles += 1;
+          }
+
+          continue;
+        }
+
+        const isBlob = BLOB_FILE.test(file.name);
+        const isMeta = file.name.endsWith(META_SUFFIX);
+
+        if (!isBlob && !isMeta) {
+          continue;
+        }
+
+        const key = isMeta ? file.name.slice(0, -META_SUFFIX.length) : file.name;
+
+        if (known.has(key)) {
+          continue;
+        }
+
+        await rm(filePath, { force: true });
+
+        if (isBlob) {
+          removedBlobs += 1;
+        } else {
+          removedMetadata += 1;
+        }
+      }
+    }
+
+    return { removedBlobs, removedMetadata, removedTemporaryFiles };
   }
 
   async purgeOrphans(knownKeys: BlobKey[]): Promise<number> {

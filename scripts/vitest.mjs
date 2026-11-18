@@ -6,7 +6,10 @@ import { fileURLToPath } from "node:url";
 const require = createRequire(import.meta.url);
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 
-const vitestBin = require.resolve("vitest/vitest.mjs");
+const vitestBin = path.join(
+  path.dirname(require.resolve("vitest/package.json")),
+  "vitest.mjs"
+);
 
 const result = spawnSync(process.execPath, [vitestBin, ...process.argv.slice(2)], {
   cwd: rootDir,

@@ -43,13 +43,18 @@ describe("createIdGenerator", () => {
   });
 
   it("fallback asks for exactly 16 random bytes", () => {
-    const getRandomValues = vi.fn(bytesCrypto(() => 1).getRandomValues);
+    const source = bytesCrypto(() => 1);
+    const calls: ArrayBufferView[] = [];
+    const getRandomValues = <T extends ArrayBufferView>(array: T): T => {
+      calls.push(array);
+      return source.getRandomValues(array);
+    };
     const generate = createIdGenerator({ getRandomValues });
 
     generate();
 
-    expect(getRandomValues).toHaveBeenCalledOnce();
-    const argument = getRandomValues.mock.calls[0]?.[0] as Uint8Array;
+    expect(calls).toHaveLength(1);
+    const argument = calls[0] as Uint8Array;
     expect(argument).toBeInstanceOf(Uint8Array);
     expect(argument.length).toBe(16);
   });

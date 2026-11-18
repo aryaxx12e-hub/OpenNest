@@ -30,6 +30,15 @@ check:browser-graph` proves the Dexie graph does not import it.
 `UnsupportedError("nested_transaction")`, same as Dexie. `restore()` defers
 foreign-key checks inside its transaction so insertion order does not matter.
 
+## Startup cleanup
+
+`init()` removes blobs that no file row references and temporary files older
+than 24 hours by default. Pass `staleTempAgeMs` to change the temporary-file
+threshold; `reset()` removes every blob and temporary file immediately.
+
+This cleanup assumes one writer process per database and blob root. Multi-process
+self-hosting must define its own locking strategy before deployment.
+
 ## Search
 
 SQLite has FTS5, so `search()` uses the `files_fts` and `notes_fts` indexes and

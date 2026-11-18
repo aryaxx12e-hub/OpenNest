@@ -58,6 +58,14 @@ not something a flag or configuration can work around.
 | `npm run format`              | Prettier write                                         |
 | `npm run format:check`        | Prettier check                                         |
 
+## CI
+
+The workflow is `.github/workflows/ci.yml`. It runs lint, formatting, typecheck,
+Vitest, the browser graph check, and the production build on Node 24.
+
+Browser E2E stays local because it requires the system Playwright module and
+Chromium. The repository has no remote yet, so the first hosted run is pending.
+
 ## Android/Termux notes
 
 These are verified constraints, not guesses.

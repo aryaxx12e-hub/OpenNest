@@ -31,6 +31,15 @@ OpenNest is local-first. The highest-risk areas are:
   consent.
 - AI provider credentials and AI network egress, including localhost providers.
 
+## Stage D review status
+
+The canonical internal dossier is
+[stage-d-security-review.md](./docs/stage-d-security-review.md). It records
+evidence and findings for privacy, backup, SQLite recovery, extensions, AI,
+encryption, PWA, CSP, and the self-hosting boundary. It is not an independent
+report and does not close the Stage D gate. No E2EE, AI confidentiality, or
+extension sandbox security claim is approved.
+
 ## Cryptography and E2EE status
 
 Optional workspace content encryption is implemented under ADR 0013. It has not

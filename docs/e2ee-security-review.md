@@ -3,7 +3,9 @@
 Status: implementation and automated tests complete; internal review follow-up
 complete; independent review not started. This document is a release gate and
 checklist, not a report. OpenNest does not claim end-to-end encryption until the
-review is complete and the claim criteria are met.
+review is complete and the claim criteria are met. The canonical Stage D internal
+dossier and external sign-off record are in
+[stage-d-security-review.md](./stage-d-security-review.md).
 
 ## Implementation evidence
 

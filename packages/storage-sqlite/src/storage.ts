@@ -49,7 +49,7 @@ import {
 import { backupSnapshotSchema } from "@opennest/validation";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
-import { FileSystemBlobStore } from "./blob-store";
+import { DEFAULT_STALE_TEMP_AGE_MS, FileSystemBlobStore } from "./blob-store";
 import { openDatabase, type SqliteDatabase } from "./db";
 import { mapSqliteError } from "./errors";
 import { DEFAULT_LIMIT, mapPage, paginate } from "./pagination";
@@ -285,6 +285,7 @@ function restoreChanges(snapshot: BackupSnapshot): SyncChange[] {
 
 export interface SqliteStorageOptions extends SqliteStorageConfig {
   syncPolicy?: SyncPolicy;
+  staleTempAgeMs?: number;
 }
 
 export function createSqliteStorage(config: SqliteStorageOptions): SyncCapableStorage {
@@ -2179,7 +2180,24 @@ export function createSqliteStorage(config: SqliteStorageOptions): SyncCapableSt
         db = opened.db;
         schemaVersion = opened.migrationCount;
         await bootstrapSync();
+
+        const rows = await requireDb()
+          .select({ blobKey: filesTable.blobKey })
+          .from(filesTable);
+        await blobs.reconcile(
+          rows.map((row) => row.blobKey as BlobKey),
+          { staleTempAgeMs: config.staleTempAgeMs ?? DEFAULT_STALE_TEMP_AGE_MS }
+        );
       } catch (error) {
+        try {
+          connection?.close();
+        } catch {
+          // The connection may already be closed.
+        }
+        connection = null;
+        db = null;
+        schemaVersion = 0;
+        closed = true;
         throw mapSqliteError(error);
       }
     },
@@ -2210,7 +2228,7 @@ export function createSqliteStorage(config: SqliteStorageOptions): SyncCapableSt
           await database.delete(syncDevicesTable);
           await database.delete(workspacesTable);
         });
-        await blobs.purgeOrphans([]);
+        await blobs.reconcile([], { staleTempAgeMs: 0 });
       });
     },
     async restore(snapshot) {

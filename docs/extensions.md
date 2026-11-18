@@ -11,7 +11,10 @@ D4A is intentionally limited:
 - No registry, marketplace, auto-update, or publisher signature.
 - No network access.
 - No workspace writes, file bytes, credentials, or raw storage.
-- Independent security review has not been completed.
+- Independent security review is not complete. See
+  [extension-security-review.md](./extension-security-review.md) for the release
+  gate. The Stage D internal audit and external sign-off record are in
+  [stage-d-security-review.md](./stage-d-security-review.md).
 
 ## Package format
 
@@ -403,7 +406,9 @@ a local file picker and works without a network.
 - Workspace writes, file bytes, exports, deletes, credentials, and AI tools.
 - Multiple simultaneous extension sessions.
 - Extension import or export of its own storage.
-- Independent security review.
+- Independent security review. See
+  [docs/extension-security-review.md](./extension-security-review.md) for the
+  gate.
 
 See ADR 0010 for the architecture decision and
 `docs/e2ee-threat-model.md` for the separate encryption threat model.

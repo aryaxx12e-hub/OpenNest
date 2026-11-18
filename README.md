@@ -6,9 +6,14 @@ OpenNest is an open-source personal digital workspace designed to help people or
 
 Built around privacy-first and local-first principles, OpenNest aims to give users control over their digital information without forcing them into subscriptions, accounts, or cloud-dependent workflows.
 
-Status: Stage C delivered, with explicit deferrals recorded in ROADMAP.md. Stage D is in progress.
+Status: Stage C delivered. Stage D internal work is complete; independent security
+and cryptographic review, the E2EE claim gate, and the first hosted CI run remain
+open. Independent review is still pending, so no E2EE, AI confidentiality, or
+extension sandbox security claim is made.
 
-Library, notes, search, backup, and offline access work locally in the browser. Optional content encryption and optional BYOK AI providers are implemented. Local sideload extensions are implemented with a sandboxed, read-only host API. Independent security review is still pending.
+Library, notes, search, backup, and offline access work locally in the browser.
+Optional content encryption and optional BYOK AI providers are implemented. Local
+sideload extensions are implemented with a sandboxed, read-only host API.
 
 🌱 Our Vision
 
