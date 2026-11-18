@@ -15,7 +15,12 @@ export type PrivacyErrorCode =
   | "confirmation_stale"
   | "audit_failed"
   | "storage_failed"
-  | "draft_clear_failed";
+  | "draft_clear_failed"
+  | "invalid_consent"
+  | "consent_expired"
+  | "consent_used"
+  | "consent_revoked"
+  | "consent_mismatch";
 
 export class PrivacyError extends Error {
   constructor(
@@ -41,6 +46,11 @@ const denialMessages: Record<string, string> = {
   audit_failed: "The action was denied because the audit log could not be written.",
   storage_failed: "The privacy store could not be opened or updated.",
   draft_clear_failed: "The action was stopped because local drafts could not be cleared.",
+  invalid_consent: "The consent record is invalid.",
+  consent_expired: "The consent has expired.",
+  consent_used: "The consent has already been used.",
+  consent_revoked: "The consent has been revoked.",
+  consent_mismatch: "The consent does not match this request.",
 };
 
 export class CapabilityDeniedError extends PrivacyError {

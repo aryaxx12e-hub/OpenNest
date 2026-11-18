@@ -5,14 +5,17 @@ import Link from "next/link";
 import { useTranslations } from "@opennest/localization";
 import { Card } from "@opennest/ui";
 
+import { AiSettings } from "@/components/ai-settings";
 import { BackupPanel } from "@/components/backup-panel";
 import { EncryptionSettings } from "@/components/encryption-settings";
 import { EncryptionSetup } from "@/components/encryption-setup";
 import { PageHeader } from "@/components/page-header";
 import { useEncryption } from "@/lib/crypto/encryption-gate";
+import { useAppData } from "@/lib/data/app-data-provider";
 
 export function SettingsView() {
   const t = useTranslations();
+  const { ai, credentials } = useAppData();
   const encryption = useEncryption();
 
   return (
@@ -28,6 +31,7 @@ export function SettingsView() {
           {t("settings.privacyAction")}
         </Link>
       </Card>
+      <AiSettings ai={ai} credentials={credentials} />
       {encryption.status === "plaintext" ? <EncryptionSetup /> : null}
       {encryption.status === "unlocked" ? <EncryptionSettings /> : null}
       <BackupPanel />

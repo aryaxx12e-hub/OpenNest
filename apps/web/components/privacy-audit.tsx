@@ -7,6 +7,13 @@ import type { AuditEntry } from "@opennest/privacy";
 
 import { formatDateTime } from "@/lib/format";
 
+const EVENT_KEYS: Partial<Record<AuditEntry["event"], string>> = {
+  "ai.requested": "privacy.audit.events.ai.requested",
+  "ai.completed": "privacy.audit.events.ai.completed",
+  "ai.failed": "privacy.audit.events.ai.failed",
+  "ai.aborted": "privacy.audit.events.ai.aborted",
+};
+
 export function PrivacyAudit({ entries }: { entries: readonly AuditEntry[] }) {
   const t = useTranslations();
   const { locale } = useLocale();
@@ -50,8 +57,10 @@ export function PrivacyAudit({ entries }: { entries: readonly AuditEntry[] }) {
                   <td className="text-muted py-2 pr-3 font-mono text-xs">
                     {entry.sequence}
                   </td>
-                  <th scope="row" className="py-2 pr-3 font-mono text-xs font-medium">
-                    {entry.event}
+                  <th scope="row" className="py-2 pr-3 font-medium">
+                    {EVENT_KEYS[entry.event] === undefined
+                      ? entry.event
+                      : t(EVENT_KEYS[entry.event]!)}
                   </th>
                   <td className="text-muted py-2 pr-3">
                     {t(`privacy.audit.outcomes.${entry.outcome}`)}

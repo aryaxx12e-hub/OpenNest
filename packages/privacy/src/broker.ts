@@ -112,6 +112,10 @@ export function createCapabilityBroker(input: {
         continue;
       }
 
+      if (grant.sessionOnly && grant.sessionId !== sessionId) {
+        continue;
+      }
+
       if (grant.capability !== request.capability) {
         continue;
       }

@@ -1,0 +1,12 @@
+{
+  "name": "@opennest/credential-vault",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@opennest/crypto": "0.1.0"
+  }
+}

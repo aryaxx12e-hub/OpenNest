@@ -1,7 +1,9 @@
 # ADR 0011: AI provider and credential architecture
 
-- Status: Proposed, pending Stage D0 approval
+- Status: Accepted for D4B AI track, D4A extension remains separate
 - Date: 2026-11-14
+- Accepted: 2026-11-17
+- Implementation: D4B design accepted; implementation not started
 - Context: Stage D0 Privacy and Extensibility
 - Related: ADR 0008, ADR 0009, ADR 0010, ADR 0013
 - Product conflict: none, but security trade-offs require approval
@@ -56,22 +58,53 @@ local and remote providers without making either mandatory.
 
 ## Decision
 
+### D4B approval record
+
+Accepted on 2026-11-17 for the D4B AI track only. This record does not approve
+D4A extension work, tools, MCP execution, or a claim that D4 is complete.
+
+Approved decisions:
+
+1. Session-only credentials are the default. The passphrase-encrypted vault is
+   optional.
+2. The D4B vault has no recovery path. Losing the vault passphrase loses stored
+   credentials. Workspace recovery and backup restore do not open the vault.
+3. Provider configuration, consent records, session credentials, and vault
+   records are excluded from backup v1 and backup v2.
+4. Vault keys are a separate domain. Workspace keys, backup keys, and vault keys
+   are never interchangeable.
+5. PBKDF2-SHA-256 uses a 600,000-iteration floor for the vault.
+6. Consent is one-time, payload-bound, and expires after 5 minutes. A retry is a
+   new request and needs new consent. There are no automatic retries.
+7. D4B has no tools, MCP execution, document context, or AI chat history. The
+   adapter supports chat, streaming, embeddings, and health only.
+8. The vault auto-locks after 5 minutes of inactivity.
+9. Production CSP uses
+   `connect-src 'self' https: http://localhost:* http://127.0.0.1:*`.
+   Chromium rejects IPv6 literals in CSP source lists, so loopback IPv6 is not
+   in the policy. The browser transport and capability grants enforce the exact
+   origin.
+
+The residual risks below remain accepted for implementation. They do not imply
+that the D4B implementation is complete or reviewed.
+
 ### Provider contract
 
 A provider descriptor includes:
 
 - ID.
-- Kind: local, remote, custom, or MCP.
+- Kind: local, remote, custom, or MCP. D4B rejects MCP configurations.
 - Endpoint.
 - Models.
-- Capabilities: chat, embedding, vision, and tools.
+- Capabilities: chat, embedding, vision, and tools. D4B rejects tools.
 - Authentication type.
 - Data-handling policy reference.
 - Context and output limits.
 
 The provider interface includes `complete`, `embed`, `stream`, `abort`, and
-`health`. Provider adapters live in a separate package, not in
-`@opennest/core`.
+`health`. D4B implements the `openai-compatible` adapter. Provider adapters live
+in a separate package, not in `@opennest/core`. Tool calls are not implemented or
+claimed.
 
 Built-in providers are presets only. No API key is bundled.
 
@@ -85,10 +118,10 @@ material is shared.
 - Session-only credentials are the default.
 - An optional persistent BYOK vault uses:
   - AES-256-GCM.
-  - PBKDF2-SHA-256 with a vault-specific salt, domain separation, an initial floor
-    of 600,000 iterations, and versioned parameters.
+  - PBKDF2-SHA-256 with a vault-specific salt, domain separation, a 600,000
+    iteration floor, and versioned parameters.
   - A non-extractable key held in memory only.
-  - An auto-lock timeout.
+  - A 5-minute inactivity auto-lock.
 - A vault passphrase derives a credential-vault KEK. A random 256-bit
   credential-vault DEK is wrapped by that KEK with AES-256-GCM, a unique nonce,
   and AAD binding vault version, key ID, and domain.
@@ -97,10 +130,9 @@ material is shared.
   ID, account label, and entry version.
 - Credential-vault keys, workspace E2EE keys, and backup keys are not
   interchangeable.
-- Persistent vault recovery is independent of workspace and backup recovery. The
-  default is no recovery: losing the vault passphrase loses stored credentials. If
-  a vault recovery key is offered, it wraps only the credential-vault DEK and is
-  separate from the workspace recovery key and backup recovery key.
+- D4B has no persistent vault recovery. Losing the vault passphrase loses stored
+  credentials. A future vault-only recovery key, if approved, must wrap only the
+  credential-vault DEK and remain separate from workspace and backup recovery.
 - Workspace recovery, workspace DEK rotation, workspace backup restore, and backup
   recovery never unwrap the credential vault.
 - A vault passphrase change rewraps the vault DEK. Suspected vault compromise
@@ -117,8 +149,12 @@ material is shared.
 
 ### Consent and data minimization
 
-- Consent is per session or per request.
-- The user selects the content to send.
+- Consent is per request in D4B, bound to the exact payload, one-time, and limited
+  to a 5-minute lifetime.
+- There are no automatic retries. A manual retry is a new request and requires a
+  new consent.
+- The user selects the content to send. D4B attaches no workspace document,
+  folder, note, or chat history to a request.
 - The UI shows provider, endpoint, data classes, estimated payload, and retention.
 - No background indexing.
 - No automatic tool execution from model output.
@@ -126,7 +162,22 @@ material is shared.
 - Remote requests go directly from the browser when CORS allows, or through a
   user-configured self-hosted gateway.
 - Local providers use a user-configured localhost endpoint.
-- MCP servers and tools use separate capability grants.
+- MCP servers and tools are out of scope for D4B. Any future tool support uses
+  separate capability grants.
+
+### Network egress and CSP
+
+Production `connect-src` allows `'self'`, all HTTPS origins, and loopback HTTP:
+
+```text
+connect-src 'self' https: http://localhost:* http://127.0.0.1:*
+```
+
+Custom provider origins cannot be known when the static policy is built. The
+browser transport therefore re-validates scheme, host, port, userinfo, query,
+fragment, and provider kind before every request. Capability grants remain bound
+to the exact origin. The broad policy is a documented residual risk, not a
+replacement for exact-origin enforcement.
 
 ## Security refinement pass 1
 
@@ -176,9 +227,9 @@ proxy, bundled key, or mandatory cloud service.
    preview of the arguments. Citations are validated against the selected
    sources.
 7. **R-11-7, request hygiene.** Requests have a maximum payload size and timeout.
-   Retries are allowed only for idempotent failures and only to the same approved
-   endpoint. A retry that would resend data to a different destination requires
-   new consent. Rate and concurrency limits prevent runaway usage.
+   D4B does not retry automatically. A manual retry is a new request with a new
+   payload hash and a new consent, even when it targets the same endpoint. Rate and
+   concurrency limits prevent runaway usage.
 8. **R-11-8, log and error redaction.** Authorization headers, request bodies,
    response bodies, and provider tokens are never logged. Error messages are
    mapped to safe local messages. Telemetry remains absent.
@@ -189,7 +240,12 @@ proxy, bundled key, or mandatory cloud service.
 10. **R-11-10, MCP trust boundary.** MCP servers and tool descriptions are
     untrusted. Tools are installed and granted explicitly per server and per
     tool. Tool output is untrusted content, and no tool runs automatically from a
-    model response.
+    model response. D4B does not implement this path.
+11. **R-11-11, CSP and exact-origin enforcement.** Production CSP allows all HTTPS
+    and loopback HTTP origins because custom providers cannot be enumerated. The
+    transport re-validates the exact origin and request shape before every call,
+    and capability grants remain origin-bound. The broader CSP is recorded as a
+    residual risk.
 
 ### Residual risks
 
@@ -197,17 +253,21 @@ proxy, bundled key, or mandatory cloud service.
   JavaScript cannot provide a perfect secret boundary.
 - JavaScript memory zeroization is not guaranteed. Locking reduces exposure but
   cannot prove that old buffers are erased.
+- A broad CSP `connect-src` allows any HTTPS or loopback origin at the policy
+  layer. Exact-origin enforcement depends on the transport and capability code.
+- Browser CORS failures are common for remote providers. OpenNest cannot fix a
+  provider that does not allow browser origins.
 - A malicious provider can retain anything the user sends.
 - Provider-side retention and model behavior are outside OpenNest's control.
 - PBKDF2 remains weaker than a memory-hard KDF.
 
-### Refinements requiring approval
+### D4B decisions on refinements
 
-- R-11-3 rejects providers that require non-HTTPS remote endpoints.
-- R-11-4 changes consent from a broad session approval to a payload-bound
-  approval, which adds friction.
-- R-11-6 requires per-tool consent and may limit tool-heavy workflows.
-- R-11-7 limits automatic retries to the same endpoint.
+- R-11-3 is accepted for D4B: non-HTTPS remote endpoints are rejected.
+- R-11-4 is accepted for D4B: consent is payload-bound, one-time, and limited to
+  5 minutes.
+- R-11-6 is deferred with tools and MCP. D4B rejects both.
+- R-11-7 is accepted for D4B: automatic retries are disabled.
 
 ## Trade-offs
 
@@ -215,6 +275,8 @@ proxy, bundled key, or mandatory cloud service.
 - Lost vault passphrase means lost credentials even when workspace recovery is
   available.
 - Browser CORS limits some providers.
+- Broad CSP `connect-src` is required for custom providers; exact-origin checks
+  move to the transport and capability layer.
 - XSS can steal an unlocked key.
 - Provider retention and model behavior cannot be guaranteed by OpenNest.
 
@@ -224,11 +286,14 @@ proxy, bundled key, or mandatory cloud service.
 - Credential vault keys are a separate domain. Cross-domain key reuse is
   forbidden.
 - Workspace recovery must not unlock the credential vault.
-- Credential vault recovery must not unlock workspace content.
+- The vault has no recovery path in D4B. A future vault recovery must not unlock
+  workspace content.
 - Prompt and response content must not be logged.
 - Data minimization is required.
 - Tool execution must be separately authorized.
 - Provider origin allowlisting reduces accidental leakage.
+- Production CSP allows HTTPS and loopback HTTP; exact-origin enforcement is
+  mandatory in the transport and broker.
 - A compromised provider can retain anything the user sends.
 
 ## Compatibility with Stages A to C
@@ -239,6 +304,8 @@ proxy, bundled key, or mandatory cloud service.
 - Workspace E2EE and the credential vault are independent. Enabling one does not
   enable, unlock, or recover the other.
 - ADR 0004's local data flow is unchanged.
+- D4B completes only the AI half of D4. D4A extension and tool execution remain
+  separate.
 
 ## Dependencies
 
@@ -257,21 +324,21 @@ proxy, bundled key, or mandatory cloud service.
 - Credentials are excluded from backup v1 and from backup v2 by default.
 - The vault format must be versioned from its first release.
 
-## Conflicts and decisions requiring approval
+## Approved decisions and remaining approval items
 
 - The PRD says AI is optional, configurable, and never required. This ADR keeps
   that promise. It does not add a built-in free provider or bundled key.
 - PBKDF2 is chosen because WebCrypto provides it without a new dependency. Argon2
   is deferred. This is a security trade-off, not a product change.
-- The default session-only behavior versus an always-on vault requires approval.
-  The recommendation is session-only by default.
-- Credential backup exclusion requires approval because some users may expect a
-  backup to restore provider access.
-- Credential-vault key-domain separation requires approval. Workspace recovery,
-  workspace key rotation, and backup restore must never unlock the vault. Vault
-  recovery must never unlock workspace content.
-- Vault recovery policy requires approval. The recommendation is no recovery by
-  default, with an optional vault-only recovery key if the product later needs it.
+- Session-only credentials are approved as the D4B default. The vault is optional.
+- Credential backup exclusion is approved. A restore cannot recover provider
+  access, and the UI must say so.
+- Credential-vault key-domain separation is approved. Workspace recovery,
+  workspace key rotation, and backup restore never unlock the vault.
+- D4B uses no vault recovery. A future optional vault-only recovery key would
+  require a separate approval and must remain independent of workspace and backup
+  recovery.
+- D4A extension, tools, and MCP remain separate approval items.
 
 ## Acceptance criteria
 
@@ -284,19 +351,26 @@ proxy, bundled key, or mandatory cloud service.
 - Raw credentials are never exposed to extension code, read back by host UI after
   entry, or written to logs.
 - Vault encryption uses unique nonces, AAD binding, versioned KDF parameters, and
-  the initial 600,000-iteration floor.
+  the 600,000-iteration floor.
 - Credential-vault keys are separate from workspace and backup keys.
-- Workspace recovery cannot open the vault. Vault recovery cannot open the
-  workspace.
+- Workspace recovery cannot open the vault. The vault passphrase cannot open
+  workspace content.
 - Backup v1 and v2 exclude credentials. Restoring either cannot recover provider
   access.
-- Vault rotation and recovery tests prove domain separation.
+- The vault auto-locks after 5 minutes. D4B has no vault recovery.
+- Vault rotation and key-loss tests prove domain separation.
 - Remote endpoint validation rejects downgrade, userinfo, and cross-origin
   redirects.
-- Consent is bound to provider, model, endpoint, payload hash, and expiry.
-- Tool calls require per-tool consent and schema validation.
+- Consent is one-time, payload-bound, bound to provider, model, origin, payload
+  hash, data classes, session, and expiry, and limited to 5 minutes.
+- D4B rejects tool calls and MCP and makes no tool-call claim. Future tool support
+  requires per-tool consent and schema validation.
+- There are no automatic retries. A manual retry requires new consent.
+- Production CSP allows HTTPS and loopback HTTP; the transport and broker enforce
+  the exact origin.
 - Request and response logging is redacted.
 - Localhost provider configuration shows an explicit warning.
+- D4B does not complete D4 while D4A extension is missing.
 
 ## Testing strategy
 
@@ -307,11 +381,12 @@ proxy, bundled key, or mandatory cloud service.
 - Cross-domain key separation tests: a workspace key cannot decrypt vault data, a
   vault key cannot decrypt workspace data, and a backup key cannot decrypt vault
   data.
-- Vault recovery, rotation, and key-loss tests.
-- Consent E2E tests, including payload substitution and replay.
-- Auto-lock and key-loss tests.
+- Vault rotation and key-loss tests.
+- Consent E2E tests, including payload substitution, replay, TTL, and no-retry.
+- Auto-lock, lock, and key-loss tests.
 - Secret scanning in logs and backups.
 - Endpoint redirect, downgrade, userinfo, and mixed-content tests.
-- Tool-call schema, allowlist, and consent tests.
-- CORS, timeout, retry, and failure-path tests.
+- CSP and exact-origin enforcement tests.
+- Tool and MCP rejection tests.
+- CORS, timeout, abort, and failure-path tests.
 - Localhost warning and no-auto-discovery tests.

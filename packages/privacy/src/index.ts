@@ -1,6 +1,7 @@
 export * from "./audit";
 export * from "./broker";
 export * from "./capabilities";
+export * from "./consents";
 export * from "./errors";
 export * from "./grants";
 export * from "./hash";

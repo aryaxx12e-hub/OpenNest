@@ -3,7 +3,7 @@ OpenNest Roadmap 🪺
 This document outlines the planned development direction of OpenNest.
 
 Project status: MVP in progress
-Current milestone: Stage C features, local data portability, and the PWA offline shell implemented
+Current milestone: D3 encryption implementation complete; D4B AI provider and credential implementation complete, independent security review pending
 Last updated: November 2026
 
 Phase 0 foundation and Stage B core architecture are complete. Stage C now
@@ -93,7 +93,13 @@ Goal: Strengthen user control and prepare for future integrations.
 - [ ] Optional storage adapters.
 - [ ] Self-hosting architecture evaluation.
 - [ ] Security review.
-- [ ] Extension architecture research.
+- [ ] D4A extension architecture and sandbox (separate from D4B).
+- [x] D4B AI provider and credential architecture accepted under ADR 0011;
+  implementation not started.
+- [x] D4B AI provider implementation: off-by-default providers, session-only and
+  vault BYOK credentials, one-time payload-bound consent, and local and remote
+  OpenAI-compatible adapters (implementation complete; independent review
+  pending).
 - [x] Sync-compatible data model (local-only); ADR 0012 audit remediation complete.
 - [x] D2 transaction and migration remediation: per-workspace revisions, nested rollback, atomic SQLite migrations, and restore guard before blob writes.
 - [ ] SQLite interrupted-restore orphan blob and stale `.tmp` cleanup.
@@ -117,7 +123,7 @@ Future Possibilities
 
 These ideas are not part of the initial MVP:
 
-- Optional AI assistance.
+- AI-powered extensions after D4B.
 - Optional cloud synchronization.
 - Multi-device workflows.
 - Collaboration.

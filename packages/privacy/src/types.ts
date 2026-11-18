@@ -118,6 +118,63 @@ export interface GrantStore {
   clear(): Promise<void>;
 }
 
+export interface ConsentRecord {
+  readonly id: string;
+  readonly sessionId: string;
+  readonly principalId: string;
+  readonly providerId: string;
+  readonly model: string;
+  readonly endpointOrigin: string;
+  readonly payloadHash: string;
+  readonly payloadBytes: number;
+  readonly dataClasses: readonly DataClass[];
+  readonly purpose: string;
+  readonly createdAt: number;
+  readonly expiresAt: number;
+  readonly usedAt: number | null;
+  readonly revokedAt: number | null;
+}
+
+export interface CreateConsentInput {
+  readonly sessionId: string;
+  readonly principalId: string;
+  readonly providerId: string;
+  readonly model: string;
+  readonly endpointOrigin: string;
+  readonly payloadHash: string;
+  readonly payloadBytes: number;
+  readonly dataClasses: readonly DataClass[];
+  readonly purpose: string;
+  readonly expiresAt: number;
+}
+
+export interface ConsentExpectation {
+  readonly sessionId: string;
+  readonly providerId: string;
+  readonly model: string;
+  readonly endpointOrigin: string;
+  readonly payloadHash: string;
+  readonly dataClasses: readonly DataClass[];
+  readonly at: number;
+}
+
+export interface ConsentStore {
+  list(): Promise<ConsentRecord[]>;
+  get(id: string): Promise<ConsentRecord | null>;
+  put(record: ConsentRecord): Promise<void>;
+  delete(id: string): Promise<void>;
+  clear(): Promise<void>;
+}
+
+export interface ConsentRegistry {
+  create(input: CreateConsentInput): Promise<ConsentRecord>;
+  get(id: string): Promise<ConsentRecord | null>;
+  list(): Promise<ConsentRecord[]>;
+  consume(id: string, expected: ConsentExpectation): Promise<ConsentRecord>;
+  revoke(id: string, at: number): Promise<ConsentRecord>;
+  clear(): Promise<void>;
+}
+
 export type AuditEvent =
   | "grant.created"
   | "grant.revoked"
@@ -130,7 +187,11 @@ export type AuditEvent =
   | "data.restored"
   | "data.deleted"
   | "audit.integrity_failed"
-  | "rate.limited";
+  | "rate.limited"
+  | "ai.requested"
+  | "ai.completed"
+  | "ai.failed"
+  | "ai.aborted";
 
 export type AuditOutcome = "allowed" | "denied" | "completed" | "failed" | "info";
 
@@ -184,6 +245,7 @@ export interface PrivacyStore {
   reset(): Promise<void>;
   readonly grants: GrantStore;
   readonly audit: AuditStore;
+  readonly consents: ConsentStore;
 }
 
 export interface GrantRegistry {

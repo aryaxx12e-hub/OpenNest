@@ -104,14 +104,14 @@ These are recorded as risks, not silently fixed in Stage D0.
 
 ## 4. Decision register
 
-| ADR                                                               | Decision                                                                                                                                                | Status   |
-| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| [0008](../../adr/0008-privacy-and-trust-boundaries.md)            | Define trust zones, data classes, derived-data inheritance, consent, egress, and revocation limits                                                      | Proposed |
-| [0009](../../adr/0009-permission-and-capability-model.md)         | Use capability grants enforced by an application broker                                                                                                 | Proposed |
-| [0010](../../adr/0010-extension-architecture.md)                  | Use declarative packs and sandboxed code extensions                                                                                                     | Proposed |
-| [0011](../../adr/0011-ai-provider-and-credential-architecture.md) | Use provider adapters with session-only or encrypted BYOK credentials; the credential vault has its own key hierarchy                                   | Proposed |
-| [0012](../../adr/0012-sync-compatible-data-model.md)              | Add sidecar sync metadata, per-field revisions, replayable outbox, tombstones, and conflict preservation; unresolved questions are implementation gates | Proposed |
-| [0013](../../adr/0013-e2ee-key-management-strategy.md)            | Use separate workspace E2EE and backup key hierarchies, each with independent recovery and rotation                                                     | Proposed |
+| ADR                                                               | Decision                                                                                                                                                | Status                         |
+| ----------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------ |
+| [0008](../../adr/0008-privacy-and-trust-boundaries.md)            | Define trust zones, data classes, derived-data inheritance, consent, egress, and revocation limits                                                      | Proposed                       |
+| [0009](../../adr/0009-permission-and-capability-model.md)         | Use capability grants enforced by an application broker                                                                                                 | Proposed                       |
+| [0010](../../adr/0010-extension-architecture.md)                  | Use declarative packs and sandboxed code extensions                                                                                                     | Proposed                       |
+| [0011](../../adr/0011-ai-provider-and-credential-architecture.md) | Use provider adapters with session-only or encrypted BYOK credentials; the credential vault has its own key hierarchy                                   | Accepted for D4B; D4A separate |
+| [0012](../../adr/0012-sync-compatible-data-model.md)              | Add sidecar sync metadata, per-field revisions, replayable outbox, tombstones, and conflict preservation; unresolved questions are implementation gates | Proposed                       |
+| [0013](../../adr/0013-e2ee-key-management-strategy.md)            | Use separate workspace E2EE and backup key hierarchies, each with independent recovery and rotation                                                     | Proposed                       |
 
 ## 5. Dependency map
 
@@ -216,10 +216,10 @@ resolved unilaterally.
 
 - ADR 0011 excludes credentials from backups by default.
 - Some users may expect a backup to restore provider access.
-- The credential vault has its own recovery policy. Workspace recovery and
-  workspace backup restore must not unlock the vault.
-- Required decision: approve exclusion, independent vault recovery, and
-  documentation that credentials must be re-entered after restore.
+- The D4B credential vault has no recovery. Workspace recovery and workspace
+  backup restore must not unlock the vault.
+- Decision: approved for D4B. Exclude credentials, keep no vault recovery, and
+  document that credentials must be re-entered after restore.
 
 ### C-08: PBKDF2 versus Argon2
 
@@ -260,35 +260,35 @@ resolved unilaterally.
 
 ## 7. Risks and gated questions
 
-| Risk or question                     | Impact                                                   | Recommendation                                                                                                 |
-| ------------------------------------ | -------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------- |
-| E2EE versus local search             | Search must decrypt in memory; no server-side search     | Accept and document                                                                                            |
-| Plaintext metadata                   | Names, tags, and folder structure leak                   | Content-only E2EE first with disclosure                                                                        |
-| Lost passphrase                      | Data cannot be recovered                                 | Separate recovery policies: workspace and backup recovery keys, optional vault-only recovery; no server escrow |
-| XSS while unlocked                   | Keys and plaintext can be stolen                         | CSP, sandbox, auto-lock, security review                                                                       |
-| Key domain confusion                 | Workspace, vault, or backup keys may be reused           | Separate key hierarchies, key IDs, AAD domains, cross-domain tests                                             |
-| Recovery coupling                    | Workspace recovery may open the vault or backup          | Independent recovery and fail-closed tests                                                                     |
-| Backup credential leakage            | A backup may include credentials or vault keys           | Exclude credentials, separate backup DEK, test                                                                 |
-| Browser credential storage           | Not equivalent to an OS keychain                         | Session-only default, optional vault with its own hierarchy                                                    |
-| Extension sandbox                    | A misconfigured sandbox can leak data                    | Opaque origin, CSP, escape tests                                                                               |
-| Sync metadata leakage                | Device activity can be inferred                          | Minimize, document, review                                                                                     |
-| Derived data retention               | Derived summaries or indexes may outlive source deletion | Inherit source class; delete with source                                                                       |
-| Revocation scope                     | Revocation cannot recall data already received           | Stop future flows and disclose the boundary                                                                    |
-| Outbox and conflict payloads         | They may contain sensitive content                       | Encrypt under E2EE; never log                                                                                  |
-| Outbox retention                     | The outbox may grow without bound                        | G-12-1 bounded policy before writes are enabled                                                                |
-| Tombstone compaction                 | Stale devices may be forced to full resync               | G-12-2 floor, acknowledgement, bounded retention                                                               |
-| Field metadata write cost            | More rows and writes on large workspaces                 | Measure before D2 sign-off                                                                                     |
-| Workspace revision authority         | A local counter is not a global order                    | G-12-7 server authority or per-device vector before sync                                                       |
-| Device identity trust                | `deviceId` alone is not authentication                   | G-12-5 future auth ADR; fail closed                                                                            |
-| Conflict UX                          | Users may be confused                                    | G-12-4 conflict copies, not silent overwrite                                                                   |
-| Tombstone growth                     | Storage increases                                        | G-12-2 retention window and acknowledgements                                                                   |
-| Backup restore into synced workspace | Deleted IDs may be resurrected                           | G-12-8 full-resync and tombstone reconciliation                                                                |
-| MCP and Local Bridge                 | PWA cannot run local CLI agents                          | Treat as external integrations                                                                                 |
-| AGPL and extensions                  | Licensing boundary is unclear                            | Legal review before SDK                                                                                        |
-| PBKDF2 strength                      | Weaker than memory-hard KDFs                             | High parameters, versioning, future review                                                                     |
-| SQLite server runtime                | No self-hosted composition root yet                      | Separate deployment ADR                                                                                        |
-| Permission prompt fatigue            | Poor usability                                           | Built-in local grants, prompt only for external                                                                |
-| Stage D naming                       | Planning and documentation drift                         | Resolve C-01 before D1                                                                                         |
+| Risk or question                     | Impact                                                   | Recommendation                                                                                                  |
+| ------------------------------------ | -------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- |
+| E2EE versus local search             | Search must decrypt in memory; no server-side search     | Accept and document                                                                                             |
+| Plaintext metadata                   | Names, tags, and folder structure leak                   | Content-only E2EE first with disclosure                                                                         |
+| Lost passphrase                      | Data cannot be recovered                                 | Separate recovery policies: workspace and backup recovery keys; no recovery for the D4B vault; no server escrow |
+| XSS while unlocked                   | Keys and plaintext can be stolen                         | CSP, sandbox, auto-lock, security review                                                                        |
+| Key domain confusion                 | Workspace, vault, or backup keys may be reused           | Separate key hierarchies, key IDs, AAD domains, cross-domain tests                                              |
+| Recovery coupling                    | Workspace recovery may open the vault or backup          | Independent recovery and fail-closed tests                                                                      |
+| Backup credential leakage            | A backup may include credentials or vault keys           | Exclude credentials, separate backup DEK, test                                                                  |
+| Browser credential storage           | Not equivalent to an OS keychain                         | Session-only default, optional vault with its own hierarchy                                                     |
+| Extension sandbox                    | A misconfigured sandbox can leak data                    | Opaque origin, CSP, escape tests                                                                                |
+| Sync metadata leakage                | Device activity can be inferred                          | Minimize, document, review                                                                                      |
+| Derived data retention               | Derived summaries or indexes may outlive source deletion | Inherit source class; delete with source                                                                        |
+| Revocation scope                     | Revocation cannot recall data already received           | Stop future flows and disclose the boundary                                                                     |
+| Outbox and conflict payloads         | They may contain sensitive content                       | Encrypt under E2EE; never log                                                                                   |
+| Outbox retention                     | The outbox may grow without bound                        | G-12-1 bounded policy before writes are enabled                                                                 |
+| Tombstone compaction                 | Stale devices may be forced to full resync               | G-12-2 floor, acknowledgement, bounded retention                                                                |
+| Field metadata write cost            | More rows and writes on large workspaces                 | Measure before D2 sign-off                                                                                      |
+| Workspace revision authority         | A local counter is not a global order                    | G-12-7 server authority or per-device vector before sync                                                        |
+| Device identity trust                | `deviceId` alone is not authentication                   | G-12-5 future auth ADR; fail closed                                                                             |
+| Conflict UX                          | Users may be confused                                    | G-12-4 conflict copies, not silent overwrite                                                                    |
+| Tombstone growth                     | Storage increases                                        | G-12-2 retention window and acknowledgements                                                                    |
+| Backup restore into synced workspace | Deleted IDs may be resurrected                           | G-12-8 full-resync and tombstone reconciliation                                                                 |
+| MCP and Local Bridge                 | PWA cannot run local CLI agents                          | Treat as external integrations                                                                                  |
+| AGPL and extensions                  | Licensing boundary is unclear                            | Legal review before SDK                                                                                         |
+| PBKDF2 strength                      | Weaker than memory-hard KDFs                             | High parameters, versioning, future review                                                                      |
+| SQLite server runtime                | No self-hosted composition root yet                      | Separate deployment ADR                                                                                         |
+| Permission prompt fatigue            | Poor usability                                           | Built-in local grants, prompt only for external                                                                 |
+| Stage D naming                       | Planning and documentation drift                         | Resolve C-01 before D1                                                                                          |
 
 ## 8. Recommended D1 to D4 sequence
 
@@ -335,17 +335,26 @@ resolved unilaterally.
   plaintext path, workspace and backup keys are separate, backup v2 excludes
   credentials, the review passes, and no public claim is made before the gate.
 
-### D4: Extension and AI provider
+### D4A: Extension platform
 
-- Accept ADR 0010 and ADR 0011.
+- Accept ADR 0010.
 - Extension: manifest, sandbox host, sideload, capability grants, kill switch,
   and audit.
-- AI: provider registry, session-only credentials, credential vault with its own
-  key hierarchy, consent flow, local provider, and mock provider tests.
-- These may run as parallel workstreams after D3, with separate gates.
-- Gate: sandbox cannot access storage, DOM, or credentials directly; AI is off by
-  default; no network before consent; no secret in logs or backups; workspace
-  recovery cannot open the vault and vault recovery cannot open the workspace.
+- Separate workstream and gate from D4B.
+- Extension code never receives credential handles or raw secrets.
+
+### D4B: AI provider and credential vault
+
+- ADR 0011 is accepted for D4B as of 2026-11-17.
+- AI: provider registry, session-only credentials, optional credential vault with
+  its own key hierarchy, one-time payload-bound consent, local provider, and mock
+  provider tests.
+- No tools, MCP execution, document context, or AI chat history.
+- No automatic retries. A manual retry needs new consent.
+- Gate: AI is off by default; no network before consent; no secret in logs or
+  backups; workspace recovery cannot open the vault and the vault passphrase
+  cannot open the workspace; tools and MCP are rejected; exact-origin enforcement
+  and CSP tests pass.
 
 ## 9. Stage D acceptance criteria
 
@@ -359,6 +368,12 @@ These criteria cover the Stage D0 proposal and all revision passes.
 - Capability grants are enforceable, revocable, and not UI-only.
 - Extensions run in a sandbox without direct storage, DOM, or credential access.
 - AI is optional, off by default, and performs no network request before consent.
+- D4B consent is one-time, payload-bound, and limited to 5 minutes. There are no
+  automatic retries.
+- The D4B vault auto-locks after 5 minutes and has no recovery.
+- D4B rejects tools and MCP and makes no tool-call claim.
+- Production CSP allows HTTPS and loopback HTTP; exact-origin enforcement is
+  app-level.
 - Credentials are session-only or encrypted and never plaintext in localStorage,
   logs, or backups.
 - Workspace E2EE, the AI credential vault, and backup encryption have separate key
@@ -407,8 +422,8 @@ Approval is required for:
     prohibition.
 13. ADR 0008 to ADR 0013 as a set.
 
-Until approval, all six ADRs remain `Proposed`, and no implementation work should
-start.
+ADR 0010 and ADRs 0008, 0009, 0012, and 0013 remain `Proposed`. ADR 0011 is
+accepted for D4B only; D4A remains separate and unapproved.
 
 ## 11. Security refinement pass 1
 
@@ -438,12 +453,15 @@ These are added to the approval gate above:
 1. Capability handles, grant TTL, high-risk confirmation, and the audit hash chain
    in ADR 0009.
 2. Host-mediated extension network egress and the separate-origin sandbox in ADR 0010.
-3. Payload-bound AI consent, localhost warning, and per-tool MCP grants in ADR 0011.
+3. Payload-bound AI consent and localhost warning are accepted for D4B; per-tool
+   MCP grants are deferred.
 4. Fresh per-write CEKs, the 600,000-iteration PBKDF2 floor, checksummed recovery
    keys, device pairing, rollback protection before any E2EE claim, and backup v2
    key separation in ADR 0013.
 
-These refinements remain `Proposed` and do not authorize implementation.
+The D4B-applicable ADR 0011 refinements are accepted; per-tool MCP grants are
+deferred. The ADR 0009, 0010, and 0013 refinements remain `Proposed` and do not
+authorize implementation.
 
 ## 12. Targeted revision pass 2
 
@@ -500,11 +518,11 @@ and left unchanged. No application code, Stage B contract, or dependency changed
 Workspace E2EE, the AI credential vault, and backup encryption are separate key
 domains. They may share approved primitives and envelope conventions, not keys.
 
-| Domain              | Root key source                                      | Wrapped keys                                 | Owner                           | Recovery                                                 | Rotation                                                    | Cannot open                 |
-| ------------------- | ---------------------------------------------------- | -------------------------------------------- | ------------------------------- | -------------------------------------------------------- | ----------------------------------------------------------- | --------------------------- |
-| Workspace E2EE      | Workspace passphrase or workspace recovery key       | Workspace KEK, workspace DEK, workspace CEKs | Workspace E2EE subsystem        | Workspace recovery key only                              | Workspace passphrase change; workspace DEK and CEK rotation | Credential vault, backup    |
-| AI credential vault | Vault passphrase or optional vault-only recovery key | Vault KEK, vault DEK, entry CEKs             | AI credential subsystem         | No recovery by default; optional vault-only recovery key | Vault passphrase change; vault DEK and entry CEK rotation   | Workspace, backup           |
-| Backup encryption   | Backup passphrase or backup recovery key             | Backup KEK, backup DEK                       | Backup subsystem under ADR 0013 | Backup recovery key only                                 | Fresh backup DEK per backup; re-export or rewrap            | Live workspace, credentials |
+| Domain              | Root key source                                | Wrapped keys                                 | Owner                           | Recovery                    | Rotation                                                    | Cannot open                 |
+| ------------------- | ---------------------------------------------- | -------------------------------------------- | ------------------------------- | --------------------------- | ----------------------------------------------------------- | --------------------------- |
+| Workspace E2EE      | Workspace passphrase or workspace recovery key | Workspace KEK, workspace DEK, workspace CEKs | Workspace E2EE subsystem        | Workspace recovery key only | Workspace passphrase change; workspace DEK and CEK rotation | Credential vault, backup    |
+| AI credential vault | Vault passphrase                               | Vault KEK, vault DEK, entry CEKs             | AI credential subsystem         | No recovery in D4B          | Vault passphrase change; vault DEK and entry CEK rotation   | Workspace, backup           |
+| Backup encryption   | Backup passphrase or backup recovery key       | Backup KEK, backup DEK                       | Backup subsystem under ADR 0013 | Backup recovery key only    | Fresh backup DEK per backup; re-export or rewrap            | Live workspace, credentials |
 
 ### Non-interchangeability rules
 
@@ -528,11 +546,40 @@ restore-into-synced-workspace features remain disabled.
 
 ### Additional approvals
 
-1. ADR 0011 credential vault hierarchy, independent recovery and rotation, and the
+1. ADR 0011 credential vault hierarchy, no D4B vault recovery, rotation, and the
    prohibition on cross-domain key reuse.
 2. ADR 0013 workspace versus backup key hierarchy, distinct backup recovery key,
    backup DEK exclusion from live keys, and credential exclusion.
 3. C-11 and the key-domain matrix above.
 4. ADR 0012 implementation gates G-12-1 to G-12-8.
 
-These refinements remain `Proposed` and do not authorize implementation.
+ADR 0011 is accepted for D4B as recorded in section 14. The other refinements
+remain `Proposed` and do not authorize implementation.
+
+## 14. D4B approval record
+
+Accepted on 2026-11-17 for the D4B AI track only. D4A extension remains separate
+and unapproved.
+
+Approved decisions:
+
+- Session-only credentials are the default. The passphrase-encrypted vault is
+  optional.
+- D4B has no recovery for the vault. Losing the vault passphrase loses stored
+  credentials.
+- Provider configs, consents, session credentials, and vault records are excluded
+  from backup v1 and backup v2.
+- The credential vault uses a separate key domain.
+- PBKDF2-SHA-256 uses a 600,000-iteration floor.
+- Consent is one-time, payload-bound, and limited to 5 minutes. There are no
+  automatic retries.
+- The vault auto-locks after 5 minutes of inactivity.
+- D4B has no tools, MCP execution, document context, or AI chat history.
+- Production CSP uses
+  `connect-src 'self' https: http://localhost:* http://127.0.0.1:* http://[::1]:*`.
+  The transport and capability grants enforce the exact origin.
+- D4B does not complete D4 and makes no tool-call claim.
+
+The implementation gate and residual risks are in ADR 0011,
+`docs/ai-provider-architecture.md`, `docs/credential-vault.md`,
+`docs/ai-security-review.md`, and `SECURITY.md`.

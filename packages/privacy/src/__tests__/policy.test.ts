@@ -24,7 +24,16 @@ describe("capability policy", () => {
     ).resolves.toBeUndefined();
   });
 
-  it("rejects external capabilities in D1 even for a built-in principal", async () => {
+  it("allows network and AI capabilities while the broker checks the grant", async () => {
+    await expect(
+      assertPolicyAllows({
+        principal: builtIn,
+        capability: "network.connect:https://api.openai.com",
+        scope: { kind: "origin", origin: "https://api.openai.com" },
+        now: NOW,
+      })
+    ).resolves.toBeUndefined();
+
     await expect(
       assertPolicyAllows({
         principal: builtIn,
@@ -32,7 +41,54 @@ describe("capability policy", () => {
         scope: { kind: "provider", providerId: "openai" },
         now: NOW,
       })
+    ).resolves.toBeUndefined();
+  });
+
+  it("keeps sync unavailable", async () => {
+    await expect(
+      assertPolicyAllows({
+        principal: builtIn,
+        capability: "sync.push",
+        scope,
+        now: NOW,
+      })
     ).rejects.toMatchObject({ code: "external_unavailable" });
+
+    await expect(
+      assertPolicyAllows({
+        principal: builtIn,
+        capability: "sync.pull",
+        scope,
+        now: NOW,
+      })
+    ).rejects.toMatchObject({ code: "external_unavailable" });
+  });
+
+  it("requires confirmation for credential use", async () => {
+    const providerScope = { kind: "provider", providerId: "openai" } as const;
+
+    await expect(
+      assertPolicyAllows({
+        principal: builtIn,
+        capability: "credential.use:openai",
+        scope: providerScope,
+        now: NOW,
+      })
+    ).rejects.toMatchObject({ code: "confirmation_required" });
+
+    await expect(
+      assertPolicyAllows({
+        principal: builtIn,
+        capability: "credential.use:openai",
+        scope: providerScope,
+        now: NOW,
+        confirmation: {
+          confirmedAt: NOW,
+          scopeDigest: await scopeDigest(providerScope),
+          itemCount: 1,
+        },
+      })
+    ).resolves.toBeUndefined();
   });
 
   it("requires a recent confirmation with the exact scope for high-risk actions", async () => {

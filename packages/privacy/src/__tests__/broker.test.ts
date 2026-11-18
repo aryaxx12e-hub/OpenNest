@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest";
 import { createAuditLog } from "../audit";
 import { createCapabilityBroker } from "../broker";
 import { createGrantRegistry } from "../grants";
+import { scopeDigest } from "../scope";
 import { createMemoryPrivacyStore, createSequenceIds } from "../testing";
 import type { Principal } from "../types";
 
@@ -121,6 +122,120 @@ describe("capability broker", () => {
     await expect(running).rejects.toMatchObject({ code: "revoked" });
     await expect(broker.invoke(handle, async () => "later")).rejects.toMatchObject({
       code: "revoked",
+    });
+  });
+
+  it("requests network, AI, and credential grants with valid scopes", async () => {
+    const principal: Principal = {
+      id: "extension:demo",
+      type: "extension",
+      label: "Demo extension",
+    };
+    const { broker, registry } = await createBroker(principal);
+
+    await registry.create({
+      principalId: principal.id,
+      capability: "network.connect:https://api.openai.com",
+      scope: { kind: "origin", origin: "https://api.openai.com" },
+      purpose: "Connect to the selected provider",
+      expiresAt: NOW + 60_000,
+    });
+    await registry.create({
+      principalId: principal.id,
+      capability: "ai.invoke:openai",
+      scope: { kind: "provider", providerId: "openai" },
+      purpose: "Invoke the selected provider",
+      expiresAt: NOW + 60_000,
+    });
+    await registry.create({
+      principalId: principal.id,
+      capability: "credential.use:openai",
+      scope: { kind: "provider", providerId: "openai" },
+      purpose: "Use the selected credential",
+      expiresAt: NOW + 60_000,
+    });
+
+    const network = await broker.request({
+      capability: "network.connect:https://api.openai.com",
+      scope: { kind: "origin", origin: "https://api.openai.com" },
+      purpose: "Connect to the selected provider",
+    });
+    await expect(broker.invoke(network, async () => "connected")).resolves.toBe(
+      "connected"
+    );
+
+    const ai = await broker.request({
+      capability: "ai.invoke:openai",
+      scope: { kind: "provider", providerId: "openai" },
+      purpose: "Invoke the selected provider",
+    });
+    await expect(broker.invoke(ai, async () => "completed")).resolves.toBe("completed");
+
+    const providerScope = { kind: "provider", providerId: "openai" } as const;
+    const credential = await broker.request({
+      capability: "credential.use:openai",
+      scope: providerScope,
+      purpose: "Use the selected credential",
+      confirmation: {
+        confirmedAt: NOW,
+        scopeDigest: await scopeDigest(providerScope),
+        itemCount: 1,
+      },
+    });
+    await expect(broker.invoke(credential, async () => "credential")).resolves.toBe(
+      "credential"
+    );
+  });
+
+  it("rejects a session-only grant from another session", async () => {
+    const principal: Principal = {
+      id: "extension:demo",
+      type: "extension",
+      label: "Demo extension",
+    };
+    const store = createMemoryPrivacyStore();
+    const registry = createGrantRegistry({
+      store: store.grants,
+      now: () => NOW,
+      generateId: createSequenceIds("grant"),
+    });
+    const audit = createAuditLog({
+      store: store.audit,
+      now: () => NOW,
+      generateId: createSequenceIds("audit"),
+    });
+    const brokerA = createCapabilityBroker({
+      principal,
+      sessionId: "session-a",
+      grants: registry,
+      audit,
+      now: () => NOW,
+      generateId: createSequenceIds("handle-a"),
+    });
+    const brokerB = createCapabilityBroker({
+      principal,
+      sessionId: "session-b",
+      grants: registry,
+      audit,
+      now: () => NOW,
+      generateId: createSequenceIds("handle-b"),
+    });
+
+    await registry.create({
+      principalId: principal.id,
+      capability: "workspace.read.metadata",
+      scope: { kind: "workspace", workspaceId: "w1" },
+      purpose: "Render selected items",
+      sessionOnly: true,
+      sessionId: "session-a",
+      expiresAt: NOW + 60_000,
+    });
+
+    await expect(brokerB.request(readRequest())).rejects.toMatchObject({
+      code: "unknown_grant",
+    });
+    await expect(brokerA.request(readRequest())).resolves.toMatchObject({
+      sessionId: "session-a",
     });
   });
 

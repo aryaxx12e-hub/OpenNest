@@ -119,6 +119,66 @@ describe("privacy runtime", () => {
     await runtime.dispose();
   });
 
+  it("reuses one broker per principal and revokes a consent and its active handle", async () => {
+    const runtime = await setup();
+    const principal = {
+      id: "extension:demo",
+      type: "extension" as const,
+      label: "Demo extension",
+    };
+    const extensionBroker = runtime.createBroker(principal);
+    expect(runtime.createBroker(principal)).toBe(extensionBroker);
+
+    const consent = await runtime.consents.create({
+      sessionId: runtime.sessionId,
+      principalId: principal.id,
+      providerId: "openai",
+      model: "gpt-4.1-mini",
+      endpointOrigin: "https://api.openai.com",
+      payloadHash: "a".repeat(64),
+      payloadBytes: 128,
+      dataClasses: ["D1", "D2"],
+      purpose: "Run the selected AI request",
+      expiresAt: NOW + 60_000,
+    });
+    const grant = await runtime.grants.create({
+      principalId: principal.id,
+      capability: "ai.invoke:openai",
+      scope: { kind: "provider", providerId: "openai" },
+      purpose: "Run the selected AI request",
+      expiresAt: NOW + 60_000,
+      sessionOnly: true,
+      sessionId: runtime.sessionId,
+      auditRef: consent.id,
+    });
+    const handle = await extensionBroker.request({
+      capability: grant.capability,
+      scope: grant.scope,
+      purpose: "Run the selected AI request",
+    });
+    let release: () => void = () => undefined;
+    const gate = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    const running = extensionBroker.invoke(handle, async (signal) => {
+      await gate;
+
+      if (signal.aborted) {
+        throw new Error("aborted");
+      }
+
+      return "late";
+    });
+
+    await runtime.revokeConsent(consent.id);
+    release();
+
+    await expect(running).rejects.toMatchObject({ code: "revoked" });
+    expect((await runtime.consents.get(consent.id))?.revokedAt).toBe(NOW);
+    expect((await runtime.grants.get(grant.id))?.status).toBe("revoked");
+    await runtime.dispose();
+  });
+
   it("disposes idempotently", async () => {
     const runtime = await setup();
 

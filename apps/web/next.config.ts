@@ -1,6 +1,7 @@
 import type { NextConfig } from "next";
 
 const isDevelopment = process.env.NODE_ENV !== "production";
+const aiConnectSources = "https: http://localhost:* http://127.0.0.1:*";
 const contentSecurityPolicy = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
@@ -8,7 +9,7 @@ const contentSecurityPolicy = [
   "img-src 'self' data: blob:",
   "font-src 'self'",
   "media-src 'self' blob:",
-  `connect-src 'self'${isDevelopment ? " ws: wss:" : ""}`,
+  `connect-src 'self' ${aiConnectSources}${isDevelopment ? " ws: wss:" : ""}`,
   "worker-src 'self' blob:",
   "manifest-src 'self'",
   "object-src 'none'",
@@ -40,6 +41,8 @@ const nextConfig: NextConfig = {
     "@opennest/storage-dexie",
     "@opennest/sync",
     "@opennest/crypto",
+    "@opennest/credential-vault",
+    "@opennest/ai",
   ],
   async headers() {
     return [

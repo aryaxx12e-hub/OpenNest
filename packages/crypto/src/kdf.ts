@@ -6,12 +6,17 @@ import { getWebCrypto, randomBytes } from "./random";
 
 export const WORKSPACE_KEK_DOMAIN = "opennest:workspace-kek:v1";
 export const BACKUP_KEK_DOMAIN = "opennest:backup-kek:v1";
+export const CREDENTIAL_VAULT_KEK_DOMAIN = "opennest:credential-vault-kek:v1";
 export const MIN_PBKDF2_ITERATIONS = 600_000;
 export const MAX_PBKDF2_ITERATIONS = 2_000_000;
 export const KDF_SALT_BYTES = 16;
 export const KEK_BYTES = 32;
 
-const ALLOWED_DOMAINS = new Set([WORKSPACE_KEK_DOMAIN, BACKUP_KEK_DOMAIN]);
+const ALLOWED_DOMAINS = new Set([
+  WORKSPACE_KEK_DOMAIN,
+  BACKUP_KEK_DOMAIN,
+  CREDENTIAL_VAULT_KEK_DOMAIN,
+]);
 
 export interface KdfParameters {
   name: "PBKDF2-SHA-256";

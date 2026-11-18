@@ -2,6 +2,8 @@ import type {
   AuditEntry,
   AuditStore,
   CapabilityGrant,
+  ConsentRecord,
+  ConsentStore,
   GrantStore,
   PrivacyStore,
 } from "./types";
@@ -44,9 +46,32 @@ export function createMemoryAuditStore(): AuditStore {
   };
 }
 
+export function createMemoryConsentStore(): ConsentStore {
+  const rows = new Map<string, ConsentRecord>();
+
+  return {
+    async list() {
+      return [...rows.values()];
+    },
+    async get(id) {
+      return rows.get(id) ?? null;
+    },
+    async put(record) {
+      rows.set(record.id, record);
+    },
+    async delete(id) {
+      rows.delete(id);
+    },
+    async clear() {
+      rows.clear();
+    },
+  };
+}
+
 export function createMemoryPrivacyStore(): PrivacyStore {
   const grants = createMemoryGrantStore();
   const audit = createMemoryAuditStore();
+  const consents = createMemoryConsentStore();
 
   return {
     async init() {
@@ -58,9 +83,11 @@ export function createMemoryPrivacyStore(): PrivacyStore {
     async reset() {
       await grants.clear();
       await audit.clear();
+      await consents.clear();
     },
     grants,
     audit,
+    consents,
   };
 }
 

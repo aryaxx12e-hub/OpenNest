@@ -29,6 +29,7 @@ OpenNest is local-first. The highest-risk areas are:
 - Export and import paths, which handle user data directly.
 - Anything that could send user data to an external service without explicit
   consent.
+- AI provider credentials and AI network egress, including localhost providers.
 
 ## Cryptography and E2EE status
 
@@ -52,6 +53,53 @@ gate remains open until:
 Report suspected crypto flaws through the private vulnerability channel. Do not
 include real passphrases, recovery keys, plaintext notes, or private files in a
 report. Use synthetic test data.
+
+## AI provider and credential vault status
+
+The D4B AI provider and credential-vault implementation is complete under ADR 0011. No independent security review has been performed. OpenNest makes no claim
+that AI credentials are safe against XSS, that provider traffic is confidential,
+or that the vault has been reviewed.
+
+The implementation enforces:
+
+- AI is off by default. No network request occurs before an explicit, one-time,
+  payload-bound consent limited to 5 minutes.
+- Session-only credentials are the default. The passphrase-encrypted vault is
+  optional.
+- There is no recovery path for the vault in D4B. Losing the vault passphrase
+  loses stored credentials. Workspace recovery and backup restore do not open the
+  vault.
+- Provider configs, consents, session credentials, and vault records are excluded
+  from backup v1 and backup v2.
+- The vault uses a separate key domain. Workspace keys, backup keys, and vault
+  keys are never interchangeable.
+- Vault KDF uses PBKDF2-SHA-256 with a 600,000-iteration floor.
+- The vault auto-locks after 5 minutes of inactivity.
+- There are no automatic retries. A manual retry requires new consent.
+- D4B has no tools, MCP execution, document context, or AI chat history.
+- Remote providers require HTTPS. Loopback HTTP is allowed only for explicit
+  local providers.
+- Production CSP uses
+  `connect-src 'self' https: http://localhost:* http://127.0.0.1:*`.
+  Chromium rejects IPv6 literals in CSP source lists, so loopback IPv6 is not
+  in the policy. The transport and capability grants enforce the exact origin.
+- D4B does not complete D4 and does not claim tool-call or MCP support. D4A
+  extension remains separate.
+
+### AI residual risks
+
+- The broad CSP `connect-src` allows any HTTPS or loopback origin at the policy
+  layer. Exact-origin enforcement depends on application code.
+- CORS failures are common for remote providers. OpenNest cannot make a provider
+  allow browser origins.
+- XSS while the vault is unlocked can steal plaintext credentials or use handles.
+  Browser JavaScript cannot provide a perfect secret boundary.
+- A provider can retain anything the user sends. Provider-side retention and model
+  behavior are outside OpenNest's control.
+- JavaScript memory zeroization is not guaranteed. Locking reduces exposure but
+  cannot prove that old buffers are erased.
+- PBKDF2 is weaker than a memory-hard KDF.
+- The vault record can be lost through browser storage eviction.
 
 ## Our commitments
 

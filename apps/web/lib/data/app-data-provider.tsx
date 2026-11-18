@@ -29,6 +29,7 @@ import {
   type WorkspaceCryptoContext,
 } from "@opennest/crypto";
 import type { StorageAdapter, Workspace, WorkspaceId } from "@opennest/core";
+import { createMemoryCredentialVaultStore } from "@opennest/credential-vault";
 import { useTranslations } from "@opennest/localization";
 import { createMemoryPrivacyStore, type PrivacyStore } from "@opennest/privacy";
 import { Button } from "@opennest/ui";
@@ -57,6 +58,15 @@ import {
   type DraftRotationJournal,
 } from "@/lib/crypto/rotation-journal";
 import { createTabCoordinator, type TabCoordinator } from "@/lib/crypto/tab-coordinator";
+import { createAiRuntime, type AiRuntime } from "@/lib/ai/runtime";
+import { createDexieAiStore, createMemoryAiStore, type AiStore } from "@/lib/ai/store";
+import { createBrowserAiTransport } from "@/lib/ai/transport";
+import { createDexieCredentialVaultStore } from "@/lib/credentials/dexie-store";
+import {
+  createCredentialRuntime,
+  type CredentialRuntime,
+  type CredentialRuntimeStore,
+} from "@/lib/credentials/runtime";
 import { createDexiePrivacyStore } from "@/lib/privacy/dexie-store";
 import type { DraftStore } from "@/lib/autosave/draft-store";
 import {
@@ -91,6 +101,8 @@ type LoadState =
   | { status: "locked"; session: CryptoSession }
   | {
       status: "ready";
+      ai: AiRuntime;
+      credentials: CredentialRuntime;
       privacy: PrivacyRuntime;
       rawServices: AppServices;
       services: BrokeredAppServices;
@@ -100,8 +112,10 @@ type LoadState =
       drafts: DraftStore;
     };
 
-interface ReadyAppData {
+export interface ReadyAppData {
   status: "ready";
+  ai: AiRuntime;
+  credentials: CredentialRuntime;
   privacy: PrivacyRuntime;
   services: BrokeredAppServices;
   workspace: Workspace;
@@ -111,9 +125,15 @@ interface ReadyAppData {
   refreshWorkspace: () => Promise<void>;
 }
 
-interface BuiltRuntime {
-  drafts: DraftStore;
+interface AppRuntime {
+  ai: AiRuntime;
+  aiStore: AiStore;
+  credentials: CredentialRuntime;
   privacy: PrivacyRuntime;
+}
+
+interface BuiltRuntime extends AppRuntime {
+  drafts: DraftStore;
   rawServices: AppServices;
   services: BrokeredAppServices;
   workspace: Workspace;
@@ -124,6 +144,8 @@ const AppDataContext = createContext<ReadyAppData | null>(null);
 export interface AppDataProviderProps {
   children: ReactNode;
   openStorage?: () => Promise<StorageAdapter>;
+  openAiStore?: () => Promise<AiStore>;
+  openCredentialStore?: () => Promise<CredentialRuntimeStore>;
   openPrivacyStore?: () => Promise<PrivacyStore>;
   openKeyringStore?: () => Promise<KeyringStore>;
   tabCoordinator?: TabCoordinator;
@@ -137,11 +159,61 @@ function openDefaultPrivacyStore(): Promise<PrivacyStore> {
   return Promise.resolve(createDexiePrivacyStore());
 }
 
+function openDefaultAiStore(): Promise<AiStore> {
+  if (typeof indexedDB === "undefined") {
+    return Promise.resolve(createMemoryAiStore());
+  }
+
+  return Promise.resolve(createDexieAiStore());
+}
+
+function openDefaultCredentialStore(): Promise<CredentialRuntimeStore> {
+  if (typeof indexedDB === "undefined") {
+    return Promise.resolve(createMemoryCredentialVaultStore());
+  }
+
+  return Promise.resolve(createDexieCredentialVaultStore());
+}
+
+async function disposeRuntime(runtime: AppRuntime): Promise<void> {
+  let failure: unknown = null;
+
+  try {
+    await runtime.ai.dispose();
+  } catch (error) {
+    failure = error;
+  }
+
+  try {
+    await runtime.aiStore.close();
+  } catch (error) {
+    failure ??= error;
+  }
+
+  try {
+    await runtime.credentials.dispose();
+  } catch (error) {
+    failure ??= error;
+  }
+
+  try {
+    await runtime.privacy.dispose();
+  } catch (error) {
+    failure ??= error;
+  }
+
+  if (failure !== null) {
+    throw failure;
+  }
+}
+
 async function buildRuntime(input: {
   base: StorageAdapter;
   workspace: Workspace;
   context: WorkspaceCryptoContext | null;
   defaultWorkspaceName: string;
+  openAiStore?: () => Promise<AiStore>;
+  openCredentialStore?: () => Promise<CredentialRuntimeStore>;
   openPrivacyStore?: () => Promise<PrivacyStore>;
 }): Promise<BuiltRuntime> {
   const storage =
@@ -177,7 +249,58 @@ async function buildRuntime(input: {
     openPrivacyStore: input.openPrivacyStore ?? openDefaultPrivacyStore,
   });
 
+  let ai: AiRuntime | null = null;
+  let aiStore: AiStore | null = null;
+  let credentials: CredentialRuntime | null = null;
+
+  try {
+    const credentialRuntime = await createCredentialRuntime({
+      store: await (input.openCredentialStore ?? openDefaultCredentialStore)(),
+    });
+    credentials = credentialRuntime;
+    aiStore = await (input.openAiStore ?? openDefaultAiStore)();
+    await aiStore.init();
+    ai = createAiRuntime({
+      privacy,
+      settings: aiStore,
+      transport: createBrowserAiTransport({
+        resolveCredential: (handle) => credentialRuntime.resolve(handle),
+      }),
+    });
+  } catch (error) {
+    if (ai !== null) {
+      await ai.dispose().catch(() => undefined);
+    }
+
+    if (aiStore !== null) {
+      await aiStore.close().catch(() => undefined);
+    }
+
+    if (credentials !== null) {
+      await credentials.dispose().catch(() => undefined);
+    }
+
+    await privacy.dispose().catch(() => undefined);
+    throw error;
+  }
+
+  if (ai === null || aiStore === null || credentials === null) {
+    throw new Error("The AI runtime could not be created.");
+  }
+
+  const readyAi = ai;
+  const readyAiStore = aiStore;
+  const readyCredentials = credentials;
+  privacy.setAuxiliaryCleanup(async () => {
+    await readyAi.setEnabled(false);
+    await readyAiStore.reset();
+    await readyCredentials.clearAllData();
+  });
+
   return {
+    ai: readyAi,
+    aiStore: readyAiStore,
+    credentials: readyCredentials,
     drafts,
     privacy,
     rawServices: result.services,
@@ -352,6 +475,8 @@ function hasEncryptedDrafts(): boolean {
 export function AppDataProvider({
   children,
   openStorage,
+  openAiStore,
+  openCredentialStore,
   openPrivacyStore,
   openKeyringStore,
   tabCoordinator,
@@ -365,7 +490,7 @@ export function AppDataProvider({
   const [defaultWorkspaceName] = useState(() => t("workspace.defaultName"));
   const request = useRef(0);
   const stateRef = useRef<LoadState>(state);
-  const runtimeRef = useRef<PrivacyRuntime | null>(null);
+  const runtimeRef = useRef<AppRuntime | null>(null);
   const mountedRef = useRef(false);
   const lifecycleRef = useRef<Promise<void>>(Promise.resolve());
   const coordinatorRef = useRef<TabCoordinator | null>(null);
@@ -405,7 +530,7 @@ export function AppDataProvider({
     runtimeRef.current = null;
 
     if (previousRuntime !== null) {
-      void previousRuntime.dispose();
+      void disposeRuntime(previousRuntime).catch(() => undefined);
     }
 
     (openStorage ?? openBrowserStorage)()
@@ -460,17 +585,26 @@ export function AppDataProvider({
           workspace,
           context: null,
           defaultWorkspaceName,
+          ...(openAiStore === undefined ? {} : { openAiStore }),
+          ...(openCredentialStore === undefined ? {} : { openCredentialStore }),
           ...(openPrivacyStore === undefined ? {} : { openPrivacyStore }),
         });
 
         if (cancelled || request.current !== current) {
-          await built.privacy.dispose();
+          await disposeRuntime(built);
           return;
         }
 
-        runtimeRef.current = built.privacy;
+        runtimeRef.current = {
+          ai: built.ai,
+          aiStore: built.aiStore,
+          credentials: built.credentials,
+          privacy: built.privacy,
+        };
         setState({
           status: "ready",
+          ai: built.ai,
+          credentials: built.credentials,
           privacy: built.privacy,
           rawServices: built.rawServices,
           services: built.services,
@@ -495,14 +629,22 @@ export function AppDataProvider({
       runtimeRef.current = null;
 
       if (activeRuntime !== null) {
-        void activeRuntime.dispose();
+        void disposeRuntime(activeRuntime).catch(() => undefined);
       }
 
       if (ownsKeyringStore && ownedKeyringStore !== null) {
         void ownedKeyringStore.close?.();
       }
     };
-  }, [attempt, defaultWorkspaceName, openKeyringStore, openPrivacyStore, openStorage]);
+  }, [
+    attempt,
+    defaultWorkspaceName,
+    openAiStore,
+    openCredentialStore,
+    openKeyringStore,
+    openPrivacyStore,
+    openStorage,
+  ]);
 
   const installUnlocked = useCallback(
     async (session: CryptoSession, context: WorkspaceCryptoContext) => {
@@ -511,23 +653,32 @@ export function AppDataProvider({
         workspace: session.workspace,
         context,
         defaultWorkspaceName,
+        ...(openAiStore === undefined ? {} : { openAiStore }),
+        ...(openCredentialStore === undefined ? {} : { openCredentialStore }),
         ...(openPrivacyStore === undefined ? {} : { openPrivacyStore }),
       });
 
       if (!mountedRef.current) {
-        await built.privacy.dispose();
+        await disposeRuntime(built);
         return;
       }
 
       const previousRuntime = runtimeRef.current;
-      runtimeRef.current = built.privacy;
+      runtimeRef.current = {
+        ai: built.ai,
+        aiStore: built.aiStore,
+        credentials: built.credentials,
+        privacy: built.privacy,
+      };
 
       if (previousRuntime !== null) {
-        await previousRuntime.dispose();
+        await disposeRuntime(previousRuntime);
       }
 
       setState({
         status: "ready",
+        ai: built.ai,
+        credentials: built.credentials,
         privacy: built.privacy,
         rawServices: built.rawServices,
         services: built.services,
@@ -541,7 +692,7 @@ export function AppDataProvider({
         drafts: built.drafts,
       });
     },
-    [defaultWorkspaceName, openPrivacyStore]
+    [defaultWorkspaceName, openAiStore, openCredentialStore, openPrivacyStore]
   );
 
   const unlock = useCallback(
@@ -1154,7 +1305,7 @@ export function AppDataProvider({
         runtimeRef.current = null;
 
         if (activeRuntime !== null) {
-          await activeRuntime.dispose();
+          await disposeRuntime(activeRuntime);
         }
 
         if (!mountedRef.current) {
@@ -1216,7 +1367,7 @@ export function AppDataProvider({
       runtimeRef.current = null;
 
       if (activeRuntime !== null) {
-        await activeRuntime.dispose();
+        await disposeRuntime(activeRuntime);
       }
 
       const built = await buildRuntime({
@@ -1224,17 +1375,26 @@ export function AppDataProvider({
         workspace: session.workspace,
         context: null,
         defaultWorkspaceName,
+        ...(openAiStore === undefined ? {} : { openAiStore }),
+        ...(openCredentialStore === undefined ? {} : { openCredentialStore }),
         ...(openPrivacyStore === undefined ? {} : { openPrivacyStore }),
       });
 
       if (!mountedRef.current) {
-        await built.privacy.dispose();
+        await disposeRuntime(built);
         return;
       }
 
-      runtimeRef.current = built.privacy;
+      runtimeRef.current = {
+        ai: built.ai,
+        aiStore: built.aiStore,
+        credentials: built.credentials,
+        privacy: built.privacy,
+      };
       setState({
         status: "ready",
+        ai: built.ai,
+        credentials: built.credentials,
         privacy: built.privacy,
         rawServices: built.rawServices,
         services: built.services,
@@ -1251,7 +1411,13 @@ export function AppDataProvider({
       });
       coordinatorRef.current?.notifyReset();
     });
-  }, [defaultWorkspaceName, openPrivacyStore, runExclusive]);
+  }, [
+    defaultWorkspaceName,
+    openAiStore,
+    openCredentialStore,
+    openPrivacyStore,
+    runExclusive,
+  ]);
 
   const onRemoteLock = useEffectEvent(() => {
     const current = stateRef.current;
@@ -1333,6 +1499,8 @@ export function AppDataProvider({
 
     return {
       status: "ready",
+      ai: state.ai,
+      credentials: state.credentials,
       privacy: state.privacy,
       services: state.services,
       workspace: state.workspace,

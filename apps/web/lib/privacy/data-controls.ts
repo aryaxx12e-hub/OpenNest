@@ -64,6 +64,7 @@ export interface DataControlsInput {
   getWorkspace: () => Workspace;
   setWorkspace: (workspace: Workspace) => void;
   resetPrivacy: () => Promise<void>;
+  auxiliaryCleanup: () => Promise<void>;
   reconcileBuiltIns: (workspaceId: string, auditNew: boolean) => Promise<void>;
 }
 
@@ -80,6 +81,7 @@ export function createDataControls(input: DataControlsInput): DataControls {
     getWorkspace,
     setWorkspace,
     resetPrivacy,
+    auxiliaryCleanup,
     reconcileBuiltIns,
   } = input;
 
@@ -261,7 +263,10 @@ export function createDataControls(input: DataControlsInput): DataControls {
         workspace.id,
         counts.totalItems,
         "Delete all local data",
-        () => storage.reset()
+        async () => {
+          await auxiliaryCleanup();
+          await storage.reset();
+        }
       );
       await resetPrivacy();
       const restored = await storage.workspaces.ensureWorkspace({

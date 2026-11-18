@@ -270,4 +270,36 @@ describe("privacy data controls", () => {
     expect(audit.some((entry) => entry.event === "data.restored")).toBe(true);
     await runtime.dispose();
   });
+
+  it("runs auxiliary cleanup before deleting core data", async () => {
+    const { runtime, workspace, storage } = await setup();
+    let cleaned = false;
+
+    runtime.setAuxiliaryCleanup(async () => {
+      const workspaces = await storage.workspaces.list();
+      expect(workspaces.map((item) => item.id)).toContain(workspace.id);
+      cleaned = true;
+    });
+
+    await runtime.data.deleteAll();
+
+    expect(cleaned).toBe(true);
+    const workspaces = await storage.workspaces.list();
+    expect(workspaces).toHaveLength(1);
+    expect(workspaces[0]?.id).not.toBe(workspace.id);
+    await runtime.dispose();
+  });
+
+  it("aborts delete all when auxiliary cleanup fails", async () => {
+    const { runtime, workspace, storage } = await setup();
+
+    runtime.setAuxiliaryCleanup(async () => {
+      throw new Error("cleanup failed");
+    });
+
+    await expect(runtime.data.deleteAll()).rejects.toThrow("cleanup failed");
+    const workspaces = await storage.workspaces.list();
+    expect(workspaces.map((item) => item.id)).toContain(workspace.id);
+    await runtime.dispose();
+  });
 });

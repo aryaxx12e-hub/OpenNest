@@ -1,0 +1,68 @@
+import type { AiProviderPreset } from "./types";
+
+export const AI_PROVIDER_PRESETS: readonly AiProviderPreset[] = [
+  {
+    id: "openai-compatible",
+    label: "OpenAI-compatible",
+    config: {
+      label: "OpenAI-compatible",
+      kind: "remote",
+      adapter: "openai-compatible",
+      endpoint: "https://api.openai.com/v1",
+      models: ["gpt-4.1-mini"],
+      capabilities: ["chat"],
+      auth: "bearer",
+      dataPolicyUrl: "https://openai.com/policies/privacy-policy",
+      maxContextTokens: 128_000,
+      maxOutputTokens: 4_096,
+    },
+  },
+  {
+    id: "ollama",
+    label: "Ollama",
+    config: {
+      label: "Ollama",
+      kind: "local",
+      adapter: "openai-compatible",
+      endpoint: "http://localhost:11434/v1",
+      models: ["llama3.2"],
+      capabilities: ["chat"],
+      auth: "none",
+      dataPolicyUrl: null,
+      maxContextTokens: 128_000,
+      maxOutputTokens: 4_096,
+    },
+  },
+  {
+    id: "lm-studio",
+    label: "LM Studio",
+    config: {
+      label: "LM Studio",
+      kind: "local",
+      adapter: "openai-compatible",
+      endpoint: "http://localhost:1234/v1",
+      models: ["local-model"],
+      capabilities: ["chat"],
+      auth: "none",
+      dataPolicyUrl: null,
+      maxContextTokens: 32_768,
+      maxOutputTokens: 4_096,
+    },
+  },
+  {
+    id: "custom",
+    label: "Custom",
+    config: {
+      label: "Custom",
+      kind: "custom",
+      adapter: "openai-compatible",
+      endpoint: "https://example.com/v1",
+      models: ["model"],
+      capabilities: ["chat"],
+      auth: "bearer",
+      dataPolicyUrl: null,
+      maxContextTokens: null,
+      maxOutputTokens: null,
+    },
+  },
+];

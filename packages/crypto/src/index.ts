@@ -96,6 +96,7 @@ export { createIndexedDbKeyringStore } from "./indexeddb-keyring-store";
 export type { IndexedDbKeyringStoreOptions } from "./indexeddb-keyring-store";
 export {
   BACKUP_KEK_DOMAIN,
+  CREDENTIAL_VAULT_KEK_DOMAIN,
   KDF_SALT_BYTES,
   KEK_BYTES,
   MAX_PBKDF2_ITERATIONS,

@@ -1,4 +1,4 @@
-import { isExternalCapability, parseCapability } from "./capabilities";
+import { parseCapability } from "./capabilities";
 import { CapabilityDeniedError } from "./errors";
 import { normalizeScope, scopeDigest } from "./scope";
 import type { Capability, HighRiskConfirmation, Principal, ResourceScope } from "./types";
@@ -22,7 +22,7 @@ export async function assertPolicyAllows(input: {
 }): Promise<void> {
   const parsed = parseCapability(input.capability);
 
-  if (isExternalCapability(parsed.capability)) {
+  if (parsed.family === "sync") {
     throw new CapabilityDeniedError("external_unavailable");
   }
 

@@ -26,15 +26,20 @@ handle.
 | `sync.push`                 | sync       | one workspace                                      | normal |
 | `sync.pull`                 | sync       | one workspace                                      | normal |
 
-External capabilities are parsed and validated in D1 but denied by policy. No
-network, AI, extension, sync, or credential capability is available. D3
-encryption is a local storage composition, not a broker capability, so it does
+AI capabilities are available only after the user turns AI on, configures a
+provider, and approves one exact request in the AI console. AI requests may use
+only `D1` and `D2` data classes, and every request creates a one-time consent
+record plus `ai.invoke:<provider>`, `network.connect:<origin>`, and, when a
+credential is used, `credential.use:<provider>` grants. Extension and sync
+capabilities remain denied by policy. Workspace, backup, and credential-vault
+encryption are local storage compositions, not broker capabilities, so they do
 not add a capability family or an egress path.
 
-Optional content encryption is still under implementation. Until the external
-review passes, the Privacy Center must not describe local storage as encrypted.
-When encryption is enabled it must disclose that titles, filenames, tags, folder
-names and structure, sizes, timestamps, and sync metadata remain plaintext.
+When workspace encryption is enabled the Privacy Center must disclose that
+titles, filenames, tags, folder names and structure, sizes, timestamps, provider
+settings, vault metadata, and sync metadata remain plaintext. AI prompts and
+responses are never described as encrypted: prompts exist in memory only and are
+not persisted.
 
 ## Scope rules
 
@@ -74,6 +79,7 @@ from workspace data. It records:
 - capability requests, denials, completions, and failures
 - data export and data restore
 - full deletion
+- AI request start, completion, failure, and cancellation
 
 Entries contain sequence, event, outcome, principal, capability, optional scope
 digest, item count, reason, and timestamp. They never contain note text, file
@@ -83,8 +89,9 @@ sensitive operation. Tampering with an entry breaks chain verification.
 ## Data inventory
 
 The inventory lists workspace metadata, folders, tags, files, blobs, notes,
-drafts, grants, audit entries, search results, backups, and the seven sync
-sidecars. Inventory IDs are `sync-meta`, `sync-field-meta`, `sync-outbox`,
+drafts, grants, audit entries, search results, backups, AI provider settings, AI
+session credentials, the credential vault, AI consent history, and the seven
+sync sidecars. Inventory IDs are `sync-meta`, `sync-field-meta`, `sync-outbox`,
 `sync-devices`, `sync-state`, `sync-tombstones`, and `sync-conflicts`; the
 physical tables are `sync_meta`, `sync_field_meta`, `sync_outbox`, `sync_devices`,
 `workspace_sync_state`, `sync_tombstone`, and `sync_conflict`. They display as
@@ -100,10 +107,17 @@ state, Sync tombstones, and Sync conflicts. Each entry declares:
 
 Search results are session-only memory. Drafts live in `localStorage`; D3 adds
 encrypted drafts under the `opennest:edraft:note:` prefix when encryption is
-active. Grants and audit entries use the separate `opennest-privacy` IndexedDB
-database. Backups are external files. All seven sync sidecars are IndexedDB rows,
-none are included in backup v1 or v2, and they survive a source delete until an
-explicit reset or cleanup.
+active. Grants, audit entries, and consent records use the separate
+`opennest-privacy` IndexedDB database. AI provider settings use the separate
+`opennest-ai` database. The credential vault uses the separate
+`opennest-credentials` database, while session credentials exist in memory only.
+Backups are external files. All seven sync sidecars are IndexedDB rows, none are
+included in backup v1 or v2, and they survive a source delete until an explicit
+reset or cleanup.
+
+The AI inventory entries are `ai-provider-config` (D1, IndexedDB),
+`ai-credentials-session` (D3, memory), `ai-credential-vault` (D3, IndexedDB), and
+`ai-consents` (D4, IndexedDB). All four are excluded from backup v1 and v2.
 
 D3 also adds a keyring in the separate `opennest-crypto` IndexedDB database. Its
 inventory ID is `crypto-keyring`, its data class is D3, it is excluded from every
@@ -113,8 +127,16 @@ rate-limit metadata. It never stores a passphrase, raw DEK, raw CEK, or raw
 recovery key. The inventory label and metadata description must be localized.
 
 The Privacy Center also shows the flow matrix: built-in local processing, backup
-export, backup restore, AI provider, extension, and sync. Unavailable flows are
-marked as not available in D1.
+export, backup restore, AI provider, extension, and sync. AI provider flow is
+available only through the consent-gated AI console and points from this device
+(Z1) to the provider (Z2) for `D1` and `D2` data. Extension and sync remain
+marked as not available.
+
+The consent history lists provider label, model, endpoint origin, data classes,
+approval time, expiry, status, and a revoke action. It never renders the prompt,
+response, payload hash, payload bytes, purpose text, or credential secret.
+Revoking a consent marks it revoked in the history and revokes any linked
+non-built-in grants.
 
 ## Backup exclusions
 
@@ -122,10 +144,11 @@ Backup format v1 contains workspace metadata, folders, tags, files, blobs, and
 notes in plaintext. Backup format v2 contains the same logical data but encrypts
 the payload with a separate backup key hierarchy, and is the default when
 workspace encryption is active. Both formats exclude drafts, grants, audit
-entries, search results, keyring records, credentials, device identity, and all
-seven sync sidecars, including outbox and conflict records. The export
-confirmation names the excluded categories and whether the file is plaintext v1
-or encrypted v2 before the download starts.
+entries, search results, keyring records, AI provider settings, AI consents,
+session credentials, the credential vault, device identity, and all seven sync
+sidecars, including outbox and conflict records. The export confirmation names
+the excluded categories and whether the file is plaintext v1 or encrypted v2
+before the download starts.
 
 ## Deletion order
 
@@ -161,12 +184,19 @@ key. The backup key is never installed as a workspace key. Importing v2 into a
 plaintext workspace, or v1 into an encrypted workspace, requires an explicit
 warning. A wrong key or corrupt chunk fails before the live library is touched.
 
+Restore never recreates AI provider settings, consents, session credentials, or
+credential-vault entries. The AI runtime and vault must be configured again on
+the target device. Workspace recovery and backup restore do not unlock the
+credential vault.
+
 ## Revocation limits
 
 Built-in workspace grants cannot be revoked. External grants can be revoked,
 expire, exhaust their use limit, or end with their session. Revocation is checked
 again before and during invocation, and an in-flight operation is aborted when
-its grant is revoked.
+its grant is revoked. AI consents are one-time, payload-bound, and limited to
+five minutes. Revoking a consent also revokes its linked AI, network, and
+credential grants, but it cannot recall data that the provider already received.
 
 ## Store layout
 
@@ -174,10 +204,14 @@ The privacy store uses IndexedDB database `opennest-privacy` with tables:
 
 - `grants`
 - `audit`
+- `consents`
 - `meta`
 
 Tests and unsupported environments fall back to an in-memory store. The memory
-store is not durable.
+store is not durable. The AI store uses IndexedDB database `opennest-ai` for
+provider settings and the enabled flag. The credential vault uses
+`opennest-credentials`. Session credentials live in memory only, and prompts and
+responses are never written to any store.
 
 The encryption keyring uses IndexedDB database `opennest-crypto` with a keyring
 record store and key metadata. It is not part of `opennest-privacy` and is not a

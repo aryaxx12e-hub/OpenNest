@@ -1,8 +1,8 @@
 # E2EE key management
 
-Status: design specification for Stage D3 implementation. No encryption code has
-shipped at the time this document was added. OpenNest does not claim
-end-to-end encryption until implementation and external review are complete.
+Status: implemented for D3 workspace encryption and the D4B credential vault.
+External security review is still pending, so OpenNest does not claim
+end-to-end encryption yet.
 
 This document describes the target key hierarchy and lifecycle for optional
 workspace encryption. The binding decisions are in ADR 0013, the draft amendment
@@ -24,7 +24,7 @@ D3 does not encrypt:
 - Tag names, folder names, or folder structure.
 - Timestamps, workspace names, or record counts.
 - Sync metadata, outbox patches, tombstones, or conflict metadata.
-- Credentials. The credential vault is outside D3 and has its own hierarchy.
+- Credentials. The D4B credential vault is outside D3 and has its own hierarchy.
 
 Metadata leakage is accepted for D3 and must be documented in the threat model
 and product copy.
@@ -39,6 +39,15 @@ and product copy.
 
 No key, KEK, DEK, or CEK is reused across domains. Domain separation labels are
 part of key derivation and are authenticated by the envelope.
+
+The D4B vault implements its own hierarchy under the label
+`opennest:credential-vault-kek:v1`. A vault passphrase derives the vault KEK,
+which wraps a random vault DEK. Each entry gets a fresh CEK, and entry AAD binds
+the vault ID, active key ID, entry ID, provider ID, account label, and entry
+version. Workspace recovery, the workspace passphrase, and a backup passphrase
+cannot open the vault. The vault passphrase cannot open workspace data or a
+backup. Vault records are excluded from backup v1 and v2, and session credentials
+exist only in memory.
 
 ## Workspace hierarchy
 
@@ -332,10 +341,13 @@ Deleting all local data must:
 2. Clear plaintext and encrypted drafts. A draft clear failure aborts the
    deletion and reports the failure.
 3. Delete workspace data through the storage adapter.
-4. Reset privacy grants and audit state.
-5. Delete the workspace keyring after encrypted storage and drafts are gone. The
-   keyring is listed as a D3 artifact in the privacy inventory.
-6. Delete the keyring only after workspace deletion succeeds.
+4. Reset privacy grants, consent records, and audit state.
+5. Delete AI provider settings, AI consents, vault records, and session
+   credentials. The vault is a separate key domain and is never required to read
+   workspace data.
+6. Delete the workspace keyring only after encrypted storage and drafts are gone.
+   The keyring and AI records are listed as separate artifacts in the privacy
+   inventory.
 7. Recreate an empty workspace and fresh grants.
 
 Deleting the keyring first would make a failed workspace deletion unrecoverable.
@@ -362,8 +374,11 @@ The external backup file already downloaded by the user is not deleted.
   encoding.
 - Round-trip, wrong-key, AAD-swap, key-ID, truncation, nonce-uniqueness, and
   downgrade tests.
-- Domain-separation tests proving workspace and backup keys are not
-  interchangeable.
+- Domain-separation tests proving workspace, backup, and credential-vault keys
+  are not interchangeable.
+- Tests proving backup v1 and v2 contain no session secret, vault secret,
+  provider config, or consent record, and that restore does not recreate AI
+  access.
 - Dexie and SQLite tests for note, file, draft, migration, rotation, restore, and
   search behavior.
 - Tests that a plaintext snapshot becomes encrypted and is mapped to the current

@@ -6,7 +6,7 @@ OpenNest is an open-source personal digital workspace designed to help people or
 
 Built around privacy-first and local-first principles, OpenNest aims to give users control over their digital information without forcing them into subscriptions, accounts, or cloud-dependent workflows.
 
-Status: MVP in progress · Library, notes, search, backup, and offline access work locally in the browser. Optional content encryption is implemented but has not been independently reviewed.
+Status: MVP in progress · Library, notes, search, backup, and offline access work locally in the browser. Optional content encryption and optional BYOK AI providers are implemented but have not been independently reviewed.
 
 🌱 Our Vision
 
@@ -26,6 +26,7 @@ Feature| Description
 My Library| Organize files and digital resources
 Smart Documents| Create and organize Markdown notes
 Offline ready| Install the app and reopen cached content without a connection
+Optional AI console| Review and send a prompt to a provider you configure yourself
 
 Planned for later milestones:
 
@@ -50,7 +51,7 @@ MVP capabilities:
 - [x] Offline-ready Progressive Web App (PWA)
 - [x] Indonesian and English interface
 
-AI features, cloud synchronization, collaboration, and community extensions are intentionally deferred until the core experience is stable.
+Optional AI providers are available behind explicit consent. AI tools, MCP execution, document context, AI chat history, cloud synchronization, collaboration, and community extensions remain deferred until the core experience is stable.
 
 🧱 Technology Stack
 
@@ -90,6 +91,19 @@ database encryption yet. Note titles, filenames, tags, folder names and
 structure, sizes, timestamps, and sync metadata remain plaintext by design. See
 `SECURITY.md` and `docs/e2ee-threat-model.md` for the current gate and
 limitations.
+
+Optional AI providers are off by default. OpenNest sends only the prompt shown in
+the review dialog, after a one-time consent, and keeps no prompt or response
+history. Credentials are session-only by default or stored in an optional vault
+encrypted with a separate passphrase. The vault has no recovery, workspace
+recovery and backup restore do not unlock it, and backups exclude provider
+settings, consents, session credentials, and vault records. Remote providers are
+subject to browser CORS rules, and OpenNest cannot make a provider allow browser
+origins. There are no automatic retries, tools, MCP execution, or document
+context. Model output is rendered as plain text, but XSS while the vault is
+unlocked remains a residual risk. See `SECURITY.md` and
+`docs/ai-security-review.md`; the AI and credential-vault security review is not
+complete.
 
 🌍 Community & Contributions
 

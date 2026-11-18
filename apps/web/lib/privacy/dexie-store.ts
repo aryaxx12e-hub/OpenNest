@@ -4,6 +4,7 @@ import {
   PrivacyError,
   type AuditEntry,
   type CapabilityGrant,
+  type ConsentRecord,
   type PrivacyStore,
 } from "@opennest/privacy";
 
@@ -17,6 +18,7 @@ interface MetaRow {
 class PrivacyDatabase extends Dexie {
   declare grants: Table<CapabilityGrant, string>;
   declare audit: Table<AuditEntry, string>;
+  declare consents: Table<ConsentRecord, string>;
   declare meta: Table<MetaRow, string>;
 
   constructor(databaseName: string, options: PrivacyStoreOptions = {}) {
@@ -28,6 +30,12 @@ class PrivacyDatabase extends Dexie {
     this.version(1).stores({
       grants: "id, principalId, capability, status, expiresAt",
       audit: "id, sequence, at, event",
+      meta: "key",
+    });
+    this.version(2).stores({
+      grants: "id, principalId, capability, status, expiresAt",
+      audit: "id, sequence, at, event",
+      consents: "id, providerId, endpointOrigin, createdAt, expiresAt",
       meta: "key",
     });
   }
@@ -62,11 +70,19 @@ export function createDexiePrivacyStore(options: PrivacyStoreOptions = {}): Priv
     },
     async reset() {
       try {
-        await db.transaction("rw", db.grants, db.audit, db.meta, async () => {
-          await db.grants.clear();
-          await db.audit.clear();
-          await db.meta.clear();
-        });
+        await db.transaction(
+          "rw",
+          db.grants,
+          db.audit,
+          db.consents,
+          db.meta,
+          async () => {
+            await db.grants.clear();
+            await db.audit.clear();
+            await db.consents.clear();
+            await db.meta.clear();
+          }
+        );
       } catch (error) {
         throw storageError("The privacy store could not be reset.", error);
       }
@@ -97,6 +113,23 @@ export function createDexiePrivacyStore(options: PrivacyStoreOptions = {}): Priv
       },
       async clear() {
         await db.audit.clear();
+      },
+    },
+    consents: {
+      async list() {
+        return db.consents.toArray();
+      },
+      async get(id) {
+        return (await db.consents.get(id)) ?? null;
+      },
+      async put(record) {
+        await db.consents.put(record);
+      },
+      async delete(id) {
+        await db.consents.delete(id);
+      },
+      async clear() {
+        await db.consents.clear();
       },
     },
   };

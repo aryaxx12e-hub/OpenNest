@@ -60,10 +60,10 @@ describe("data inventory", () => {
     expect(sidecars.find((entry) => entry.id === "sync-conflicts")?.dataClass).toBe("D2");
   });
 
-  it("states the revocation boundary for external flows", () => {
+  it("marks the AI provider flow available with explicit consent and a revocation limit", () => {
     const ai = flowMatrix.find((flow) => flow.id === "ai-provider");
 
-    expect(ai?.available).toBe(false);
+    expect(ai?.available).toBe(true);
     expect(ai?.consent).toBe("explicit");
     expect(ai?.revocationLimitKey).toBe("privacy.flows.revocationLimit");
   });

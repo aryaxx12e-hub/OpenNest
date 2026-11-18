@@ -1,6 +1,7 @@
 import type { AppServices } from "../data/services";
 import type {
   CapabilityBroker,
+  ConsentRegistry,
   GrantRegistry,
   PrivacyStore,
   Principal,
@@ -8,8 +9,10 @@ import type {
   WorkspaceCapability,
 } from "@opennest/privacy";
 import {
+  PrivacyError,
   createAuditLog,
   createCapabilityBroker,
+  createConsentRegistry,
   createGrantRegistry,
 } from "@opennest/privacy";
 import type { StorageAdapter, Workspace } from "@opennest/core";
@@ -26,9 +29,13 @@ export interface PrivacyRuntime {
   store: PrivacyStore;
   broker: CapabilityBroker;
   grants: GrantRegistry;
+  readonly consents: ConsentRegistry;
   audit: ReturnType<typeof createAuditLog>;
   data: DataControls;
   services: BrokeredAppServices;
+  createBroker(principal: Principal): CapabilityBroker;
+  revokeConsent(id: string): Promise<void>;
+  setAuxiliaryCleanup(cleanup: (() => Promise<void>) | null): void;
   dispose(): Promise<void>;
 }
 
@@ -75,6 +82,11 @@ export async function createPrivacyRuntime(
     now,
     generateId,
   });
+  const consents = createConsentRegistry({
+    store: store.consents,
+    now,
+    generateId,
+  });
   const broker = createCapabilityBroker({
     principal: BUILT_IN_PRINCIPAL,
     sessionId,
@@ -83,8 +95,61 @@ export async function createPrivacyRuntime(
     now,
     generateId,
   });
+  const brokers = new Map<string, CapabilityBroker>([[BUILT_IN_PRINCIPAL.id, broker]]);
+  let disposed = false;
+
+  function createBroker(principal: Principal): CapabilityBroker {
+    if (disposed) {
+      throw new PrivacyError("storage_failed", "The privacy runtime is disposed.");
+    }
+
+    const existing = brokers.get(principal.id);
+
+    if (existing !== undefined) {
+      return existing;
+    }
+
+    const next = createCapabilityBroker({
+      principal,
+      sessionId,
+      grants,
+      audit,
+      now,
+      generateId,
+    });
+
+    brokers.set(principal.id, next);
+
+    return next;
+  }
+
+  async function revokeConsent(id: string): Promise<void> {
+    await consents.revoke(id, now());
+    const linked = (await grants.list()).filter(
+      (grant) => grant.auditRef === id && !grant.builtIn && grant.status === "active"
+    );
+
+    for (const grant of linked) {
+      const principalBroker = brokers.get(grant.principalId);
+
+      if (principalBroker !== undefined) {
+        await principalBroker.revoke(grant.id);
+        continue;
+      }
+
+      await grants.revoke(grant.id, now());
+      await audit.append({
+        event: "grant.revoked",
+        outcome: "info",
+        principalId: grant.principalId,
+        capability: grant.capability,
+        reason: "consent_revoked",
+      });
+    }
+  }
 
   let currentWorkspace = input.workspace;
+  let auxiliaryCleanup: (() => Promise<void>) | null = null;
 
   async function reconcileBuiltIns(
     workspaceId: string,
@@ -133,10 +198,13 @@ export async function createPrivacyRuntime(
       currentWorkspace = workspace;
     },
     resetPrivacy: () => store.reset(),
+    auxiliaryCleanup: async () => {
+      if (auxiliaryCleanup !== null) {
+        await auxiliaryCleanup();
+      }
+    },
     reconcileBuiltIns,
   });
-
-  let disposed = false;
 
   return {
     sessionId,
@@ -144,9 +212,19 @@ export async function createPrivacyRuntime(
     store,
     broker,
     grants,
+    consents,
     audit,
     data,
     services,
+    createBroker,
+    revokeConsent,
+    setAuxiliaryCleanup(cleanup) {
+      if (disposed) {
+        throw new PrivacyError("storage_failed", "The privacy runtime is disposed.");
+      }
+
+      auxiliaryCleanup = cleanup;
+    },
     async dispose() {
       if (disposed) {
         return;
@@ -155,7 +233,11 @@ export async function createPrivacyRuntime(
       disposed = true;
 
       try {
-        await broker.endSession();
+        for (const current of brokers.values()) {
+          await current.endSession();
+        }
+
+        brokers.clear();
       } finally {
         await store.close();
       }

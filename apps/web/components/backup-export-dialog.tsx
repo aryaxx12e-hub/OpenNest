@@ -296,7 +296,10 @@ export function BackupExportDialog({
           </div>
         ) : null}
 
-        <p className="text-muted text-xs leading-5">{t("backup.exportExclusion")}</p>
+        <div className="space-y-1">
+          <p className="text-muted text-xs leading-5">{t("backup.exportExclusion")}</p>
+          <p className="text-muted text-xs leading-5">{t("backup.exportExclusionAi")}</p>
+        </div>
 
         {completed ? (
           <p role="status" className="text-sm font-medium">

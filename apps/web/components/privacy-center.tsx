@@ -8,6 +8,7 @@ import { Button, ConfirmDialog, Skeleton } from "@opennest/ui";
 import { BackupExportDialog } from "@/components/backup-export-dialog";
 import { PageHeader } from "@/components/page-header";
 import { PrivacyAudit } from "@/components/privacy-audit";
+import { PrivacyConsents } from "@/components/privacy-consents";
 import { PrivacyGrants } from "@/components/privacy-grants";
 import { PrivacyInventory } from "@/components/privacy-inventory";
 import { PrivacyOverview } from "@/components/privacy-overview";
@@ -20,21 +21,24 @@ type Action = "delete" | null;
 
 export function PrivacyCenter() {
   const t = useTranslations();
-  const { privacy, invalidate, refreshWorkspace } = useAppData();
+  const { ai, privacy, invalidate, refreshWorkspace } = useAppData();
   const encryption = useEncryption();
   const [exportOpen, setExportOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [action, setAction] = useState<Action>(null);
   const [actionError, setActionError] = useState<string | null>(null);
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
+  const [revokingId, setRevokingId] = useState<string | null>(null);
   const state = useAsyncData("privacy-center", async () => {
-    const [overview, grants, audit] = await Promise.all([
+    const [overview, grants, audit, consents, providers] = await Promise.all([
       privacy.data.overview(),
       privacy.grants.list(),
       privacy.audit.list(),
+      privacy.consents.list(),
+      ai.listProviders(),
     ]);
 
-    return { overview, grants, audit };
+    return { overview, grants, audit, consents, providers, now: Date.now() };
   });
 
   async function deleteAll() {
@@ -63,6 +67,23 @@ export function PrivacyCenter() {
     }
   }
 
+  async function revokeConsent(id: string) {
+    setRevokingId(id);
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      await privacy.revokeConsent(id);
+      invalidate();
+      state.reload();
+      setActionSuccess("privacy.consents.revoked");
+    } catch (caught) {
+      setActionError(dataControlErrorKey(caught));
+    } finally {
+      setRevokingId(null);
+    }
+  }
+
   if (state.loading && state.data === null) {
     return (
       <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6 sm:px-6">
@@ -84,7 +105,7 @@ export function PrivacyCenter() {
     );
   }
 
-  const { overview, grants, audit } = state.data;
+  const { overview, grants, audit, consents, providers, now } = state.data;
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6 sm:px-6">
@@ -124,6 +145,13 @@ export function PrivacyCenter() {
         flows={privacy.data.flows()}
       />
       <PrivacyGrants grants={grants} />
+      <PrivacyConsents
+        consents={consents}
+        providers={providers}
+        busyId={revokingId}
+        now={now}
+        onRevoke={revokeConsent}
+      />
       <PrivacyAudit entries={audit} />
 
       {exportOpen ? (

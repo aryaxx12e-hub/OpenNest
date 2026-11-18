@@ -247,7 +247,8 @@ remain portable across NaCl, Dexie, SQLite, and a future encrypted adapter.
 Backup v2 excludes:
 
 - Workspace keys and keyring records.
-- Credentials and credential-vault data.
+- AI provider settings, the AI enabled flag, and AI consent history.
+- Session credentials and credential-vault data.
 - Privacy grants.
 - Audit entries.
 - Drafts, plaintext or encrypted.
@@ -255,8 +256,14 @@ Backup v2 excludes:
 - Device identity and installation secrets.
 - All seven sync sidecars.
 
-Backup v2 includes workspace metadata, folders, tags, files, blobs, notes, and
-their relationships. The export confirmation lists exclusions before download.
+Backup v1 excludes the same categories. Backup v2 includes workspace metadata,
+folders, tags, files, blobs, notes, and their relationships. The export
+confirmation lists exclusions before download.
+
+Restoring either format never recreates AI provider access, AI consents, session
+credentials, or credential-vault entries. Workspace recovery and backup restore
+do not unlock the credential vault, and a vault passphrase does not unlock
+workspace data or a backup.
 
 ## Compatibility
 

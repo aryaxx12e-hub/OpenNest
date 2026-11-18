@@ -1,8 +1,9 @@
 import "fake-indexeddb/auto";
 
+import Dexie from "dexie";
 import { describe, expect, it } from "vitest";
 
-import type { AuditEntry, CapabilityGrant } from "@opennest/privacy";
+import type { AuditEntry, CapabilityGrant, ConsentRecord } from "@opennest/privacy";
 
 import { createDexiePrivacyStore } from "../dexie-store";
 
@@ -28,6 +29,26 @@ function grantFixture(overrides: Partial<CapabilityGrant> = {}): CapabilityGrant
     status: "active",
     builtIn: true,
     auditRef: null,
+    revokedAt: null,
+    ...overrides,
+  };
+}
+
+function consentFixture(overrides: Partial<ConsentRecord> = {}): ConsentRecord {
+  return {
+    id: "consent-1",
+    sessionId: "session-a",
+    principalId: "built-in:local",
+    providerId: "openai",
+    model: "gpt-4.1-mini",
+    endpointOrigin: "https://api.openai.com",
+    payloadHash: "a".repeat(64),
+    payloadBytes: 128,
+    dataClasses: ["D1", "D2"],
+    purpose: "Send a prompt",
+    createdAt: NOW,
+    expiresAt: NOW + 60_000,
+    usedAt: null,
     revokedAt: null,
     ...overrides,
   };
@@ -69,15 +90,43 @@ describe("privacy Dexie store", () => {
     await reopened.close();
   });
 
-  it("resets grants, audit, and metadata in one operation", async () => {
+  it("resets grants, audit, metadata, and consents in one operation", async () => {
     const store = createDexiePrivacyStore({ databaseName: uniqueDatabaseName() });
     await store.init();
     await store.grants.put(grantFixture());
     await store.audit.append(auditFixture());
+    await store.consents.put(consentFixture());
     await store.reset();
 
     expect(await store.grants.list()).toEqual([]);
     expect(await store.audit.list()).toEqual([]);
+    expect(await store.consents.list()).toEqual([]);
+    await store.close();
+  });
+
+  it("upgrades a version 1 database to version 2 and keeps grants", async () => {
+    const databaseName = uniqueDatabaseName();
+    const legacy = new Dexie(databaseName);
+    legacy.version(1).stores({
+      grants: "id, principalId, capability, status, expiresAt",
+      audit: "id, sequence, at, event",
+      meta: "key",
+    });
+    await legacy.open();
+    await legacy.table("grants").put(grantFixture());
+    await legacy.table("audit").put(auditFixture());
+    legacy.close();
+
+    const store = createDexiePrivacyStore({ databaseName });
+    await store.init();
+
+    expect((await store.grants.get("grant-1"))?.capability).toBe(
+      "workspace.read.metadata"
+    );
+    expect(await store.audit.list()).toHaveLength(1);
+    expect(await store.consents.list()).toEqual([]);
+    await store.consents.put(consentFixture());
+    expect(await store.consents.list()).toHaveLength(1);
     await store.close();
   });
 });
