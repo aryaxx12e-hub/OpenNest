@@ -44,9 +44,11 @@ Do not reinstall tools or migrate the environment unnecessarily.
 
 3. Implementation Order
 
-Follow this sequence:
+Follow this sequence. OpenNest has five stages. Stage E is the final stage. There
+is no Stage F and no Phase 6. Dated specs, plans, and ADRs may retain historical
+stage labels; `ROADMAP.md` contains the mapping.
 
-Stage A — Foundation
+Stage A: Foundation
 
 - Initialize application structure.
 - Configure TypeScript.
@@ -58,7 +60,7 @@ Stage A — Foundation
 - Configure linting and testing.
 - Establish package boundaries.
 
-Stage B — Core Architecture
+Stage B: Core Architecture
 
 - Define domain models.
 - Define storage interfaces.
@@ -71,7 +73,7 @@ Stage B — Core Architecture
 - Implement error handling.
 - Implement persistence tests.
 
-Stage C — MVP Features
+Stage C: MVP Features
 
 - Dashboard.
 - Workspace.
@@ -83,33 +85,67 @@ Stage C — MVP Features
 - Autosave.
 - Tags.
 - Search.
+- Export, import, backup validation, and restore.
+- PWA manifest, service worker, offline shell, installation support, and offline
+  functionality tests.
+- Connections between notes and files, and the Knowledge Hub foundation.
+- Storage status, backup reminders, and guided recovery workflows.
 
-Stage D — Data Ownership
+Stage D: Privacy, Security, and Extensibility
 
-- Export.
-- Import.
-- Backup validation.
-- Restore.
-- Storage usage.
-- Data deletion.
-
-Stage E — PWA
-
-- Web manifest.
-- Service worker.
-- Offline shell.
-- Installation support.
-- Offline functionality tests.
-
-Stage F — Quality
-
-- Accessibility.
-- Responsive design.
+- Privacy Center and data management controls.
+- Storage diagnostics and optional storage adapters.
+- Self-hosting architecture evaluation.
 - Security review.
+- Extension architecture, sandbox, local sideload, and read-only host API.
+- AI provider and credential architecture, off by default and consent-gated.
+- Sync-compatible data model, local-only.
+- Optional workspace encryption, encrypted drafts, and encrypted backup v2.
+- External cryptographic review and the E2EE claim gate.
+- SQLite interrupted-restore cleanup.
+
+Stage E: AI, Sync, and Collaboration
+
+Stage E is the final capability stage, not a quality-only stage. It covers the
+post-MVP final scope:
+
+- AI: AI-powered extensions, optional local AI, document Q&A with citations, and
+  MCP integration. MCP is gated by a separate security and consent design.
+- Sync: optional cloud synchronization, multi-device workflows, and a self-hosted
+  server if the Stage D evaluation approves it.
+- Collaboration: multi-user collaboration.
+
+AI and Sync build on the Stage D foundations. Collaboration requires a separate
+architecture and security approval before implementation. Do not mark Stage E
+work complete while the Stage D security review, external cryptographic review,
+or E2EE claim gate is open.
+
+Cross-Stage Quality Gates
+
+Quality is not a separate stage. The quality work previously deferred to a
+separate final stage applies to every stage accepted after this restructure.
+Stage A and Stage B closed under their historical gates and are not reopened.
+
+- Accessibility and responsive design.
 - Performance review.
-- Unit tests.
-- E2E tests.
+- Unit tests, integration tests, and E2E tests.
 - Documentation.
+- CI workflow. CI is not yet implemented; it remains an open gap and blocks later
+  stage acceptance.
+- Security review sign-off for security-sensitive changes. The Stage D security
+  review is canonical and gates Stage E.
+
+Release-Support Backlog
+
+The former Phase 5 work is a cross-stage backlog, not a stage. It must be
+completed before public release:
+
+- Community documentation.
+- Contribution guidelines.
+- Localization contributions.
+- Extension guidelines.
+- Community feedback channels.
+- Public release preparation.
 
 Do not start later stages before the necessary foundations are working.
 

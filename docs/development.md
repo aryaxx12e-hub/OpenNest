@@ -1,5 +1,8 @@
 # OpenNest development
 
+Stage names follow `ROADMAP.md`. Dated specs, plans, and ADRs may use historical
+labels; see the Stage Naming History section in `ROADMAP.md`.
+
 ## Requirements
 
 - Node.js >= 24.0.0 (`.nvmrc` pins 24), because the SQLite adapter uses the

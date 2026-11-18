@@ -20,7 +20,7 @@ We believe everyone deserves a digital space that is:
 
 ✨ Features
 
-Available in the local MVP:
+Available now:
 
 Feature| Description
 My Library| Organize files and digital resources
@@ -28,13 +28,13 @@ Smart Documents| Create and organize Markdown notes
 Offline ready| Install the app and reopen cached content without a connection
 Optional AI console| Review and send a prompt to a provider you configure yourself
 Local extensions| Install sandboxed, read-only extensions from a local JSON package
+Privacy Center| Understand and manage data storage
 
 Planned for later milestones:
 
 Feature| Description
 Knowledge Hub| Collect and manage personal knowledge
 Ask OpenNest| Optional AI-powered assistance
-Privacy Center| Understand and manage data storage
 Community Space| Discover community contributions and extensions
 
 🚀 MVP: Personal Digital Library
@@ -130,23 +130,29 @@ We welcome contributions involving:
 - Localization
 - Testing and feedback
 
-Contribution guidelines will be published as development progresses.
+Contribution guidelines live in `CONTRIBUTING.md`. They remain part of the
+release-support backlog until reviewed and accepted.
 
 🗺️ Roadmap
 
-The project will evolve incrementally.
+OpenNest has five stages. Stage E is the final stage.
 
-- [x] Foundation and project architecture
-- [x] Core UI and application shell
-- [x] Personal Digital Library
-- [x] Notes and knowledge organization
-- [x] Search and local data portability
-- [x] PWA and offline experience
-- [x] Local extension sandbox and install flow (D4A; independent review pending)
-- [ ] Accessibility and localization improvements
-- [ ] Community ecosystem
+- [x] Stage A: Foundation
+- [x] Stage B: Core architecture
+- [ ] Stage C: MVP features (core delivered; Knowledge Hub and storage recovery follow-ups open)
+- [ ] Stage D: Privacy, security, and extensibility (in progress)
+- [ ] Stage E: AI, sync, and collaboration (final stage)
 
-See "PRD.md" (./PRD.md) for the product requirements and "AGENTS.md" (./AGENTS.md) for development instructions.
+Release-support work such as community documentation, contribution guidelines,
+localization contributions, extension guidelines, feedback channels, and public
+release preparation is tracked as a cross-stage backlog, not as a separate stage.
+
+Community Space product features such as public templates, shared collections,
+and a plugin catalog remain post-MVP.
+
+See "ROADMAP.md" (./ROADMAP.md) for stage details and live status, "PRD.md" (./PRD.md)
+for the product requirements, and "AGENTS.md" (./AGENTS.md) for development
+instructions.
 
 🛠️ Development
 
@@ -220,18 +226,18 @@ Kami percaya setiap orang berhak memiliki ruang digital yang:
 
 ✨ Fitur
 
-Sudah tersedia di MVP lokal:
+Sudah tersedia:
 
 - My Library: Mengatur file dan sumber daya digital.
 - Smart Documents: Membuat serta mengatur catatan Markdown.
 - Siap offline: Pasang aplikasi dan buka kembali konten yang sudah di-cache tanpa koneksi.
 - Ekstensi lokal: Memasang ekstensi baca-saja dari paket JSON lokal di dalam sandbox.
+- Pusat Privasi: Memahami dan mengelola penyimpanan data.
 
 Masih direncanakan:
 
 - Knowledge Hub: Mengumpulkan dan mengelola pengetahuan pribadi.
 - Ask OpenNest: Bantuan berbasis AI yang bersifat opsional.
-- Privacy Center: Memahami dan mengelola penyimpanan data.
 - Community Space: Menemukan kontribusi dan ekstensi komunitas.
 
 🚀 MVP: Personal Digital Library

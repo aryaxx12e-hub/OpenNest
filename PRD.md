@@ -248,13 +248,14 @@ Features:
 - Public templates.
 - Shared knowledge collections.
 - Community contributions.
-- Localization.
 - Public plugin catalog.
-- Contribution guidelines.
 
 Community sharing must be explicitly initiated by the user.
 
 Private libraries must never become publicly accessible through accidental sharing.
+
+Localization contributions and contribution guidelines are support work tracked in
+the Release-Support Backlog, not Community Space product features.
 
 This module is post-MVP.
 
@@ -962,9 +963,12 @@ Before merging:
 
 15. Development Roadmap
 
-Phase 0: Project Foundation
+The development roadmap has five stages. Stage E is the final stage. There is no
+Stage F and no Phase 6. Live status is maintained in `ROADMAP.md`; this section
+records the product-level stage definitions. Dated specs, plans, and ADRs may
+retain historical stage labels.
 
-Duration: Weeks 1–2
+Stage A: Foundation
 
 Deliverables:
 
@@ -974,49 +978,41 @@ Deliverables:
 - Next.js application.
 - Design system.
 - Localization.
-- CI workflow.
-- Storage interfaces.
+- Storage boundary and package scaffold.
 
 Exit criteria: clean application builds and tests pass.
 
-Phase 1: MVP Core
+Stage B: Core Architecture
 
-Duration: Weeks 3–5
+Deliverables:
+
+- Domain model and storage interfaces.
+- IndexedDB and SQLite adapters.
+- Repository layer.
+- Validation and error handling.
+- Persistence and conformance tests.
+
+Exit criteria: both storage adapters pass the same conformance scenarios.
+
+Stage C: MVP Features
 
 Deliverables:
 
 - Dashboard.
-- Local database.
+- Local database integration.
 - Folder management.
 - File upload.
 - File listing.
 - File preview for supported formats.
 - Markdown notes.
 - Autosave.
-
-Exit criteria: users can create, store, edit, and retrieve information.
-
-Phase 2: Search and Data Portability
-
-Duration: Weeks 6–7
-
-Deliverables:
-
 - Search.
 - Tag management.
 - Filters.
 - Export.
 - Import.
 - Backup validation.
-
-Exit criteria: users can find and move their information without vendor lock-in.
-
-Phase 3: PWA and Accessibility
-
-Duration: Weeks 8–9
-
-Deliverables:
-
+- Restore.
 - Offline shell.
 - Service worker.
 - Installation support.
@@ -1024,55 +1020,102 @@ Deliverables:
 - Keyboard navigation.
 - Screen reader improvements.
 - Accessibility tests.
+- Connections between notes and files.
+- Knowledge Hub foundation.
+- Storage status.
+- Backup reminders.
+- Guided recovery workflows.
 
-Exit criteria: essential features work offline and mobile workflows are usable.
+Exit criteria: users can create, store, edit, retrieve, export, and restore
+information, and essential features work offline.
 
-Phase 4: Public Beta
-
-Duration: Weeks 10–12
+Stage D: Privacy, Security, and Extensibility
 
 Deliverables:
 
-- Bug fixes.
-- Documentation.
+- Privacy Center and data management controls.
+- Storage diagnostics and optional storage adapters.
+- Self-hosting architecture evaluation.
 - Security review.
-- E2E coverage.
-- Beta release.
-- Public issue tracker.
+- Extension sandbox and local sideload.
+- AI provider and credential architecture.
+- Sync-compatible data model.
+- Optional workspace encryption, encrypted drafts, and encrypted backup v2.
+- External cryptographic review and E2EE claim gate.
+- SQLite interrupted-restore cleanup.
+
+Exit criteria: all Stage D items are delivered or explicitly deferred, and the
+Stage D security and cryptography gates pass.
+
+Stage E: AI, Sync, and Collaboration
+
+Stage E is the final stage and covers the post-MVP final scope:
+
+AI:
+
+- AI-powered extensions after D4B.
+- Optional local AI.
+- Document Q&A with citation-based responses.
+- MCP integration, gated by a separate security and consent design.
+
+Sync:
+
+- Optional cloud synchronization.
+- Multi-device workflows.
+- Self-hosted server, if the Stage D self-hosting evaluation approves it.
+
+Collaboration:
+
+- Multi-user collaboration.
+
+AI and Sync build on the Stage D foundations. Collaboration requires a separate
+architecture and security approval before implementation. Stage E does not close
+while the Stage D security review, external cryptographic review, or E2EE claim
+gate is open.
+
+Exit criteria: the designs are approved, the security gates pass, and the
+implemented behavior matches the approved scope.
+
+Cross-Stage Quality Gates
+
+Quality is not a separate stage. Accessibility, responsive behavior, performance,
+unit, integration, and E2E tests, documentation, CI, and security review sign-off
+apply to every stage accepted after this restructure. Stage A and Stage B closed
+under their historical gates and are not reopened. CI is not yet implemented; it
+remains an open gap.
+
+Release-Support Backlog
+
+The former community ecosystem work is a cross-stage backlog, not a stage. These
+items are support artifacts, not Community Space product features. The backlog
+must be completed before public release:
+
+- Community documentation.
 - Contribution guidelines.
+- Localization contributions.
+- Extension guidelines.
+- Community feedback channels.
+- Public release preparation.
 
-Exit criteria: first public release is usable, documented, and recoverable.
+Unscheduled Future Possibilities
 
-Post-MVP
-
-Months 4–6:
+These are not scheduled as part of Stage E:
 
 - OCR.
 - PDF extraction.
 - Advanced search.
 - Metadata extraction.
-
-Months 7–8:
-
-- Optional local AI.
-- Document Q&A.
-- Citation-based responses.
-- MCP integration.
-
-Months 9–10:
-
-- Self-hosted server.
-- Optional cloud sync.
-- Backup automation.
-
-Months 11–12:
-
 - Community templates.
 - Plugin ecosystem.
 - Localization expansion.
 - Community governance.
+- Backup automation.
 
-These are planning estimates, not fixed release guarantees.
+Community Space product features such as public templates, shared collections,
+and a plugin catalog remain post-MVP. They are not part of Stage E or the
+Release-Support Backlog.
+
+These are planning directions, not fixed release guarantees.
 
 ---
 
