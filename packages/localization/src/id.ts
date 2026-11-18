@@ -308,6 +308,16 @@ export const id: typeof en = {
     import: "Pulihkan dari cadangan",
     importing: "Memeriksa cadangan...",
     exportSuccess: "Cadangan berhasil diunduh.",
+    lastBackup: "Backup terakhir",
+    neverBackedUp: "Belum pernah",
+    reminder: {
+      neverTitle: "Cadangkan perpustakaanku",
+      neverBody: "Perpustakaan ini belum pernah dicadangkan. Salinan lokal bukan backup.",
+      dueTitle: "Backup kamu sudah lama",
+      dueBody:
+        "Buat backup baru supaya masalah perangkat tidak menghilangkan perpustakaanku.",
+      action: "Buka pengaturan backup",
+    },
     exportTitle: "Unduh cadangan?",
     exportDescription:
       "Cadangan berisi berkas, catatan, folder, dan tag milikmu. Cadangan dibuat di perangkat ini.",
@@ -397,6 +407,26 @@ export const id: typeof en = {
       invalidSnapshot: "Isi cadangan tidak valid. Data di perangkat ini tidak diubah.",
       checksumMismatch: "Ada berkas di cadangan yang tidak cocok dengan checksum-nya.",
     },
+    recovery: {
+      title: "Kalau restore gagal",
+      intro: "Data tidak diganti sampai kamu mengonfirmasi restore. Ikuti langkah ini.",
+      wrongKey:
+        "Periksa passphrase atau kunci backup. Harus cocok dengan backup yang dipilih.",
+      damaged: "Backup ini rusak. Coba salinan lain atau backup yang lebih lama.",
+      format:
+        "Berkas ini bukan backup yang bisa dibaca OpenNest. Pilih backup dari OpenNest.",
+      drafts:
+        "Draf tidak bisa dibersihkan. Bersihkan penyimpanan situs ini, lalu restore lagi.",
+      storage:
+        "Penyimpanan mungkin penuh atau tidak tersedia. Kosongkan ruang atau ekspor data saat ini, lalu coba lagi.",
+      generic: "Coba salinan backup lain dan pastikan penyimpanan tersedia.",
+      tryAnother: "Coba berkas backup lain.",
+      checkKey: "Periksa passphrase atau kunci backup.",
+      freeSpace: "Kosongkan penyimpanan perangkat sebelum mencoba lagi.",
+      clearSiteData:
+        "Kalau draf tidak bisa dibersihkan, bersihkan penyimpanan situs ini di pengaturan browser.",
+      diagnostics: "Buka diagnostik penyimpanan",
+    },
   },
   privacy: {
     title: "Pusat Privasi",
@@ -419,6 +449,24 @@ export const id: typeof en = {
     backup: {
       notice:
         "Draf pemulihan, izin akses, entri audit, hasil pencarian, dan metadata sinkronisasi (termasuk outbox dan catatan konflik) tidak termasuk dalam cadangan v1 atau v2.",
+    },
+    storage: {
+      title: "Penyimpanan browser",
+      description: "Perkiraan ini mencakup situs ini di browser, bukan hanya OpenNest.",
+      unsupported: "Browser ini tidak melaporkan diagnostik penyimpanan.",
+      usage: "Terpakai",
+      quota: "Kuota",
+      percent: "Terpakai",
+      persisted: "Penyimpanan persisten",
+      granted: "Diberikan",
+      denied: "Belum diberikan",
+      unknown: "Tidak diketahui",
+      request: "Pertahankan data ini",
+      requestGranted: "Browser menandai data situs ini sebagai persisten.",
+      requestDenied: "Browser tidak memberikan penyimpanan persisten. Simpan backup.",
+      requestError: "Browser tidak bisa mengubah status persisten. Coba lagi.",
+      notice:
+        "Penyimpanan persisten mengurangi risiko eviction, tetapi tetap hilang jika data situs dibersihkan. Ini bukan backup.",
     },
     inventory: {
       title: "Inventaris data",
@@ -742,6 +790,20 @@ export const id: typeof en = {
     createFolderTitle: "Folder baru",
     createFolderDescription: "Buat folder di lokasi saat ini.",
     createFolder: "Buat folder",
+    sortLabel: "Urutkan berdasarkan",
+    sortName: "Nama",
+    sortCreated: "Tanggal ditambahkan",
+    sortUpdated: "Terakhir diperbarui",
+    directionLabel: "Arah",
+    ascending: "Naik",
+    descending: "Turun",
+    typeLabel: "Tipe",
+    allTypes: "Semua berkas",
+    documents: "Dokumen",
+    images: "Gambar",
+    clearFilters: "Hapus filter",
+    filteredEmptyTitle: "Tidak ada berkas yang cocok",
+    filteredEmptyBody: "Ubah atau hapus filter tipe untuk melihat berkas di folder ini.",
   },
   upload: {
     uploading: "Mengunggah...",
@@ -823,6 +885,20 @@ export const id: typeof en = {
     imageBlocked: "Gambar tidak ditampilkan",
     notFoundTitle: "Catatan tidak ditemukan",
     notFoundBody: "Catatan ini mungkin sudah dihapus.",
+    links: "Tautan",
+    linkedNotes: "Catatan tertaut",
+    noLinkedNotes: "Belum ada catatan tertaut.",
+    editLinks: "Ubah tautan",
+    linkDialogTitle: "Tautkan catatan",
+    linkDialogDescription: "Pilih catatan yang terhubung dengan catatan ini.",
+    linkSearch: "Cari catatan",
+    linkEmpty: "Belum ada catatan lain.",
+    linkNoMatches: "Tidak ada catatan yang cocok.",
+    linkLimit: "Menampilkan 500 catatan terbaru. Ketik untuk mempersempit daftar.",
+    linkUnavailable: "Catatan tertaut ini tidak tersedia.",
+    exportMarkdown: "Ekspor Markdown",
+    exportSuccess: "Berkas Markdown diunduh.",
+    exportError: "Catatan tidak bisa diekspor. Coba lagi.",
   },
   folderActions: {
     renameTitle: "Ganti nama folder",

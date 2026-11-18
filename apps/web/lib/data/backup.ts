@@ -276,8 +276,12 @@ export function mapBackupToWorkspace(
   return mapped;
 }
 
-export function downloadTextFile(fileName: string, text: string): void {
-  const blob = new Blob([text], { type: "application/json" });
+export function downloadTextFile(
+  fileName: string,
+  text: string,
+  mimeType = "application/json"
+): void {
+  const blob = new Blob([text], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
 

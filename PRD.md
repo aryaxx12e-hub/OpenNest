@@ -5,7 +5,7 @@ Product Requirements Document & Technical Blueprint
 Tagline: Your digital life. Your rules.
 Product type: Open-source personal digital workspace
 Version: 1.1
-Status: MVP 0.1 implementation in progress; Stage D in progress
+Status: MVP 0.1 implementation in progress; Stage C delivered; Stage D in progress
 Last updated: November 2026
 Platforms: Web + Progressive Web App (PWA)
 Languages: English and Bahasa Indonesia

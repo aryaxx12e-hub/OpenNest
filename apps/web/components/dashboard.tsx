@@ -6,6 +6,7 @@ import { useState } from "react";
 import { formatNumber, useLocale, useTranslations } from "@opennest/localization";
 import { Button, Card, Skeleton } from "@opennest/ui";
 
+import { BackupReminder } from "@/components/backup-reminder";
 import { CreateFolderDialog } from "@/components/create-folder-dialog";
 import { EmptyState } from "@/components/empty-state";
 import { FileRow } from "@/components/file-row";
@@ -14,6 +15,7 @@ import { NewNoteButton } from "@/components/new-note-button";
 import { PageHeader } from "@/components/page-header";
 import { UploadButton } from "@/components/upload-button";
 import { useAppData } from "@/lib/data/app-data-provider";
+import { readLastBackupAt } from "@/lib/data/backup-reminder";
 import { useAsyncData } from "@/lib/data/hooks";
 import { formatBytes, formatDateTime } from "@/lib/format";
 import { noteExcerpt } from "@/lib/notes";
@@ -40,7 +42,14 @@ export function Dashboard() {
       privacy.data.overview(),
     ]);
 
-    return { files, notes, folders, children, overview };
+    return {
+      files,
+      notes,
+      folders,
+      children,
+      overview,
+      lastBackupAt: readLastBackupAt(),
+    };
   });
 
   if (state.loading && state.data === null) {
@@ -122,6 +131,8 @@ export function Dashboard() {
           </Card>
         ))}
       </section>
+
+      {isEmpty ? null : <BackupReminder lastBackupAt={data.lastBackupAt} />}
 
       {isEmpty ? (
         <EmptyState

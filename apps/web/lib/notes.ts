@@ -1,3 +1,24 @@
+const markdownFileNameLimit = 80;
+const markdownReserved = /[<>:"/\\|?*\u0000-\u001f]/g;
+
+export function noteMarkdownFileName(title: string): string {
+  const base = title
+    .trim()
+    .replace(/^\.+/, "")
+    .replace(markdownReserved, "-")
+    .replace(/\s+/g, " ")
+    .slice(0, markdownFileNameLimit)
+    .trim();
+
+  return `${base.length === 0 ? "note" : base}.md`;
+}
+
+export function noteMarkdownDocument(title: string, content: string): string {
+  const heading = title.trim().length === 0 ? "Untitled note" : title.trim();
+
+  return `# ${heading}\n\n${content}\n`;
+}
+
 export function noteExcerpt(content: string, maxLength = 160): string {
   const plain = content
     .replace(/```[\s\S]*?```/g, " ")

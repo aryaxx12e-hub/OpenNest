@@ -19,6 +19,17 @@ releases begin.
 
 ### Added
 
+- Note-to-note links with a searchable picker, linked-note navigation, and a
+  one-way link model.
+- Per-note Markdown export with safe filenames and clear success and error states.
+- Library sorting by name, creation time, or update time, plus document and image
+  type filters with a filtered-empty state.
+- Backup reminders on the dashboard and in settings, including the last
+  successful backup timestamp.
+- Browser storage diagnostics for usage, quota, persistence, and eviction
+  guidance, with an optional `Keep this data` request.
+- Restore recovery guidance that maps errors to concrete next steps and links to
+  storage diagnostics.
 - Optional AI providers using the OpenAI-compatible chat API, with local and
   remote endpoint validation, presets, and an explicit localhost warning.
 - An AI console that shows the exact provider, origin, model, data classes, byte

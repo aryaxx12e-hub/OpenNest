@@ -12,12 +12,18 @@ import { PrivacyConsents } from "@/components/privacy-consents";
 import { PrivacyGrants } from "@/components/privacy-grants";
 import { PrivacyInventory } from "@/components/privacy-inventory";
 import { PrivacyOverview } from "@/components/privacy-overview";
+import { StorageDiagnostics } from "@/components/storage-diagnostics";
 import { useEncryption } from "@/lib/crypto/encryption-gate";
 import { useAppData } from "@/lib/data/app-data-provider";
+import { recordBackupExported } from "@/lib/data/backup-reminder";
 import { useAsyncData } from "@/lib/data/hooks";
 import { dataControlErrorKey } from "@/lib/privacy/errors";
+import {
+  readStorageStatus,
+  requestPersistentStorage,
+} from "@/lib/privacy/storage-status";
 
-type Action = "delete" | null;
+type Action = "delete" | "persist" | null;
 
 export function PrivacyCenter() {
   const t = useTranslations();
@@ -30,15 +36,24 @@ export function PrivacyCenter() {
   const [actionSuccess, setActionSuccess] = useState<string | null>(null);
   const [revokingId, setRevokingId] = useState<string | null>(null);
   const state = useAsyncData("privacy-center", async () => {
-    const [overview, grants, audit, consents, providers] = await Promise.all([
+    const [overview, grants, audit, consents, providers, storage] = await Promise.all([
       privacy.data.overview(),
       privacy.grants.list(),
       privacy.audit.list(),
       privacy.consents.list(),
       ai.listProviders(),
+      readStorageStatus(),
     ]);
 
-    return { overview, grants, audit, consents, providers, now: Date.now() };
+    return {
+      overview,
+      grants,
+      audit,
+      consents,
+      providers,
+      storage,
+      now: Date.now(),
+    };
   });
 
   async function deleteAll() {
@@ -62,6 +77,30 @@ export function PrivacyCenter() {
     } catch (caught) {
       setDeleteOpen(false);
       setActionError(dataControlErrorKey(caught));
+    } finally {
+      setAction(null);
+    }
+  }
+
+  async function requestPersist() {
+    setAction("persist");
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      const result = await requestPersistentStorage();
+
+      if (result === "granted") {
+        setActionSuccess("privacy.storage.requestGranted");
+        state.reload();
+      } else if (result === "denied") {
+        setActionSuccess("privacy.storage.requestDenied");
+        state.reload();
+      } else {
+        setActionError("privacy.storage.requestError");
+      }
+    } catch {
+      setActionError("privacy.storage.requestError");
     } finally {
       setAction(null);
     }
@@ -105,7 +144,7 @@ export function PrivacyCenter() {
     );
   }
 
-  const { overview, grants, audit, consents, providers, now } = state.data;
+  const { overview, grants, audit, consents, providers, storage, now } = state.data;
 
   return (
     <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6 sm:px-6">
@@ -140,6 +179,11 @@ export function PrivacyCenter() {
       )}
 
       <PrivacyOverview overview={overview} />
+      <StorageDiagnostics
+        status={storage}
+        busy={action === "persist"}
+        onRequestPersist={() => void requestPersist()}
+      />
       <PrivacyInventory
         inventory={privacy.data.inventory()}
         flows={privacy.data.flows()}
@@ -166,6 +210,7 @@ export function PrivacyCenter() {
           encryptionActive={encryption.record !== null}
           onExport={(options) => privacy.data.exportAll(options)}
           onExported={() => {
+            recordBackupExported();
             setActionSuccess("backup.exportSuccess");
             state.reload();
           }}

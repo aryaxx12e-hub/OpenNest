@@ -11,13 +11,16 @@ import { Button, Card, ConfirmDialog, Input, Skeleton, Textarea } from "@opennes
 import { EmptyState } from "@/components/empty-state";
 import { MarkdownPreview } from "@/components/markdown-preview";
 import { MoveDialog } from "@/components/move-dialog";
+import { NoteLinksDialog } from "@/components/note-links-dialog";
 import { TagDialog } from "@/components/tag-dialog";
 import { useNoteAutosave, type NoteSavePatch } from "@/lib/autosave/use-note-autosave";
 import { useAppData } from "@/lib/data/app-data-provider";
+import { downloadTextFile } from "@/lib/data/backup";
 import { useAsyncData } from "@/lib/data/hooks";
 import { useSaveCoordinator } from "@/lib/data/save-coordinator";
 import { errorKey } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
+import { noteMarkdownDocument, noteMarkdownFileName } from "@/lib/notes";
 
 export function NoteEditor({ noteId }: { noteId: NoteId }) {
   const t = useTranslations();
@@ -29,11 +32,20 @@ export function NoteEditor({ noteId }: { noteId: NoteId }) {
       return { missing: true as const };
     }
 
-    const [folders, allTags, noteTags] = await Promise.all([
+    const [folders, allTags, noteTags, links, notes] = await Promise.all([
       services.folder.list(workspace.id, { limit: 500, sort: "name" }),
       services.tag.list(workspace.id, { limit: 500, sort: "name" }),
       services.note.tags(note.id),
+      services.note.links(note.id),
+      services.note.list(
+        workspace.id,
+        {},
+        { limit: 500, sort: "updatedAt", direction: "desc" }
+      ),
     ]);
+    const linkedNotes = (
+      await Promise.all(links.map((link) => services.note.get(link.targetNoteId)))
+    ).filter((linked): linked is Note => linked !== null);
 
     return {
       missing: false as const,
@@ -41,6 +53,9 @@ export function NoteEditor({ noteId }: { noteId: NoteId }) {
       folders: folders.items,
       allTags: allTags.items,
       noteTags,
+      linkedNotes,
+      allNotes: notes.items,
+      notesTotal: notes.total,
     };
   });
 
@@ -89,6 +104,9 @@ export function NoteEditor({ noteId }: { noteId: NoteId }) {
       folders={data.folders}
       allTags={data.allTags}
       noteTags={data.noteTags}
+      linkedNotes={data.linkedNotes}
+      allNotes={data.allNotes}
+      notesTotal={data.notesTotal}
     />
   );
 }
@@ -98,11 +116,17 @@ function NoteEditorForm({
   folders,
   allTags,
   noteTags,
+  linkedNotes,
+  allNotes,
+  notesTotal,
 }: {
   note: Note;
   folders: Folder[];
   allTags: Tag[];
   noteTags: Tag[];
+  linkedNotes: Note[];
+  allNotes: Note[];
+  notesTotal: number;
 }) {
   const t = useTranslations();
   const { locale } = useLocale();
@@ -139,10 +163,12 @@ function NoteEditorForm({
   const [pinned, setPinned] = useState(note.pinned);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [tagsOpen, setTagsOpen] = useState(false);
+  const [linksOpen, setLinksOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
+  const [actionSuccess, setActionSuccess] = useState<string | null>(null);
 
   async function togglePinned() {
     setActionError(null);
@@ -168,6 +194,27 @@ function NoteEditorForm({
   async function saveTags(tagIds: TagId[]) {
     await services.note.setTags(note.id, tagIds);
     invalidate();
+  }
+
+  async function saveLinks(noteIds: NoteId[]) {
+    await services.note.setLinks(note.id, noteIds);
+    invalidate();
+  }
+
+  function exportMarkdown() {
+    setActionError(null);
+    setActionSuccess(null);
+
+    try {
+      downloadTextFile(
+        noteMarkdownFileName(title),
+        noteMarkdownDocument(title, content),
+        "text/markdown"
+      );
+      setActionSuccess("notes.exportSuccess");
+    } catch {
+      setActionError("notes.exportError");
+    }
   }
 
   async function remove() {
@@ -235,6 +282,12 @@ function NoteEditorForm({
           <Button variant="secondary" onClick={() => setTagsOpen(true)}>
             {t("file.tags")}
           </Button>
+          <Button variant="secondary" onClick={() => setLinksOpen(true)}>
+            {t("notes.links")}
+          </Button>
+          <Button variant="secondary" onClick={exportMarkdown}>
+            {t("notes.exportMarkdown")}
+          </Button>
           <Button variant="secondary" onClick={() => setMoveOpen(true)}>
             {t("common.move")}
           </Button>
@@ -247,6 +300,11 @@ function NoteEditorForm({
       {actionError === null ? null : (
         <p role="alert" className="text-sm text-red-700 dark:text-red-300">
           {t(actionError)}
+        </p>
+      )}
+      {actionSuccess === null ? null : (
+        <p role="status" className="text-muted text-sm">
+          {t(actionSuccess)}
         </p>
       )}
 
@@ -311,6 +369,31 @@ function NoteEditorForm({
           </ul>
         )}
       </div>
+
+      <section className="space-y-2">
+        <div className="flex items-center justify-between gap-2">
+          <h2 className="text-sm font-semibold">{t("notes.linkedNotes")}</h2>
+          <Button variant="ghost" size="sm" onClick={() => setLinksOpen(true)}>
+            {t("notes.editLinks")}
+          </Button>
+        </div>
+        {linkedNotes.length === 0 ? (
+          <p className="text-muted text-sm">{t("notes.noLinkedNotes")}</p>
+        ) : (
+          <ul className="space-y-1">
+            {linkedNotes.map((linked) => (
+              <li key={linked.id}>
+                <Link
+                  href={`/notes/${linked.id}`}
+                  className="text-primary inline-flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline"
+                >
+                  {linked.title.trim().length === 0 ? t("notes.untitled") : linked.title}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div
         className="flex items-center gap-1"
@@ -392,6 +475,17 @@ function NoteEditorForm({
           onCreate={createTag}
           onSave={saveTags}
           onClose={() => setTagsOpen(false)}
+        />
+      ) : null}
+
+      {linksOpen ? (
+        <NoteLinksDialog
+          notes={allNotes}
+          notesTotal={notesTotal}
+          selected={linkedNotes.map((linked) => linked.id)}
+          currentNoteId={note.id}
+          onSave={saveLinks}
+          onClose={() => setLinksOpen(false)}
         />
       ) : null}
 

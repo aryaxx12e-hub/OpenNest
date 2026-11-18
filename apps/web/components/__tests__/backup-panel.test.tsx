@@ -190,6 +190,10 @@ describe("BackupPanel", () => {
     expect(text).not.toContain(workspace.id);
     expect(text).not.toContain("Before export");
     expect(mounted.container.textContent).toContain("Backup downloaded.");
+    expect(String(window.localStorage.getItem("opennest:backup:last-export"))).toMatch(
+      /^\d{4}-\d{2}-\d{2}T/
+    );
+    expect(mounted.container.textContent).toContain("Last backup");
   });
 
   it("exports a generated backup key and restores with it", async () => {

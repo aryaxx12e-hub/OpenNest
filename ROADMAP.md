@@ -6,9 +6,9 @@ Project status: MVP in progress; Stage D in progress
 Current milestone: Stage D. D2 local-only sync model, D3 encryption, D4A extension sandbox, and D4B AI provider are complete. Stage D security review, external cryptographic review, and the E2EE claim gate remain open.
 Last updated: November 2026
 
-Stage A foundation and Stage B core architecture are complete. Stage C core is
-delivered; the Knowledge Hub and recovery follow-ups remain open. Stage D is in
-progress. Stage E is not started.
+Stage A foundation, Stage B core architecture, and Stage C are delivered. The
+remaining Stage C PRD gaps are explicitly deferred in the register below. Stage D
+is in progress. Stage E is not started.
 
 OpenNest has five stages. Stage E is the final stage. There is no Stage F and no
 Phase 6. This restructure does not mark any work item complete.
@@ -59,7 +59,7 @@ Completion criteria: Both storage adapters pass the same conformance scenarios, 
 
 Stage C: MVP Features
 
-Status: core delivered; follow-ups open.
+Status: delivered; remaining PRD gaps explicitly deferred.
 
 Goal: Deliver the personal digital library, notes, search, and offline experience.
 
@@ -83,8 +83,10 @@ Library and notes core:
 
 Knowledge Hub follow-ups:
 
-- [ ] Connections between notes and files.
-- [ ] Knowledge Hub foundation.
+- [x] Note-to-note connections with outgoing linked notes.
+- [ ] Backlinks (deferred; linked notes are outgoing only in this delivery).
+- [ ] Connections between notes and files (deferred; needs a new relation, migrations, backup, and sync).
+- [x] Knowledge Hub foundation for note links, linked notes, and Markdown export.
 
 Offline and recovery follow-ups:
 
@@ -93,9 +95,10 @@ Offline and recovery follow-ups:
 - [x] Offline application shell.
 - [x] Offline access to locally stored content.
 - [x] Storage usage display in the Privacy Center (bytes and item counts).
-- [ ] Persistence and quota diagnostics, including eviction guidance.
-- [ ] Backup reminders that surface the last successful backup.
-- [ ] Guided recovery workflows for storage eviction and interrupted restore.
+- [x] Persistence and quota diagnostics, including eviction guidance.
+- [x] Backup reminders that surface the last successful backup.
+- [x] Guided recovery workflows for storage eviction and restore failures.
+- [ ] Interrupted-restore cleanup (deferred to Stage D; requires storage-level cleanup on startup).
 
 ### PRD Gap Register
 
@@ -106,11 +109,12 @@ reason.
 
 | Item | PRD reference | Current state | Decision |
 | --- | --- | --- | --- |
-| Note Markdown export | Module 02; Epic C acceptance | Not implemented | Pending owner decision |
-| Basic revision history | Module 02 | Not implemented; autosave and draft recovery only | Pending owner decision |
-| Library sort and filter | Module 01; Stage C filters | Sort fixed to updatedAt desc; filters only in Search | Pending owner decision |
-| Collection export | Module 01 | Full-workspace backup only | Pending owner decision |
-| Note link UI | Module 02; US-014 | Data model and service only | Tracked under Knowledge Hub follow-ups |
+| Note Markdown export | Module 02; Epic C acceptance | Per-note Markdown download delivered | Delivered |
+| Basic revision history | Module 02 | Not implemented; autosave and draft recovery only | Deferred: autosave and draft recovery only; owner Rya |
+| Library sort and filter | Module 01; Stage C filters | Sort by name, created, or updated; filter documents or images | Delivered |
+| Collection export | Module 01 | Full-workspace backup only | Deferred: full-workspace backup covers the MVP; owner Rya |
+| Note link UI | Module 02; US-014 | Note-to-note links with a picker and linked-note navigation | Delivered for note-to-note links |
+| File-note links | Module 02; US-014 | Not implemented | Deferred: needs a new relation, migrations, backup, and sync; owner Rya |
 
 Completion criteria: The MVP core is accepted; every item in the PRD Gap
 Register is delivered or explicitly deferred with an owner and reason; and the
@@ -125,7 +129,7 @@ Goal: Strengthen user control, security, and integration boundaries.
 
 - [x] Privacy Center.
 - [x] Data management controls.
-- [ ] Storage diagnostics.
+- [x] Storage diagnostics (usage, quota, persistence, and eviction guidance).
 - [ ] Optional storage adapters.
 - [ ] Self-hosting architecture evaluation.
 - [ ] Security review.

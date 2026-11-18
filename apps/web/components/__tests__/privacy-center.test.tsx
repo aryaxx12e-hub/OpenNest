@@ -67,13 +67,7 @@ function change(element: HTMLInputElement, value: string) {
   });
 }
 
-beforeEach(() => {
-  window.localStorage.clear();
-  document.body.replaceChildren();
-  container = document.createElement("div");
-  document.body.append(container);
-  root = createRoot(container);
-
+function mount() {
   act(() => {
     root!.render(
       <LocaleProvider>
@@ -83,6 +77,15 @@ beforeEach(() => {
       </LocaleProvider>
     );
   });
+}
+
+beforeEach(() => {
+  window.localStorage.clear();
+  document.body.replaceChildren();
+  container = document.createElement("div");
+  document.body.append(container);
+  root = createRoot(container);
+  mount();
 });
 
 afterEach(() => {
@@ -121,6 +124,45 @@ describe("PrivacyCenter", () => {
     expect(container?.querySelector('[role="status"]')?.textContent).toContain(
       "All local data was deleted."
     );
+  });
+
+  it("shows storage diagnostics and reports a denied persistence request", async () => {
+    const original = Object.getOwnPropertyDescriptor(window.navigator, "storage");
+    Object.defineProperty(window.navigator, "storage", {
+      configurable: true,
+      value: {
+        estimate: async () => ({ usage: 1536, quota: 2097152 }),
+        persisted: async () => false,
+        persist: async () => false,
+      },
+    });
+
+    try {
+      act(() => root?.unmount());
+      root = createRoot(container!);
+      mount();
+
+      await waitForText(container!, "Browser storage");
+      expect(container?.textContent).toContain("Not granted");
+
+      await act(async () => {
+        buttonByText(container!, "Keep this data").click();
+      });
+      await waitForText(
+        container!,
+        "The browser did not grant persistent storage. Keep a backup."
+      );
+
+      expect(container?.textContent).toContain(
+        "The browser did not grant persistent storage. Keep a backup."
+      );
+    } finally {
+      if (original === undefined) {
+        Reflect.deleteProperty(window.navigator, "storage");
+      } else {
+        Object.defineProperty(window.navigator, "storage", original);
+      }
+    }
   });
 
   it("exports an encrypted backup through the shared export dialog", async () => {

@@ -304,6 +304,16 @@ export const en = {
     import: "Restore from backup",
     importing: "Checking backup...",
     exportSuccess: "Backup downloaded.",
+    lastBackup: "Last backup",
+    neverBackedUp: "Never",
+    reminder: {
+      neverTitle: "Back up your library",
+      neverBody: "This library has not been backed up yet. A local copy is not a backup.",
+      dueTitle: "Your backup is out of date",
+      dueBody:
+        "Create a fresh backup so a device problem does not take your library with it.",
+      action: "Open backup settings",
+    },
     exportTitle: "Download a backup?",
     exportDescription:
       "The backup contains your files, notes, folders, and tags. It is created on this device.",
@@ -393,6 +403,26 @@ export const en = {
         "The backup contents are not valid. Nothing on this device was changed.",
       checksumMismatch: "A file in the backup does not match its checksum.",
     },
+    recovery: {
+      title: "If restore fails",
+      intro:
+        "Nothing is replaced until you confirm the restore. Work through these steps.",
+      wrongKey: "Check the passphrase or backup key. It must match the backup you chose.",
+      damaged: "This backup is damaged. Try another copy or an older backup.",
+      format:
+        "This file is not a backup OpenNest can read. Choose a backup created by OpenNest.",
+      drafts:
+        "Drafts could not be cleared. Clear this site's storage, then restore again.",
+      storage:
+        "Storage may be full or unavailable. Free space or export current data, then retry.",
+      generic: "Try another backup copy and check that storage is available.",
+      tryAnother: "Try another backup file.",
+      checkKey: "Check the passphrase or backup key.",
+      freeSpace: "Free device storage before trying again.",
+      clearSiteData:
+        "If drafts cannot be cleared, clear this site's storage in browser settings.",
+      diagnostics: "Open storage diagnostics",
+    },
   },
   privacy: {
     title: "Privacy Center",
@@ -415,6 +445,24 @@ export const en = {
     backup: {
       notice:
         "Recovery drafts, permission grants, audit entries, search results, and sync metadata (including outbox and conflict records) are not included in backup v1 or v2.",
+    },
+    storage: {
+      title: "Browser storage",
+      description: "This estimate covers this site in your browser, not only OpenNest.",
+      unsupported: "This browser does not report storage diagnostics.",
+      usage: "Used",
+      quota: "Quota",
+      percent: "Used",
+      persisted: "Persistent storage",
+      granted: "Granted",
+      denied: "Not granted",
+      unknown: "Unknown",
+      request: "Keep this data",
+      requestGranted: "The browser marked this site's data as persistent.",
+      requestDenied: "The browser did not grant persistent storage. Keep a backup.",
+      requestError: "The browser could not change persistence. Try again.",
+      notice:
+        "Persistent storage reduces eviction risk, but it does not survive clearing site data. It is not a backup.",
     },
     inventory: {
       title: "Data inventory",
@@ -735,6 +783,21 @@ export const en = {
     createFolderTitle: "New folder",
     createFolderDescription: "Create a folder inside the current location.",
     createFolder: "Create folder",
+    sortLabel: "Sort by",
+    sortName: "Name",
+    sortCreated: "Date added",
+    sortUpdated: "Last updated",
+    directionLabel: "Direction",
+    ascending: "Ascending",
+    descending: "Descending",
+    typeLabel: "Type",
+    allTypes: "All files",
+    documents: "Documents",
+    images: "Images",
+    clearFilters: "Clear filters",
+    filteredEmptyTitle: "No files match these filters",
+    filteredEmptyBody:
+      "Change the type filter or clear it to see the files in this folder.",
   },
   upload: {
     uploading: "Uploading...",
@@ -816,6 +879,20 @@ export const en = {
     imageBlocked: "Image not shown",
     notFoundTitle: "Note not found",
     notFoundBody: "This note may have been deleted.",
+    links: "Links",
+    linkedNotes: "Linked notes",
+    noLinkedNotes: "No linked notes yet.",
+    editLinks: "Edit links",
+    linkDialogTitle: "Link notes",
+    linkDialogDescription: "Choose notes to connect to this note.",
+    linkSearch: "Search notes",
+    linkEmpty: "No other notes yet.",
+    linkNoMatches: "No notes match this search.",
+    linkLimit: "Showing the 500 most recent notes. Type to narrow the list.",
+    linkUnavailable: "This linked note is unavailable.",
+    exportMarkdown: "Export Markdown",
+    exportSuccess: "Markdown file downloaded.",
+    exportError: "The note could not be exported. Try again.",
   },
   folderActions: {
     renameTitle: "Rename folder",

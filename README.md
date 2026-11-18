@@ -6,7 +6,9 @@ OpenNest is an open-source personal digital workspace designed to help people or
 
 Built around privacy-first and local-first principles, OpenNest aims to give users control over their digital information without forcing them into subscriptions, accounts, or cloud-dependent workflows.
 
-Status: Stage C core delivered; Knowledge Hub and recovery follow-ups remain open. Stage D is in progress. Library, notes, search, backup, and offline access work locally in the browser. Optional content encryption and optional BYOK AI providers are implemented. Local sideload extensions are implemented with a sandboxed, read-only host API. Independent security review is still pending.
+Status: Stage C delivered, with explicit deferrals recorded in ROADMAP.md. Stage D is in progress.
+
+Library, notes, search, backup, and offline access work locally in the browser. Optional content encryption and optional BYOK AI providers are implemented. Local sideload extensions are implemented with a sandboxed, read-only host API. Independent security review is still pending.
 
 🌱 Our Vision
 
@@ -141,7 +143,7 @@ OpenNest has five stages. Stage E is the final stage.
 
 - [x] Stage A: Foundation
 - [x] Stage B: Core architecture
-- [ ] Stage C: MVP features (core delivered; Knowledge Hub and storage recovery follow-ups open)
+- [x] Stage C: MVP features (delivered; explicit deferrals recorded in ROADMAP.md)
 - [ ] Stage D: Privacy, security, and extensibility (in progress)
 - [ ] Stage E: AI, sync, and collaboration (final stage)
 
@@ -214,7 +216,9 @@ OpenNest adalah ruang kerja digital pribadi berbasis open-source yang dirancang 
 
 Dibangun dengan prinsip privacy-first dan local-first, OpenNest bertujuan memberikan kendali penuh kepada pengguna atas informasi digital mereka tanpa ketergantungan wajib pada langganan, akun, atau layanan cloud.
 
-Status: Inti Stage C sudah selesai; follow-up Knowledge Hub dan recovery masih terbuka. Stage D sedang berjalan. Perpustakaan, catatan, pencarian, cadangan, dan akses offline sudah berjalan lokal di browser. Enkripsi konten opsional dan penyedia AI BYOK opsional sudah tersedia. Ekstensi lokal dengan sandbox dan API baca-saja sudah tersedia. Tinjauan keamanan independen belum dilakukan.
+Status: Stage C selesai, dengan penundaan eksplisit yang dicatat di ROADMAP.md. Stage D sedang berjalan.
+
+Perpustakaan, catatan, pencarian, cadangan, dan akses offline sudah berjalan lokal di browser. Enkripsi konten opsional dan penyedia AI BYOK opsional sudah tersedia. Ekstensi lokal dengan sandbox dan API baca-saja sudah tersedia. Tinjauan keamanan independen belum dilakukan.
 
 🌱 Visi Kami
 

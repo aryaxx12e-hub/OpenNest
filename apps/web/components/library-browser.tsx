@@ -4,9 +4,9 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 
-import type { Folder, FolderId } from "@opennest/core";
+import type { Folder, FolderId, SortField } from "@opennest/core";
 import { useTranslations } from "@opennest/localization";
-import { Button, ConfirmDialog, Skeleton } from "@opennest/ui";
+import { Button, ConfirmDialog, Select, Skeleton } from "@opennest/ui";
 
 import { EmptyState } from "@/components/empty-state";
 import { FileRow } from "@/components/file-row";
@@ -20,6 +20,7 @@ import { useAppData } from "@/lib/data/app-data-provider";
 import { useAsyncData } from "@/lib/data/hooks";
 import { errorKey } from "@/lib/errors";
 import { collectFolderSubtree } from "@/lib/folders";
+import { libraryTypeMimeTypes, type LibraryFileType } from "@/lib/library";
 
 const PAGE_STEP = 50;
 const PAGE_MAX = 500;
@@ -29,45 +30,54 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
   const router = useRouter();
   const { services, workspace, invalidate } = useAppData();
   const [limit, setLimit] = useState(PAGE_STEP);
+  const [sort, setSort] = useState<SortField>("updatedAt");
+  const [direction, setDirection] = useState<"asc" | "desc">("desc");
+  const [type, setType] = useState<LibraryFileType>("all");
   const [createOpen, setCreateOpen] = useState(false);
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
-  const state = useAsyncData(`library:${folderId ?? "root"}:${limit}`, async () => {
-    let folder: Folder | null = null;
-    let ancestors: Folder[] = [];
+  const state = useAsyncData(
+    `library:${folderId ?? "root"}:${limit}:${sort}:${direction}:${type}`,
+    async () => {
+      let folder: Folder | null = null;
+      let ancestors: Folder[] = [];
 
-    if (folderId !== null) {
-      folder = await services.folder.get(folderId);
+      if (folderId !== null) {
+        folder = await services.folder.get(folderId);
 
-      if (folder === null) {
-        return { missing: true as const };
+        if (folder === null) {
+          return { missing: true as const };
+        }
+
+        ancestors = await services.folder.ancestors(folder.id);
       }
 
-      ancestors = await services.folder.ancestors(folder.id);
+      const mimeTypes = libraryTypeMimeTypes(type);
+      const [children, files, allFolders] = await Promise.all([
+        services.folder.children(workspace.id, folderId),
+        services.file.list(
+          workspace.id,
+          mimeTypes === undefined
+            ? { folderId }
+            : { folderId, mimeTypes: [...mimeTypes] },
+          { limit, sort, direction }
+        ),
+        services.folder.list(workspace.id, { limit: PAGE_MAX, sort: "name" }),
+      ]);
+
+      return {
+        missing: false as const,
+        folder,
+        ancestors,
+        children,
+        files,
+        allFolders: allFolders.items,
+      };
     }
-
-    const [children, files, allFolders] = await Promise.all([
-      services.folder.children(workspace.id, folderId),
-      services.file.list(
-        workspace.id,
-        { folderId },
-        { limit, sort: "updatedAt", direction: "desc" }
-      ),
-      services.folder.list(workspace.id, { limit: PAGE_MAX, sort: "name" }),
-    ]);
-
-    return {
-      missing: false as const,
-      folder,
-      ancestors,
-      children,
-      files,
-      allFolders: allFolders.items,
-    };
-  });
+  );
 
   if (state.loading && state.data === null) {
     return (
@@ -117,7 +127,27 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
   const items = files?.items ?? [];
   const total = files?.total ?? 0;
   const allFolders = data?.allFolders ?? [];
-  const isEmpty = children.length === 0 && items.length === 0;
+  const isEmpty = children.length === 0 && items.length === 0 && type === "all";
+
+  function changeSort(value: SortField) {
+    setSort(value);
+    setLimit(PAGE_STEP);
+  }
+
+  function changeDirection(value: "asc" | "desc") {
+    setDirection(value);
+    setLimit(PAGE_STEP);
+  }
+
+  function changeType(value: LibraryFileType) {
+    setType(value);
+    setLimit(PAGE_STEP);
+  }
+
+  function clearFilters() {
+    setType("all");
+    setLimit(PAGE_STEP);
+  }
 
   async function rename(name: string) {
     if (currentFolder === null) {
@@ -227,6 +257,47 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
         </p>
       )}
 
+      <div className="border-border bg-surface grid gap-3 rounded-xl border p-3 sm:grid-cols-3">
+        <label className="space-y-1 text-sm">
+          <span className="text-muted block text-xs font-medium">
+            {t("library.sortLabel")}
+          </span>
+          <Select
+            value={sort}
+            onChange={(event) => changeSort(event.target.value as SortField)}
+          >
+            <option value="name">{t("library.sortName")}</option>
+            <option value="createdAt">{t("library.sortCreated")}</option>
+            <option value="updatedAt">{t("library.sortUpdated")}</option>
+          </Select>
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="text-muted block text-xs font-medium">
+            {t("library.directionLabel")}
+          </span>
+          <Select
+            value={direction}
+            onChange={(event) => changeDirection(event.target.value as "asc" | "desc")}
+          >
+            <option value="asc">{t("library.ascending")}</option>
+            <option value="desc">{t("library.descending")}</option>
+          </Select>
+        </label>
+        <label className="space-y-1 text-sm">
+          <span className="text-muted block text-xs font-medium">
+            {t("library.typeLabel")}
+          </span>
+          <Select
+            value={type}
+            onChange={(event) => changeType(event.target.value as LibraryFileType)}
+          >
+            <option value="all">{t("library.allTypes")}</option>
+            <option value="documents">{t("library.documents")}</option>
+            <option value="images">{t("library.images")}</option>
+          </Select>
+        </label>
+      </div>
+
       {children.length === 0 ? null : (
         <section aria-labelledby="library-folders" className="space-y-3">
           <h2 id="library-folders" className="text-sm font-semibold">
@@ -271,9 +342,21 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
           </div>
 
           {items.length === 0 ? (
-            <p className="text-muted border-border rounded-xl border border-dashed p-6 text-sm">
-              {t("library.emptyFolderBody")}
-            </p>
+            type === "all" ? (
+              <p className="text-muted border-border rounded-xl border border-dashed p-6 text-sm">
+                {t("library.emptyFolderBody")}
+              </p>
+            ) : (
+              <EmptyState
+                title={t("library.filteredEmptyTitle")}
+                description={t("library.filteredEmptyBody")}
+                action={
+                  <Button variant="secondary" onClick={clearFilters}>
+                    {t("library.clearFilters")}
+                  </Button>
+                }
+              />
+            )
           ) : (
             <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-xl border">
               {items.map((file) => (

@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, useSyncExternalStore } from "react";
 
 import type { BackupSnapshot } from "@opennest/core";
 import { formatNumber, useLocale, useTranslations } from "@opennest/localization";
@@ -8,8 +8,14 @@ import { Button, Card, ConfirmDialog } from "@opennest/ui";
 
 import { BackupExportDialog } from "@/components/backup-export-dialog";
 import { BackupImportDialog } from "@/components/backup-import-dialog";
+import { RecoveryGuide } from "@/components/recovery-guide";
 import { useEncryption } from "@/lib/crypto/encryption-gate";
 import { useAppData } from "@/lib/data/app-data-provider";
+import {
+  readLastBackupAt,
+  recordBackupExported,
+  subscribeBackupRecord,
+} from "@/lib/data/backup-reminder";
 import {
   backupErrorKey,
   downloadTextFile,
@@ -19,6 +25,7 @@ import {
   type BackupKeySource,
   type BackupSummary,
 } from "@/lib/data/backup";
+import { formatCalendarDate } from "@/lib/format";
 import { dataControlErrorKey } from "@/lib/privacy/errors";
 
 export interface BackupPanelProps {
@@ -56,6 +63,11 @@ export function BackupPanel({
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [draftWarning, setDraftWarning] = useState<string | null>(null);
+  const lastBackupAt = useSyncExternalStore(
+    subscribeBackupRecord,
+    readLastBackupAt,
+    () => null
+  );
 
   async function prepareExport() {
     setPreparing(true);
@@ -160,7 +172,7 @@ export function BackupPanel({
   }
 
   return (
-    <section className="space-y-4">
+    <section id="backup" className="scroll-mt-24 space-y-4">
       <Card className="space-y-4">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold">{t("backup.title")}</h2>
@@ -195,6 +207,12 @@ export function BackupPanel({
         </div>
 
         <p className="text-muted text-xs leading-5">{t("backup.localOnly")}</p>
+        <p className="text-muted text-xs leading-5">
+          {t("backup.lastBackup")}:{" "}
+          {lastBackupAt === null
+            ? t("backup.neverBackedUp")
+            : formatCalendarDate(locale, lastBackupAt)}
+        </p>
 
         {error === null ? null : (
           <p role="alert" className="text-sm text-red-700 dark:text-red-300">
@@ -213,6 +231,8 @@ export function BackupPanel({
         )}
       </Card>
 
+      <RecoveryGuide error={error ?? draftWarning} />
+
       {exportOpen ? (
         <BackupExportDialog
           open
@@ -220,7 +240,10 @@ export function BackupPanel({
           encryptionActive={encryptionActive || encryption.record !== null}
           download={download}
           onExport={(options) => privacy.data.exportAll(options)}
-          onExported={() => setSuccess("backup.exportSuccess")}
+          onExported={() => {
+            recordBackupExported();
+            setSuccess("backup.exportSuccess");
+          }}
           onClose={() => setExportOpen(false)}
         />
       ) : null}
