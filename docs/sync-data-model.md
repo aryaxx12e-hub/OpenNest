@@ -78,8 +78,8 @@ Restore is blocked when `workspace_sync_state.remoteWorkspaceId` is non-null. De
 
 ## D3 encryption implications
 
-D3 is still under implementation. The following constraints apply to the
-encrypted storage wrapper and must not be read as a shipped E2EE claim.
+D3 implementation is complete. The following constraints apply to the encrypted
+storage wrapper and must not be read as a shipped E2EE claim.
 
 - Note content and file bytes are ciphertext at rest when workspace encryption is
   active. Note titles and sync metadata remain plaintext.

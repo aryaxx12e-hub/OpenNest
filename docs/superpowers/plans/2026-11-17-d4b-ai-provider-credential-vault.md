@@ -1,6 +1,6 @@
 # Stage D4B AI Provider and Credential Vault Implementation Plan
 
-> **Status:** Approved by Rya on 2026-11-17. Tasks 1-15 complete. D4B implementation is complete; independent AI security review and the D4A extension remain open. Do not commit unless Rya explicitly asks.
+> **Status:** Approved by Rya on 2026-11-17. Tasks 1-15 complete. D4B implementation is complete; independent AI security review remains open. D4A was implemented separately under the 2026-11-18 plan. Do not commit unless Rya explicitly asks.
 >
 > **For agentic workers:** REQUIRED SUB-SKILL: Use `executing-plans` or `subagent-driven-development` to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking. The recommended execution method is native, because the vault, consent, and transport interfaces are sequential and a mistake in one task is expensive.
 
@@ -40,7 +40,7 @@
 - Model output is untrusted text. Never render it as HTML.
 - Every user-facing string is localized in English and Indonesian.
 - No commit unless Rya explicitly asks.
-- D4B completes only the AI half of D4. D4A extension remains separate and incomplete.
+- D4B completes only the AI half of D4. D4A was implemented separately; tool execution and MCP remain out of scope.
 - The browser cannot fully protect an unlocked secret from XSS. This residual risk must stay documented.
 
 ## Review Focus
@@ -1082,4 +1082,4 @@ D4B is complete only when:
 - Consent history, grant revocation, delete-all, and privacy inventory include AI data.
 - All localization parity checks pass.
 - Unit, integration, E2E, typecheck, lint, format, build, browser graph, and audit checks are run and reported honestly.
-- The plan does not mark D4 complete while D4A extension is still missing.
+- The plan does not mark D4 complete. D4A was implemented separately; independent Stage D reviews remain open.

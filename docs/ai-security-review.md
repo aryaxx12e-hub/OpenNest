@@ -247,7 +247,7 @@ OpenNest may not claim any of the following before the corresponding review:
 - That credentials are safe against XSS while unlocked.
 - That the vault is recoverable.
 - That tools, MCP, or document context are supported.
-- That D4 is complete while D4A extension is missing.
+- That D4 is complete while an independent security review remains open.
 - That the vault or AI layer has been independently reviewed.
 
 The correct product language before review is: "Optional AI providers are

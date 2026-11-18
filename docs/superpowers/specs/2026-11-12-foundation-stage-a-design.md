@@ -1,7 +1,8 @@
 # Foundation Stage A — Design
 
 - Date: 2026-11-12
-- Status: Proposed (awaiting approval)
+- Status: Implemented for Stage A. This document was originally a proposal; no
+  separate approval record is stored here. Live status is in `ROADMAP.md`.
 - Scope: Stage A of `AGENTS.md` only. Stage B and later are out of scope.
 - Source documents: `PRD.md`, `AGENTS.md`, `ROADMAP.md`, `README.md`
 

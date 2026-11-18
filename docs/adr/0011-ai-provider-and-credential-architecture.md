@@ -1,9 +1,9 @@
 # ADR 0011: AI provider and credential architecture
 
-- Status: Accepted for D4B AI track, D4A extension remains separate
+- Status: Accepted for D4B AI track; D4A extension is covered by ADR 0010
 - Date: 2026-11-14
 - Accepted: 2026-11-17
-- Implementation: D4B design accepted; implementation not started
+- Implementation: D4B implementation complete on 2026-11-18; independent review not started
 - Context: Stage D0 Privacy and Extensibility
 - Related: ADR 0008, ADR 0009, ADR 0010, ADR 0013
 - Product conflict: none, but security trade-offs require approval
@@ -86,7 +86,7 @@ Approved decisions:
    origin.
 
 The residual risks below remain accepted for implementation. They do not imply
-that the D4B implementation is complete or reviewed.
+independent review or security sign-off.
 
 ### Provider contract
 
@@ -304,8 +304,8 @@ proxy, bundled key, or mandatory cloud service.
 - Workspace E2EE and the credential vault are independent. Enabling one does not
   enable, unlock, or recover the other.
 - ADR 0004's local data flow is unchanged.
-- D4B completes only the AI half of D4. D4A extension and tool execution remain
-  separate.
+- D4B completes only the AI half of D4. D4A is implemented separately under ADR
+  0010; tool execution remains out of scope.
 
 ## Dependencies
 
@@ -338,7 +338,7 @@ proxy, bundled key, or mandatory cloud service.
 - D4B uses no vault recovery. A future optional vault-only recovery key would
   require a separate approval and must remain independent of workspace and backup
   recovery.
-- D4A extension, tools, and MCP remain separate approval items.
+- Tools and MCP remain separate approval items. D4A is implemented separately under ADR 0010.
 
 ## Acceptance criteria
 
@@ -370,7 +370,7 @@ proxy, bundled key, or mandatory cloud service.
   the exact origin.
 - Request and response logging is redacted.
 - Localhost provider configuration shows an explicit warning.
-- D4B does not complete D4 while D4A extension is missing.
+- D4B does not complete Stage D; D4A is implemented separately, and independent security reviews remain open.
 
 ## Testing strategy
 

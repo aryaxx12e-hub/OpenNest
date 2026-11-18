@@ -1,8 +1,9 @@
 # Credential vault
 
-Status: D4B design accepted on 2026-11-17. Implementation has not started. This
-document describes the optional passphrase-encrypted BYOK vault. It is not a
-workspace encryption document and makes no independent security claim.
+Status: D4B design accepted on 2026-11-17. Implementation completed on
+2026-11-18. Independent security review not started. This document describes the
+implemented optional passphrase-encrypted BYOK vault. It is not a workspace
+encryption document and makes no independent security claim.
 
 Binding decisions are in ADR 0011. The AI architecture is in
 [ai-provider-architecture.md](./ai-provider-architecture.md). The release gate is

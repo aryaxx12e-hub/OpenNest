@@ -1,7 +1,7 @@
 # Stage B: Core Architecture and Storage Design
 
-- Status: Approved (all six decisions confirmed by the product owner on
-  2026-11-12; implementation has not started)
+- Status: Approved on 2026-11-12 and implemented as Stage B. Live status is in
+  `ROADMAP.md`.
 - Date: 2026-11-12
 - Scope: AGENTS.md Stage B (domain models, storage interfaces, IndexedDB adapter,
   repository layer, validation, error handling, persistence tests), plus the

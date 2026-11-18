@@ -1,9 +1,10 @@
 # AI provider architecture
 
-Status: D4B design accepted on 2026-11-17. Implementation has not started. This
-document describes the target architecture for the AI half of Stage D4. D4A
-extension work remains separate, and this document does not claim that D4 is
-complete.
+Status: D4B design accepted on 2026-11-17. Implementation completed on
+2026-11-18. Independent security review not started. This document describes the
+implemented architecture for the AI half of Stage D4. D4A extension work is
+implemented separately under ADR 0010, and this document does not claim that
+Stage D4 is complete.
 
 Binding decisions are in ADR 0011. Credential storage is described in
 [credential-vault.md](./credential-vault.md). The release gate is
@@ -295,7 +296,6 @@ After deletion, AI is disabled and every provider is gone.
 
 ## Open gaps
 
-- D4A extension and sandbox are not implemented.
 - No external review of the AI provider, consent, or vault design has started.
 - CORS still limits some remote providers.
 - XSS while unlocked can read credentials or use handles.
