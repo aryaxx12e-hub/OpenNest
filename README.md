@@ -6,7 +6,7 @@ OpenNest is an open-source personal digital workspace designed to help people or
 
 Built around privacy-first and local-first principles, OpenNest aims to give users control over their digital information without forcing them into subscriptions, accounts, or cloud-dependent workflows.
 
-Status: MVP in progress · Library, notes, search, backup, and offline access work locally in the browser. Optional content encryption and optional BYOK AI providers are implemented. Local sideload extensions are implemented with a sandboxed, read-only host API. Independent security review is still pending.
+Status: Stage C core delivered; Knowledge Hub and recovery follow-ups remain open. Stage D is in progress. Library, notes, search, backup, and offline access work locally in the browser. Optional content encryption and optional BYOK AI providers are implemented. Local sideload extensions are implemented with a sandboxed, read-only host API. Independent security review is still pending.
 
 🌱 Our Vision
 
@@ -51,26 +51,28 @@ MVP capabilities:
 - [x] Data export and restore from a local backup
 - [x] Offline-ready Progressive Web App (PWA)
 - [x] Indonesian and English interface
+
+Stage D capabilities implemented ahead of MVP:
+
 - [x] Local sandboxed extensions with explicit read-only capabilities (review pending)
 
 Optional AI providers are available behind explicit consent. Local sideload extensions are also available behind explicit capability consent. AI tools, MCP execution, document context, AI chat history, cloud synchronization, collaboration, extension registries, and extension marketplaces remain deferred until the core experience is stable.
 
 🧱 Technology Stack
 
-The planned technology stack includes:
+The current technology stack is:
 
 - Framework: Next.js and React
 - Language: TypeScript
 - Styling: Tailwind CSS
-- UI Components: shadcn/ui
-- Icons: Lucide
+- UI Components: internal `@opennest/ui` package
 - Browser Storage: IndexedDB with Dexie
-- Database: SQLite with Drizzle ORM for supported server-side deployments
+- Database: SQLite via `node:sqlite` with Drizzle ORM
 - Validation: Zod
-- Testing: Vitest and Playwright
-- Documentation: Markdown and VitePress
+- Testing: Vitest; browser E2E via system Playwright and Chromium
+- Documentation: Markdown
 
-The architecture will use storage abstractions so the application is not tightly coupled to a single storage implementation.
+The architecture uses storage abstractions so the application is not tightly coupled to a single storage implementation.
 
 🔒 Privacy First
 
@@ -157,7 +159,8 @@ instructions.
 🛠️ Development
 
 Requirements: Node.js >= 24.0.0 (`.nvmrc` pins 24) and npm >= 10. No global CLI
-tools are needed.
+tools are needed for app development. Browser E2E tests require system Playwright
+1.65 and Chromium; see `docs/development.md`.
 
 ```bash
 npm install
@@ -174,8 +177,9 @@ npm run build
 npm run test:e2e
 ```
 
-See `docs/development.md` for the full workflow, Android/Termux notes, and the
-known limitations of this environment.
+`npm run test:e2e` requires system Playwright and Chromium; the other gates use
+repository-local dependencies. See `docs/development.md` for the full workflow,
+Android/Termux notes, and the known limitations of this environment.
 
 Before contributing, read:
 
@@ -198,9 +202,7 @@ If you find the project useful, you can support its development through:
 
 📜 License
 
-The project is planned to use the GNU Affero General Public License v3.0 (AGPL-3.0).
-
-The final license will be included in the repository before the first public release.
+OpenNest is licensed under the GNU Affero General Public License v3.0 (AGPL-3.0). See [LICENSE](./LICENSE) for the full text.
 
 ---
 
@@ -212,7 +214,7 @@ OpenNest adalah ruang kerja digital pribadi berbasis open-source yang dirancang 
 
 Dibangun dengan prinsip privacy-first dan local-first, OpenNest bertujuan memberikan kendali penuh kepada pengguna atas informasi digital mereka tanpa ketergantungan wajib pada langganan, akun, atau layanan cloud.
 
-Status: MVP dalam pengembangan · Perpustakaan, catatan, pencarian, cadangan, dan akses offline sudah berjalan lokal di browser. Enkripsi konten opsional dan penyedia AI BYOK opsional sudah tersedia. Ekstensi lokal dengan sandbox dan API baca-saja sudah tersedia. Tinjauan keamanan independen belum dilakukan.
+Status: Inti Stage C sudah selesai; follow-up Knowledge Hub dan recovery masih terbuka. Stage D sedang berjalan. Perpustakaan, catatan, pencarian, cadangan, dan akses offline sudah berjalan lokal di browser. Enkripsi konten opsional dan penyedia AI BYOK opsional sudah tersedia. Ekstensi lokal dengan sandbox dan API baca-saja sudah tersedia. Tinjauan keamanan independen belum dilakukan.
 
 🌱 Visi Kami
 
@@ -231,6 +233,7 @@ Sudah tersedia:
 - My Library: Mengatur file dan sumber daya digital.
 - Smart Documents: Membuat serta mengatur catatan Markdown.
 - Siap offline: Pasang aplikasi dan buka kembali konten yang sudah di-cache tanpa koneksi.
+- Konsol AI opsional: Meninjau dan mengirim prompt ke penyedia yang kamu konfigurasi sendiri.
 - Ekstensi lokal: Memasang ekstensi baca-saja dari paket JSON lokal di dalam sandbox.
 - Pusat Privasi: Memahami dan mengelola penyimpanan data.
 
@@ -254,6 +257,9 @@ Fitur MVP:
 - [x] Export data dan pemulihan dari cadangan lokal.
 - [x] PWA yang siap digunakan secara offline.
 - [x] Antarmuka Bahasa Indonesia dan Inggris.
+
+Kemampuan Stage D yang sudah diimplementasikan lebih awal:
+
 - [x] Ekstensi lokal dengan sandbox dan izin baca-saja (tinjauan keamanan belum selesai).
 
 Fitur AI, sinkronisasi cloud, kolaborasi, registri ekstensi, dan marketplace ekstensi akan dikembangkan setelah fondasi utama stabil.
@@ -287,7 +293,7 @@ Kontribusi terbuka untuk siapa pun, baik melalui kode, dokumentasi, desain, pene
 
 📜 Lisensi
 
-OpenNest direncanakan menggunakan GNU Affero General Public License v3.0 (AGPL-3.0). Lisensi final akan disertakan sebelum rilis publik pertama.
+OpenNest menggunakan GNU Affero General Public License v3.0 (AGPL-3.0). Teks lengkap tersedia di [LICENSE](./LICENSE).
 
 ---
 

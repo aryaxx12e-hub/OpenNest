@@ -4,11 +4,15 @@ Product Requirements Document & Technical Blueprint
 
 Tagline: Your digital life. Your rules.
 Product type: Open-source personal digital workspace
-Version: 1.0
-Status: Product definition / Pre-development
+Version: 1.1
+Status: MVP 0.1 implementation in progress; Stage D in progress
+Last updated: November 2026
 Platforms: Web + Progressive Web App (PWA)
 Languages: English and Bahasa Indonesia
-License proposal: GNU AGPL-3.0
+License: GNU AGPL-3.0 (see LICENSE)
+
+Implementation status is tracked in ROADMAP.md. Presence in this document does
+not mean a capability is already shipped.
 
 ---
 
@@ -487,6 +491,11 @@ Testing| Vitest
 E2E| Playwright
 PWA| Web App Manifest + Service Worker
 Documentation| VitePress
+
+Implementation note (November 2026): the shipped UI uses the internal
+`@opennest/ui` package rather than shadcn/ui, does not use Lucide, and keeps
+documentation as plain Markdown rather than VitePress. The table above remains
+the original plan; see README.md for the current stack.
 
 Use stable, mutually compatible package versions at project initialization. Do not blindly install every package marked "latest".
 
@@ -1289,6 +1298,11 @@ Your digital life. Your rules.
 ---
 
 22. First Release Checklist
+
+Status note (November 2026): this checklist is historical. Delivered items are
+tracked in ROADMAP.md; unchecked boxes here do not mean the capability is
+missing. The AGPL license and the foundation stack are already in place.
+shadcn/ui was not adopted; the UI uses `@opennest/ui`.
 
 - [ ] Create GitHub repository.
 - [ ] Confirm project name and repository availability.

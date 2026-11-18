@@ -9,8 +9,9 @@ labels; see the Stage Naming History section in `ROADMAP.md`.
   built-in `node:sqlite` and refuses a native addon on this platform.
 - npm >= 10
 
-No global CLI tools are required. Everything runs through the repository's own
-scripts.
+No global CLI tools are required for app development. Everything runs through
+the repository's own scripts. Browser E2E tests are the exception: they use the
+system Playwright module and Chromium described below.
 
 ## Install
 

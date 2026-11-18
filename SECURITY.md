@@ -2,8 +2,8 @@
 
 ## Supported versions
 
-OpenNest is in pre-development. There are no supported releases yet. Security
-fixes are applied to `main` only.
+OpenNest is pre-1.0 and has no supported public release yet. Security fixes are
+applied to `main` only.
 
 ## Reporting a vulnerability
 
