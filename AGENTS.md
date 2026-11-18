@@ -293,6 +293,9 @@ Use meaningful commit messages.
 
 Update documentation when architecture or functionality changes.
 
+When a stage completes, update the status header in `PRD.md`, the README status
+line, ROADMAP checkboxes, and `CHANGELOG.md` in the same change.
+
 Maintain:
 
 - README.md

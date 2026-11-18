@@ -6,6 +6,11 @@
 - Code changes: none
 - ADR range: 0008 to 0013
 
+> Outcome note (November 2026): this pack is historical. ADR 0011 was accepted
+> for D4B. The base decisions for D4A, D2, and D3 were implemented through
+> separate stage approvals; refinements still marked `Proposed` below remain
+> proposed. See ROADMAP.md for delivery status.
+
 ## 1. Purpose
 
 Stage D0 defines the architecture needed before OpenNest implements the Privacy

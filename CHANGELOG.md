@@ -6,6 +6,17 @@ releases begin.
 
 ## [Unreleased]
 
+### Pre-D4A milestones
+
+- Stage A: Next.js and TypeScript foundation, Tailwind CSS, localization,
+  package boundaries, and test tooling.
+- Stage B: domain models, storage ports, IndexedDB and SQLite adapters,
+  repository layer, validation, and persistence conformance.
+- Stage C: library, notes, tags, search, backup and restore, PWA, offline shell,
+  installation, and accessibility work.
+- Stage D1-D3: Privacy Center, extension architecture, AI consent and
+  credentials, sync-compatible data model, and optional workspace encryption.
+
 ### Added
 
 - Optional AI providers using the OpenAI-compatible chat API, with local and
