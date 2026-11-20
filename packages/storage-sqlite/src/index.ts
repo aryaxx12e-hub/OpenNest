@@ -5,4 +5,8 @@ export {
   type BlobReconcileResult,
   type FileSystemBlobStoreConfig,
 } from "./blob-store";
+export {
+  createSqliteCollaborationStore,
+  type SqliteCollaborationStoreOptions,
+} from "./collaboration-store";
 export { createSqliteStorage, type SqliteStorageOptions } from "./storage";

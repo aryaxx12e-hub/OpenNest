@@ -2,10 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, type MouseEvent } from "react";
+import { useState, type ComponentType, type MouseEvent } from "react";
 
 import type { NoteId } from "@opennest/core";
 import { cn } from "@opennest/ui";
+import {
+  HomeIcon,
+  LibraryIcon,
+  MenuIcon,
+  NoteIcon,
+  PrivacyIcon,
+  SearchIcon,
+  SettingsIcon,
+  XIcon,
+  type IconProps,
+} from "@opennest/ui";
 import { useTranslations } from "@opennest/localization";
 
 import type { NoteDraft } from "@/lib/autosave/draft-journal";
@@ -17,13 +28,23 @@ import { LanguageSwitcher } from "./language-switcher";
 import { ServiceWorkerUpdate } from "./service-worker-update";
 import { ThemeToggle } from "./theme-toggle";
 
-const items = [
+interface NavItem {
+  key: string;
+  labelKey: string;
+  shortKey: string;
+  href: string;
+  match: readonly string[];
+  icon: ComponentType<IconProps>;
+}
+
+const items: readonly NavItem[] = [
   {
     key: "home",
     labelKey: "nav.home",
     shortKey: "nav.home",
     href: "/",
     match: ["/"],
+    icon: HomeIcon,
   },
   {
     key: "library",
@@ -31,6 +52,7 @@ const items = [
     shortKey: "nav.libraryShort",
     href: "/library",
     match: ["/library", "/files"],
+    icon: LibraryIcon,
   },
   {
     key: "notes",
@@ -38,6 +60,7 @@ const items = [
     shortKey: "nav.notes",
     href: "/notes",
     match: ["/notes"],
+    icon: NoteIcon,
   },
   {
     key: "search",
@@ -45,6 +68,7 @@ const items = [
     shortKey: "nav.search",
     href: "/search",
     match: ["/search"],
+    icon: SearchIcon,
   },
   {
     key: "privacy",
@@ -52,6 +76,7 @@ const items = [
     shortKey: "nav.privacy",
     href: "/privacy",
     match: ["/privacy"],
+    icon: PrivacyIcon,
   },
   {
     key: "settings",
@@ -59,10 +84,11 @@ const items = [
     shortKey: "nav.settings",
     href: "/settings",
     match: ["/settings"],
+    icon: SettingsIcon,
   },
-] as const;
+];
 
-function isActive(item: (typeof items)[number], pathname: string): boolean {
+function isActive(item: NavItem, pathname: string): boolean {
   return item.match.some(
     (prefix) =>
       pathname === prefix || (prefix !== "/" && pathname.startsWith(`${prefix}/`))
@@ -79,7 +105,7 @@ function handleOfflineNavigation(event: MouseEvent<HTMLAnchorElement>, href: str
 export function AppShell({ children }: { children: React.ReactNode }) {
   const t = useTranslations();
   const pathname = usePathname() ?? "/";
-  const [collapsed, setCollapsed] = useState(false);
+  const [railCollapsed, setRailCollapsed] = useState(false);
   const appData = useOptionalAppData();
 
   const classifyDrafts =
@@ -103,91 +129,119 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           );
 
   return (
-    <div className="flex min-h-dvh flex-col">
+    <div className="bg-background min-h-dvh p-0 sm:p-3 lg:p-4">
       <a
         href="#main-content"
-        className="focus:bg-primary focus:text-primary-foreground sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:rounded-lg focus:px-4 focus:py-2"
+        className="focus:bg-primary focus:text-primary-foreground focus:rounded-control sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2"
       >
         {t("common.skipToContent")}
       </a>
-      <header className="border-border bg-surface/90 sticky top-0 z-20 flex min-h-14 items-center justify-between gap-1.5 border-b px-2.5 backdrop-blur sm:px-6">
-        <div className="flex min-w-0 items-center gap-3">
-          <span
-            aria-hidden="true"
-            className="bg-primary text-primary-foreground grid size-8 shrink-0 place-items-center rounded-xl text-sm font-bold"
+
+      <div className="border-border bg-surface sm:rounded-panel sm:shadow-float mx-auto flex min-h-dvh max-w-[1600px] flex-col overflow-hidden sm:min-h-[calc(100dvh-1.5rem)] sm:border lg:min-h-[calc(100dvh-2rem)]">
+        <header className="border-border flex min-h-16 items-center justify-between gap-2 border-b px-3 sm:gap-3 sm:px-6">
+          <Link
+            href="/"
+            aria-label={t("app.name")}
+            className="rounded-control focus-visible:outline-primary flex min-w-0 items-center gap-2 focus-visible:outline-2 focus-visible:outline-offset-4 sm:gap-3"
           >
-            O
-          </span>
-          <div className="flex min-w-0 flex-col leading-tight">
-            <span className="truncate text-sm font-semibold">{t("app.name")}</span>
-            <span className="text-muted hidden truncate text-xs sm:block">
-              {t("app.tagline")}
+            <span
+              aria-hidden="true"
+              className="size-9 shrink-0 rounded-[0.9rem] bg-[url('/icon.svg')] bg-cover bg-center"
+            />
+            <span className="flex min-w-0 flex-col leading-tight">
+              <span
+                aria-hidden="true"
+                className="text-primary block h-[1.375rem] w-[6.97rem] shrink-0 bg-current"
+                style={{
+                  maskImage: "url('/brand/opennest-wordmark.png')",
+                  maskPosition: "left center",
+                  maskRepeat: "no-repeat",
+                  maskSize: "contain",
+                  WebkitMaskImage: "url('/brand/opennest-wordmark.png')",
+                  WebkitMaskPosition: "left center",
+                  WebkitMaskRepeat: "no-repeat",
+                  WebkitMaskSize: "contain",
+                }}
+              />
+              <span className="text-muted mt-1 hidden truncate text-xs sm:block">
+                {t("app.tagline")}
+              </span>
             </span>
+          </Link>
+
+          <div className="flex shrink-0 items-center gap-1">
+            <ConnectionStatus />
+            <LanguageSwitcher />
+            <ThemeToggle />
+            <button
+              type="button"
+              onClick={() => setRailCollapsed((value) => !value)}
+              aria-expanded={!railCollapsed}
+              aria-controls="primary-navigation"
+              className="border-border text-muted hover:bg-surface-muted hover:text-foreground rounded-control hidden min-h-11 min-w-11 items-center justify-center border md:inline-flex"
+            >
+              {railCollapsed ? (
+                <MenuIcon className="size-5" />
+              ) : (
+                <XIcon className="size-5" />
+              )}
+              <span className="sr-only">
+                {railCollapsed ? t("nav.showSidebar") : t("nav.hideSidebar")}
+              </span>
+            </button>
           </div>
-        </div>
+        </header>
 
-        <div className="flex shrink-0 items-center gap-1">
-          <ConnectionStatus />
-          <LanguageSwitcher />
-          <ThemeToggle />
-          <button
-            type="button"
-            onClick={() => setCollapsed((value) => !value)}
-            aria-expanded={!collapsed}
-            aria-controls="primary-navigation"
-            className="border-border text-foreground hover:bg-border/40 hidden min-h-11 items-center rounded-lg border px-3 text-sm font-medium md:inline-flex"
+        <ServiceWorkerUpdate classifyDrafts={classifyDrafts} />
+
+        <div className="flex flex-1">
+          <nav
+            id="primary-navigation"
+            aria-label={t("nav.labelDesktop")}
+            className={cn(
+              "border-border bg-surface-muted/45 w-20 shrink-0 flex-col items-center gap-2 border-r px-2 py-4",
+              railCollapsed ? "hidden" : "hidden md:flex"
+            )}
           >
-            {collapsed ? t("nav.showSidebar") : t("nav.hideSidebar")}
-          </button>
+            <ul className="flex flex-col gap-2">
+              {items.map((item) => (
+                <li key={item.key}>
+                  <NavRailLink item={item} active={isActive(item, pathname)} />
+                </li>
+              ))}
+            </ul>
+          </nav>
+
+          <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 pb-24 md:pb-0">
+            {children}
+          </main>
         </div>
-      </header>
-
-      <ServiceWorkerUpdate classifyDrafts={classifyDrafts} />
-
-      <div className="flex flex-1">
-        <nav
-          id="primary-navigation"
-          aria-label={t("nav.labelDesktop")}
-          className={cn(
-            "border-border bg-surface hidden w-64 shrink-0 border-r p-3 md:block",
-            collapsed && "md:hidden"
-          )}
-        >
-          <NavList />
-        </nav>
-
-        <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 pb-24 md:pb-0">
-          {children}
-        </main>
       </div>
 
       <nav
         aria-label={t("nav.labelMobile")}
-        className="border-border bg-surface/95 fixed inset-x-0 bottom-0 z-20 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        className="border-border bg-surface/95 fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
       >
-        <ul className="flex items-stretch">
+        <ul className="grid grid-cols-6">
           {items.map((item) => {
             const active = isActive(item, pathname);
+            const Icon = item.icon;
 
             return (
-              <li key={item.key} className="min-w-0 flex-1">
+              <li key={item.key} className="min-w-0">
                 <Link
                   href={item.href}
                   aria-current={active ? "page" : undefined}
                   onClick={(event) => handleOfflineNavigation(event, item.href)}
                   className={cn(
-                    "flex min-h-16 w-full flex-col items-center justify-center gap-0.5 px-0.5 text-center",
-                    active ? "text-primary" : "text-foreground hover:bg-border/30"
+                    "flex min-h-16 w-full flex-col items-center justify-center gap-1 px-1 text-[10px] leading-tight font-medium",
+                    active
+                      ? "text-primary bg-primary-soft/70"
+                      : "text-muted hover:bg-surface-muted hover:text-foreground"
                   )}
                 >
-                  <span className="max-w-full truncate text-xs leading-tight font-medium">
-                    {t(item.shortKey)}
-                  </span>
-                  {active ? (
-                    <span className="max-w-full truncate text-[10px] leading-tight font-semibold">
-                      {t("common.current")}
-                    </span>
-                  ) : null}
+                  <Icon className="size-5" />
+                  <span className="max-w-full truncate">{t(item.shortKey)}</span>
                 </Link>
               </li>
             );
@@ -198,33 +252,27 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   );
 }
 
-function NavList() {
+function NavRailLink({ item, active }: { item: NavItem; active: boolean }) {
   const t = useTranslations();
-  const pathname = usePathname() ?? "/";
+  const Icon = item.icon;
 
   return (
-    <ul className="flex flex-col gap-1">
-      {items.map((item) => {
-        const active = isActive(item, pathname);
-
-        return (
-          <li key={item.key}>
-            <Link
-              href={item.href}
-              aria-current={active ? "page" : undefined}
-              onClick={(event) => handleOfflineNavigation(event, item.href)}
-              className={cn(
-                "flex min-h-11 items-center justify-between gap-2 rounded-xl px-3 text-sm font-medium",
-                active
-                  ? "bg-primary/10 text-primary font-semibold"
-                  : "text-foreground hover:bg-border/30"
-              )}
-            >
-              <span className="truncate">{t(item.labelKey)}</span>
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
+    <Link
+      href={item.href}
+      aria-current={active ? "page" : undefined}
+      onClick={(event) => handleOfflineNavigation(event, item.href)}
+      className={cn(
+        "group rounded-control relative flex size-12 items-center justify-center transition-colors",
+        active
+          ? "bg-primary text-primary-foreground shadow-sm"
+          : "text-muted hover:bg-surface hover:text-foreground"
+      )}
+    >
+      <Icon className="size-5" />
+      <span className="border-border bg-surface text-foreground rounded-control pointer-events-none absolute left-full z-30 ml-3 hidden border px-2.5 py-1 text-xs font-medium whitespace-nowrap shadow-sm group-hover:block group-focus-visible:block">
+        {t(item.labelKey)}
+      </span>
+      <span className="sr-only">{t(item.labelKey)}</span>
+    </Link>
   );
 }

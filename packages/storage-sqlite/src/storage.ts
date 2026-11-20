@@ -50,6 +50,7 @@ import { backupSnapshotSchema } from "@opennest/validation";
 import { and, eq, inArray, isNull, sql } from "drizzle-orm";
 
 import { DEFAULT_STALE_TEMP_AGE_MS, FileSystemBlobStore } from "./blob-store";
+import { createSqliteCollaborationStore } from "./collaboration-store";
 import { openDatabase, type SqliteDatabase } from "./db";
 import { mapSqliteError } from "./errors";
 import { DEFAULT_LIMIT, mapPage, paginate } from "./pagination";
@@ -314,6 +315,11 @@ export function createSqliteStorage(config: SqliteStorageOptions): SyncCapableSt
   }
 
   const sync = createSqliteSyncStore(() => requireDb());
+  const collaboration = createSqliteCollaborationStore({
+    getDb: requireDb,
+    sync,
+    atomic,
+  });
 
   async function run<T>(work: () => Promise<T>): Promise<T> {
     guard();
@@ -2127,6 +2133,7 @@ export function createSqliteStorage(config: SqliteStorageOptions): SyncCapableSt
     search,
     blobs,
     sync,
+    collaboration,
     async transaction(work) {
       guard();
 

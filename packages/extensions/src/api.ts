@@ -4,6 +4,7 @@ export const EXTENSION_HOST_METHODS = [
   "workspace.listNotes",
   "workspace.listFiles",
   "workspace.readNote",
+  "ai.generate",
   "storage.get",
   "storage.set",
   "storage.delete",

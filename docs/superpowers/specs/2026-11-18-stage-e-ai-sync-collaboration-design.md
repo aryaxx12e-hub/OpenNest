@@ -1,9 +1,11 @@
 # Stage E: AI, Sync, and Collaboration Design
 
-- Status: Approved for planning
+- Status: Approved; decision records accepted 2026-11-18; implementation complete; release gates open
 - Date: 2026-11-18
 - Stage: E
 - Related: ADR 0008, ADR 0009, ADR 0011, ADR 0012, ADR 0013, ADR 0015
+- Decision records: ADR 0016, ADR 0017, ADR 0018, ADR 0019, ADR 0020
+- Gates: `docs/stage-e-gate-register.md`
 - Plan: `docs/superpowers/plans/2026-11-18-stage-e-ai-sync-collaboration.md`
 
 ## Intent
@@ -17,6 +19,18 @@ The user chose real-time collaboration, self-hosted first, with cloud later. A
 shared workspace is one invite-only workspace per deployment, with owner, editor,
 and viewer roles. Shared workspaces do not claim end-to-end encryption in this
 stage.
+
+## Decision Records
+
+- [ADR 0016: Server authentication and tenant boundary](../../adr/0016-server-auth-and-tenant.md)
+- [ADR 0017: Server sync protocol](../../adr/0017-sync-protocol.md)
+- [ADR 0018: Real-time collaboration](../../adr/0018-real-time-collaboration.md)
+- [ADR 0019: AI document Q&A and egress](../../adr/0019-ai-document-qa-and-egress.md)
+- [ADR 0020: Read-only MCP server](../../adr/0020-mcp-server.md)
+
+The ADRs are binding for implementation details. This spec remains the product
+authority when an ADR is silent. The gate register records release evidence and
+does not close an external review by itself.
 
 ## Goals
 
@@ -169,7 +183,9 @@ The approved approach is 1.
 - Q&A covers Markdown notes and text-readable files only.
 - The user selects content. Only selected passages may be sent to a remote
   provider, after per-request consent.
-- AI requests may use `D3` only for document Q&A.
+- AI requests use `D2` for selected document content and must reject `D3`.
+  `D3` is the secrets class in ADR 0008, not document content. The prompt is
+  derived `D4` data and inherits the `D2` handling policy.
 - The model receives numbered passage IDs. Every citation must match a supplied
   passage ID. Invalid citations are removed.
 - If no valid citation remains, the answer is marked unsupported.
@@ -235,11 +251,16 @@ The approved approach is 1.
 
 ## Open Gates
 
-- Stage D security review.
-- External cryptographic review and E2EE claim gate.
+`docs/stage-e-gate-register.md` is the release gate. No gate is closed by this
+design.
+
+- Stage D overall security review, extension sandbox review, and AI and vault
+  review.
+- External cryptographic review and E2EE claim gate, including R-13-7.
 - Collaboration security review before multi-user release.
 - MCP security review before MCP release.
 - AI egress review before remote document Q&A release.
+- Self-hosted release operations review.
 - First hosted CI run.
 - Cloud sync operations and security review after self-hosted is stable.
 

@@ -10,6 +10,7 @@ import {
   Badge,
   Button,
   Card,
+  CloudOffIcon,
   Dialog,
   Label,
   Select,
@@ -18,6 +19,7 @@ import {
 } from "@opennest/ui";
 
 import type { AiCredentialChoice, AiPreparedRequest, AiRuntime } from "@/lib/ai/runtime";
+import { PageContainer } from "@/components/page-container";
 import { useAppData } from "@/lib/data/app-data-provider";
 import type { CredentialRuntime } from "@/lib/credentials/runtime";
 import type { SessionCredentialMetadata } from "@/lib/credentials/session-store";
@@ -361,34 +363,41 @@ export function AiConsole({ ai, credentials }: AiConsoleProps) {
 
   if (loading) {
     return (
-      <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:px-6">
+      <PageContainer className="max-w-5xl space-y-4">
         <Skeleton className="h-9 w-56" />
         <Skeleton className="h-64 w-full" />
-      </div>
+      </PageContainer>
     );
   }
 
   if (loadError !== null) {
     return (
-      <div className="mx-auto w-full max-w-3xl px-4 py-10 sm:px-6">
+      <PageContainer className="max-w-5xl">
         <div role="alert" className="space-y-3">
           <h1 className="text-xl font-semibold">{t("ai.console.title")}</h1>
           <p className="text-muted text-sm">{t(loadError)}</p>
           <Button onClick={() => void refresh()}>{t("common.retry")}</Button>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:px-6">
+    <PageContainer className="max-w-5xl space-y-4">
       <header className="space-y-1">
-        <h1 className="text-2xl font-semibold">{t("ai.console.title")}</h1>
-        <p className="text-muted text-sm leading-6">{t("ai.console.description")}</p>
+        <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+          {t("ai.console.title")}
+        </h1>
+        <p className="text-muted max-w-2xl text-sm leading-6">
+          {t("ai.console.description")}
+        </p>
       </header>
 
       {!enabled ? (
         <Card className="space-y-3">
+          <span className="bg-primary-soft text-primary rounded-control grid size-12 place-items-center">
+            <CloudOffIcon className="size-6" />
+          </span>
           <h2 className="text-lg font-semibold">{t("ai.console.disabledTitle")}</h2>
           <p className="text-muted text-sm leading-6">{t("ai.console.disabledBody")}</p>
           <Link
@@ -563,7 +572,7 @@ export function AiConsole({ ai, credentials }: AiConsoleProps) {
           {response === null ? null : (
             <pre
               data-testid="ai-console-response"
-              className="border-border bg-border/20 overflow-x-auto rounded-xl border p-3 text-sm whitespace-pre-wrap"
+              className="border-border bg-border/20 rounded-control overflow-x-auto border p-3 text-sm whitespace-pre-wrap"
             >
               {response}
             </pre>
@@ -641,7 +650,7 @@ export function AiConsole({ ai, credentials }: AiConsoleProps) {
               <p className="font-medium">{t("ai.console.consentPrompt")}</p>
               <pre
                 data-testid="ai-consent-prompt"
-                className="border-border bg-border/20 max-h-56 overflow-auto rounded-xl border p-3 text-xs whitespace-pre-wrap"
+                className="border-border bg-border/20 rounded-control max-h-56 overflow-auto border p-3 text-xs whitespace-pre-wrap"
               >
                 {prepared.prepared.request.messages
                   .map((message) => message.content)
@@ -651,6 +660,6 @@ export function AiConsole({ ai, credentials }: AiConsoleProps) {
           </div>
         )}
       </Dialog>
-    </div>
+    </PageContainer>
   );
 }

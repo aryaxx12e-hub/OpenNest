@@ -11,6 +11,7 @@ export function LanguageSwitcher() {
       <span className="sr-only">{t("common.language")}</span>
       <select
         value={locale}
+        aria-label={t("common.language")}
         onChange={(event) => {
           const next = event.target.value;
           const match = locales.find((candidate) => candidate === next);
@@ -18,10 +19,10 @@ export function LanguageSwitcher() {
             setLocale(match);
           }
         }}
-        className="border-border bg-surface text-foreground min-h-11 rounded-lg border px-2 text-sm"
+        className="border-border bg-surface text-foreground rounded-control min-h-11 w-[4.5rem] border px-2 text-sm"
       >
-        <option value="en">English</option>
-        <option value="id">Bahasa Indonesia</option>
+        <option value="en">EN</option>
+        <option value="id">ID</option>
       </select>
     </label>
   );

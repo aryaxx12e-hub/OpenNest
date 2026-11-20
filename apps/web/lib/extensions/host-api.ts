@@ -2,6 +2,7 @@ import type { AppServices } from "@/lib/data/services";
 import type { Note, NoteId, StoredFile, Workspace } from "@opennest/core";
 import {
   ExtensionError,
+  type ExtensionCapability,
   type ExtensionFileMetadata,
   type ExtensionHostRequest,
   type ExtensionNote,
@@ -17,6 +18,8 @@ import type {
   WorkspaceCapability,
 } from "@opennest/privacy";
 import { z } from "zod";
+
+import type { ExtensionAiCapability } from "./ai-capability";
 
 const emptyParamsSchema = z.strictObject({});
 const listParamsSchema = z.strictObject({
@@ -54,6 +57,8 @@ export interface ExtensionHostApiInput {
   readonly services: AppServices;
   readonly broker: CapabilityBroker;
   readonly storage: ExtensionStorageStore;
+  readonly ai?: ExtensionAiCapability | null;
+  readonly capabilities?: readonly ExtensionCapability[];
   readonly now: () => number;
 }
 
@@ -128,6 +133,8 @@ function pageDto<T, R>(
 export function createExtensionHostApi(input: ExtensionHostApiInput): ExtensionHostApi {
   const { extensionId, extensionName, workspace, services, broker, storage } = input;
   const workspaceId = workspace.id;
+  const ai = input.ai ?? null;
+  const capabilities = input.capabilities ?? [];
 
   async function run<T>(
     capability: WorkspaceCapability,
@@ -241,6 +248,21 @@ export function createExtensionHostApi(input: ExtensionHostApiInput): ExtensionH
               return noteDto(note);
             }
           );
+        }
+
+        case "ai.generate": {
+          if (!capabilities.includes("ai.generate")) {
+            throw new ExtensionError(
+              "unknown_method",
+              "The AI capability is not declared by this extension."
+            );
+          }
+
+          if (ai === null) {
+            throw new ExtensionError("ai_unavailable", "AI is not available.");
+          }
+
+          return ai.generate({ id: extensionId, name: extensionName }, request.params);
         }
 
         case "storage.get": {

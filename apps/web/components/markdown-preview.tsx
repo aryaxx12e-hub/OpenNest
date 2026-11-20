@@ -27,7 +27,7 @@ const components: Components = {
     </code>
   ),
   pre: ({ children }) => (
-    <pre className="bg-background my-4 overflow-auto rounded-xl p-4 text-sm leading-6">
+    <pre className="bg-background rounded-control my-4 overflow-auto p-4 text-sm leading-6">
       {children}
     </pre>
   ),
@@ -65,7 +65,7 @@ function BlockedImage() {
   const t = useTranslations();
 
   return (
-    <span className="border-border text-muted my-2 inline-flex rounded-lg border border-dashed px-3 py-1 text-sm">
+    <span className="border-border text-muted rounded-control my-2 inline-flex border border-dashed px-3 py-1 text-sm">
       {t("notes.imageBlocked")}
     </span>
   );

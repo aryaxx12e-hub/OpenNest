@@ -1,0 +1,29 @@
+{
+  "name": "@opennest/server",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "dev": "node ../../scripts/tsx.mjs watch src/index.ts",
+    "start": "node ../../scripts/tsx.mjs src/index.ts",
+    "typecheck": "node ../../scripts/tsc-server.mjs",
+    "test": "node ../../scripts/vitest.mjs run apps/server",
+    "bootstrap-owner": "node ../../scripts/tsx.mjs src/cli/bootstrap-owner.ts"
+  },
+  "dependencies": {
+    "@opennest/collaboration": "0.1.0",
+    "@opennest/core": "0.1.0",
+    "@opennest/storage-sqlite": "0.1.0",
+    "@opennest/sync": "0.1.0",
+    "@opennest/sync-protocol": "0.1.0",
+    "@opennest/validation": "0.1.0",
+    "ws": "8.23.0"
+  },
+  "devDependencies": {
+    "@types/ws": "8.18.2",
+    "tsx": "4.23.15"
+  }
+}

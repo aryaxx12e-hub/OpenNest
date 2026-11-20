@@ -45,6 +45,7 @@ import {
 import { backupSnapshotSchema } from "@opennest/validation";
 import Dexie from "dexie";
 
+import { createDexieCollaborationStore } from "./collaboration-store";
 import { mapStorageError } from "./errors";
 import { createDexieSyncStore } from "./sync-store";
 import { DEFAULT_LIMIT, paginate } from "./pagination";
@@ -137,6 +138,7 @@ export function createDexieStorage(config: DexieStorageOptions): SyncCapableStor
     db.sync_devices,
   ];
   const sync = createDexieSyncStore(db);
+  const collaboration = createDexieCollaborationStore({ db, sync });
 
   let closed = false;
   let transactionDepth = 0;
@@ -1718,6 +1720,7 @@ export function createDexieStorage(config: DexieStorageOptions): SyncCapableStor
     search,
     blobs,
     sync,
+    collaboration,
     async transaction(work) {
       guard();
 

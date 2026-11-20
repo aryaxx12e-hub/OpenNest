@@ -592,7 +592,7 @@ export function AiCredentials({ ai, credentials, refreshToken = 0 }: AiCredentia
             {sessionCredentials.map((credential) => (
               <li
                 key={credential.id}
-                className="border-border flex flex-wrap items-center justify-between gap-2 rounded-xl border p-3"
+                className="border-border rounded-control flex flex-wrap items-center justify-between gap-2 border p-3"
               >
                 <div className="space-y-1">
                   <p className="font-medium">{credential.accountLabel}</p>
@@ -632,7 +632,7 @@ export function AiCredentials({ ai, credentials, refreshToken = 0 }: AiCredentia
 
         {!vaultExists ? (
           <form className="space-y-3" onSubmit={setupVault} noValidate>
-            <div className="border-border bg-border/20 space-y-2 rounded-xl border p-3">
+            <div className="border-border bg-border/20 rounded-control space-y-2 border p-3">
               <h4 className="text-sm font-semibold">{t("ai.credentials.setupTitle")}</h4>
               <p className="text-muted text-xs leading-5">
                 {t("ai.credentials.setupWarning")}
@@ -750,7 +750,7 @@ export function AiCredentials({ ai, credentials, refreshToken = 0 }: AiCredentia
               </Button>
             </div>
 
-            <details className="border-border rounded-xl border p-3">
+            <details className="border-border rounded-control border p-3">
               <summary className="cursor-pointer text-sm font-medium">
                 {t("ai.credentials.changeTitle")}
               </summary>
@@ -888,7 +888,7 @@ export function AiCredentials({ ai, credentials, refreshToken = 0 }: AiCredentia
                     <li
                       key={entry.id}
                       data-testid={`vault-entry-${entry.id}`}
-                      className="border-border space-y-3 rounded-xl border p-3"
+                      className="border-border rounded-control space-y-3 border p-3"
                     >
                       <div className="flex flex-wrap items-center justify-between gap-2">
                         <div className="space-y-1">

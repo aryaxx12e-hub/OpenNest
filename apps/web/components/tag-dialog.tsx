@@ -106,7 +106,7 @@ export function TagDialog({ tags, selected, onCreate, onSave, onClose }: TagDial
           <ul className="max-h-56 space-y-1 overflow-auto">
             {items.map((tag) => (
               <li key={tag.id}>
-                <label className="hover:bg-border/30 flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2">
+                <label className="hover:bg-border/30 rounded-control flex min-h-11 cursor-pointer items-center gap-3 px-2">
                   <input
                     type="checkbox"
                     checked={chosen.has(tag.id)}

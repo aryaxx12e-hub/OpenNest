@@ -5,9 +5,10 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 
 import type { FolderId, SearchHit, TagId } from "@opennest/core";
 import { formatNumber, useLocale, useTranslations } from "@opennest/localization";
-import { Badge, Button, Card, Input, Select, Skeleton } from "@opennest/ui";
+import { Badge, Button, Card, Input, SearchIcon, Select, Skeleton } from "@opennest/ui";
 
 import { EmptyState } from "@/components/empty-state";
+import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { useAppData } from "@/lib/data/app-data-provider";
 import { useAsyncData } from "@/lib/data/hooks";
@@ -83,7 +84,7 @@ export function SearchView() {
   const hasFilters = kind !== undefined || folderId !== undefined || tagIds.length > 0;
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-6">
+    <PageContainer>
       <PageHeader title={t("search.title")} description={t("search.subtitle")} />
 
       <Card className="space-y-4">
@@ -193,11 +194,13 @@ export function SearchView() {
         </div>
       ) : !hasQuery ? (
         <EmptyState
+          icon={<SearchIcon className="size-6" />}
           title={t("search.promptTitle")}
           description={t("search.promptBody")}
         />
       ) : hits.length === 0 ? (
         <EmptyState
+          icon={<SearchIcon className="size-6" />}
           title={t("search.noResultsTitle")}
           description={t("search.noResultsBody")}
         />
@@ -211,7 +214,7 @@ export function SearchView() {
           >
             {formatNumber(locale, hits.length)} {t("search.resultCount")}
           </h2>
-          <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-xl border">
+          <ul className="border-border bg-surface divide-border rounded-card divide-y overflow-hidden border">
             {hits.map((hit) => (
               <li key={`${hit.kind}:${hit.id}`}>
                 <Link
@@ -231,6 +234,6 @@ export function SearchView() {
           </ul>
         </section>
       )}
-    </div>
+    </PageContainer>
   );
 }

@@ -9,6 +9,8 @@ import {
   type StoredExtension,
 } from "@opennest/extensions";
 
+import type { ExtensionAiCapability } from "./ai-capability";
+
 import {
   createExtensionSession,
   type ExtensionSession,
@@ -31,6 +33,7 @@ export interface CreateExtensionRuntimeInput {
   readonly now: () => number;
   readonly generateId: () => string;
   readonly transportFactory: ExtensionTransportFactory;
+  readonly ai?: ExtensionAiCapability | null;
 }
 
 export interface ExtensionRuntime {
@@ -126,6 +129,7 @@ export function createExtensionRuntime(
         privacy,
         services,
         storage: store.storage,
+        ai: input.ai ?? null,
         transport,
         onUi: handlers.onUi ?? (() => undefined),
         onStatus: (event) => {

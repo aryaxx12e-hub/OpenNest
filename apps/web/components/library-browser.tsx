@@ -6,7 +6,7 @@ import { useState } from "react";
 
 import type { Folder, FolderId, SortField } from "@opennest/core";
 import { useTranslations } from "@opennest/localization";
-import { Button, ConfirmDialog, Select, Skeleton } from "@opennest/ui";
+import { Button, Card, ConfirmDialog, LibraryIcon, Select, Skeleton } from "@opennest/ui";
 
 import { EmptyState } from "@/components/empty-state";
 import { FileRow } from "@/components/file-row";
@@ -14,6 +14,7 @@ import { FolderCard } from "@/components/folder-card";
 import { CreateFolderDialog } from "@/components/create-folder-dialog";
 import { MoveDialog } from "@/components/move-dialog";
 import { NameDialog } from "@/components/name-dialog";
+import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { UploadButton } from "@/components/upload-button";
 import { useAppData } from "@/lib/data/app-data-provider";
@@ -81,23 +82,23 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
 
   if (state.loading && state.data === null) {
     return (
-      <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6 sm:px-6">
+      <PageContainer className="space-y-4">
         <Skeleton className="h-9 w-64" />
         <Skeleton className="h-16 w-full" />
         <Skeleton className="h-16 w-full" />
         <Skeleton className="h-16 w-full" />
-      </div>
+      </PageContainer>
     );
   }
 
   if (state.error !== null) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
+      <PageContainer>
         <div role="alert" className="space-y-3">
           <h1 className="text-xl font-semibold">{t("errors.unexpected")}</h1>
           <Button onClick={state.reload}>{t("common.retry")}</Button>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -106,7 +107,7 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
 
   if (missing) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
+      <PageContainer>
         <EmptyState
           title={t("library.notFoundTitle")}
           description={t("library.notFoundBody")}
@@ -116,7 +117,7 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
             </Link>
           }
         />
-      </div>
+      </PageContainer>
     );
   }
 
@@ -193,7 +194,7 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-6 px-4 py-6 sm:px-6">
+    <PageContainer>
       <nav
         aria-label="Breadcrumb"
         className="text-muted flex flex-wrap items-center gap-1 text-sm"
@@ -257,7 +258,7 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
         </p>
       )}
 
-      <div className="border-border bg-surface grid gap-3 rounded-xl border p-3 sm:grid-cols-3">
+      <Card className="grid gap-3 p-4 sm:grid-cols-3">
         <label className="space-y-1 text-sm">
           <span className="text-muted block text-xs font-medium">
             {t("library.sortLabel")}
@@ -296,13 +297,16 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
             <option value="images">{t("library.images")}</option>
           </Select>
         </label>
-      </div>
+      </Card>
 
       {children.length === 0 ? null : (
         <section aria-labelledby="library-folders" className="space-y-3">
-          <h2 id="library-folders" className="text-sm font-semibold">
-            {t("library.folders")}
-          </h2>
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 id="library-folders" className="text-sm font-semibold">
+              {t("library.folders")}
+            </h2>
+            <span className="text-muted text-xs">{children.length}</span>
+          </div>
           <div className="grid gap-2 sm:grid-cols-2 lg:grid-cols-3">
             {children.map((folder) => (
               <FolderCard key={folder.id} folder={folder} />
@@ -313,6 +317,7 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
 
       {isEmpty ? (
         <EmptyState
+          icon={<LibraryIcon className="size-6" />}
           title={
             currentFolder === null
               ? t("library.emptyTitle")
@@ -343,7 +348,7 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
 
           {items.length === 0 ? (
             type === "all" ? (
-              <p className="text-muted border-border rounded-xl border border-dashed p-6 text-sm">
+              <p className="text-muted border-border rounded-card border border-dashed p-6 text-sm">
                 {t("library.emptyFolderBody")}
               </p>
             ) : (
@@ -358,7 +363,7 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
               />
             )
           ) : (
-            <ul className="border-border bg-surface divide-border divide-y overflow-hidden rounded-xl border">
+            <ul className="border-border bg-surface divide-border rounded-card divide-y overflow-hidden border">
               {items.map((file) => (
                 <FileRow key={file.id} file={file} />
               ))}
@@ -418,6 +423,6 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
         onConfirm={() => void remove()}
         onClose={() => setDeleteOpen(false)}
       />
-    </div>
+    </PageContainer>
   );
 }

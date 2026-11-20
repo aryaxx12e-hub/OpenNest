@@ -239,7 +239,7 @@ export function BackupExportDialog({
         ) : null}
 
         {protection === "backupKey" ? (
-          <div className="border-border bg-background/60 space-y-2 rounded-xl border p-3">
+          <div className="border-border bg-background/60 rounded-control space-y-2 border p-3">
             <Label htmlFor={`${ids}-backup-key`}>
               {t("backup.exportDialog.generatedKeyLabel")}
             </Label>
@@ -328,7 +328,7 @@ function ProtectionOption({
   onSelect: () => void;
 }) {
   return (
-    <label className="border-border flex items-start gap-3 rounded-xl border p-3 text-sm">
+    <label className="border-border rounded-control flex items-start gap-3 border p-3 text-sm">
       <input
         type="radio"
         name="backup-protection"

@@ -3,6 +3,7 @@
 import { useCallback, useSyncExternalStore } from "react";
 
 import { useTranslations } from "@opennest/localization";
+import { MoonIcon, SunIcon } from "@opennest/ui";
 
 import { isDarkTheme, setTheme, subscribeToTheme } from "@/lib/theme";
 
@@ -24,9 +25,12 @@ export function ThemeToggle() {
       onClick={toggle}
       aria-pressed={dark}
       aria-label={t("common.toggleTheme")}
-      className="text-foreground hover:bg-border/40 min-h-11 rounded-lg px-3 text-sm font-medium"
+      className="text-foreground hover:bg-border/40 rounded-control inline-flex min-h-11 min-w-11 items-center justify-center gap-2 px-0 text-sm font-medium sm:px-3"
     >
-      {dark ? t("common.light") : t("common.dark")}
+      {dark ? <SunIcon className="size-5" /> : <MoonIcon className="size-5" />}
+      <span className="hidden sm:inline">
+        {dark ? t("common.light") : t("common.dark")}
+      </span>
     </button>
   );
 }

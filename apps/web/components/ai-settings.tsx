@@ -225,7 +225,7 @@ export function AiSettings({ ai, credentials }: AiSettingsProps) {
               <li
                 key={provider.id}
                 data-testid={`provider-row-${provider.id}`}
-                className="border-border flex flex-wrap items-start justify-between gap-3 rounded-xl border p-3"
+                className="border-border rounded-control flex flex-wrap items-start justify-between gap-3 border p-3"
               >
                 <div className="min-w-0 space-y-1">
                   <div className="flex flex-wrap items-center gap-2">

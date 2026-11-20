@@ -9,3 +9,8 @@
 .next/
 node_modules/
 coverage/
+.playwright-mcp/
+
+# Files without a Prettier parser
+/.dockerignore
+/deploy/Dockerfile

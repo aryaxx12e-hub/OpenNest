@@ -1,7 +1,8 @@
 # Stage D security review
 
 Status: internal audit complete; independent review not started. This is not a
-security report and it does not close the Stage D gate.
+security report and it does not close the Stage D gate. Stage E internal
+automated evidence is recorded below; external Stage E gates remain open.
 
 ## Scope
 
@@ -58,6 +59,34 @@ hydration. The script is a repository constant assembled with `JSON.stringify`
 over fixed storage key and color values. It contains no user, note, file, or
 provider data and does not render Markdown or extension output. It is required to
 avoid a theme flash and is classified as safe by construction.
+
+## Stage E internal implementation addendum
+
+Date: 2026-11-19
+
+The Stage E implementation adds a single-user server, sync authority, file
+versions, real-time collaboration, document Q&A, extension AI capability, and a
+read-only MCP server. This addendum records internal automated evidence only. It
+is not a security review and it closes no gate.
+
+| Area                       | Evidence                                                                                 | Result                                                                                                                        |
+| -------------------------- | ---------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------- |
+| Full non-browser gates     | `npm run lint`, `npm run format:check`, `npm run typecheck`, `npm test`, `npm run build` | Passed: 185 test files, 1666 tests; 16 routes (14 static pages); service worker with 60 precached paths                       |
+| Sync protocol E2E          | `node scripts/e2e-sync.mjs`                                                              | Passed: viewer denial, sync conflict, file conflict copy                                                                      |
+| Collaboration protocol E2E | `node scripts/e2e-collaboration.mjs`                                                     | Passed: presence, reconnect, offline update, viewer denial                                                                    |
+| AI Q&A E2E                 | `node scripts/e2e-ai-qa.mjs`                                                             | Passed: consent before send, valid citation, unsupported citation                                                             |
+| MCP E2E                    | `node scripts/e2e-mcp.mjs`                                                               | Passed: token creation, read-only tools, cross-workspace denial                                                               |
+| Self-hosting operations    | `docs/self-hosting.md`                                                                   | Runbook documented; TLS, backup, restore, migration, rollback, delete-all, and single-writer not executed in this environment |
+| Browser E2E                | Not run                                                                                  | Blocked by missing login, shared-workspace binding, Q&A source picker, and MCP token management surfaces                      |
+
+The test run prints a Vite `configLoader` warning about ESM syntax in
+`vitest.config.ts`, a mixed esbuild/oxc options warning, and a happy-dom
+environment-creation notice. None is a failure.
+
+External gates remain open. Shared workspace content is visible to the server
+operator, AI Q&A is provider egress after consent, MCP is read-only and disabled
+by default, and no E2EE or MCP isolation claim is made. See
+`docs/stage-e-gate-register.md` and `docs/stage-e-release-checklist.md`.
 
 ## Findings
 

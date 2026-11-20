@@ -33,6 +33,7 @@ export interface NoteAutosave {
   draftRestored: boolean;
   setTitle: (value: string) => void;
   setContent: (value: string) => void;
+  applyRemoteContent: (value: string) => void;
   flush: () => Promise<SaveFlushResult>;
   deactivate: () => void;
 }
@@ -322,6 +323,18 @@ export function useNoteAutosave({
     setContentState(value);
   }, []);
 
+  const applyRemoteContent = useCallback((value: string) => {
+    if (contentRef.current === value) {
+      return;
+    }
+
+    contentRef.current = value;
+    revisionRef.current += 1;
+    setContentState(value);
+    savedRef.current = { ...savedRef.current, content: value };
+    setSaved(savedRef.current);
+  }, []);
+
   const deactivate = useCallback(() => {
     activeRef.current = false;
     void clearDraftNow();
@@ -505,6 +518,7 @@ export function useNoteAutosave({
     draftRestored,
     setTitle,
     setContent,
+    applyRemoteContent,
     flush,
     deactivate,
   };

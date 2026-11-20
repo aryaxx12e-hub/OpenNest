@@ -2,18 +2,31 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useCallback, useId, useState, type KeyboardEvent } from "react";
+import {
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+} from "react";
 
 import type { Folder, FolderId, Note, NoteId, Tag, TagId } from "@opennest/core";
 import { useLocale, useTranslations } from "@opennest/localization";
-import { Button, Card, ConfirmDialog, Input, Skeleton, Textarea } from "@opennest/ui";
+import { Button, Card, ConfirmDialog, Input, Skeleton } from "@opennest/ui";
 
+import { LiveBadge } from "@/components/collaboration/live-badge";
+import { Presence } from "@/components/collaboration/presence";
+import { MarkdownEditor } from "@/components/editor/markdown-editor";
 import { EmptyState } from "@/components/empty-state";
 import { MarkdownPreview } from "@/components/markdown-preview";
 import { MoveDialog } from "@/components/move-dialog";
 import { NoteLinksDialog } from "@/components/note-links-dialog";
+import { PageContainer } from "@/components/page-container";
 import { TagDialog } from "@/components/tag-dialog";
 import { useNoteAutosave, type NoteSavePatch } from "@/lib/autosave/use-note-autosave";
+import { readBrowserCollaborationConfig } from "@/lib/collaboration/provider";
+import { useCollaboration } from "@/lib/collaboration/use-collaboration";
 import { useAppData } from "@/lib/data/app-data-provider";
 import { downloadTextFile } from "@/lib/data/backup";
 import { useAsyncData } from "@/lib/data/hooks";
@@ -61,21 +74,21 @@ export function NoteEditor({ noteId }: { noteId: NoteId }) {
 
   if (state.loading && state.data === null) {
     return (
-      <div className="mx-auto w-full max-w-4xl space-y-4 px-4 py-6 sm:px-6">
+      <PageContainer className="max-w-5xl space-y-4">
         <Skeleton className="h-9 w-64" />
         <Skeleton className="h-96 w-full" />
-      </div>
+      </PageContainer>
     );
   }
 
   if (state.error !== null) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
+      <PageContainer className="max-w-5xl">
         <div role="alert" className="space-y-3">
           <h1 className="text-xl font-semibold">{t("errors.unexpected")}</h1>
           <Button onClick={state.reload}>{t("common.retry")}</Button>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -83,7 +96,7 @@ export function NoteEditor({ noteId }: { noteId: NoteId }) {
 
   if (data === null || data.missing) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
+      <PageContainer className="max-w-5xl">
         <EmptyState
           title={t("notes.notFoundTitle")}
           description={t("notes.notFoundBody")}
@@ -93,7 +106,7 @@ export function NoteEditor({ noteId }: { noteId: NoteId }) {
             </Link>
           }
         />
-      </div>
+      </PageContainer>
     );
   }
 
@@ -159,7 +172,32 @@ function NoteEditorForm({
     dirty,
     titleMissing,
     draftRestored,
+    applyRemoteContent,
   } = autosave;
+  const [collaborationConfig] = useState(readBrowserCollaborationConfig);
+  const collaboration = useCollaboration({
+    noteId: note.id,
+    shared: collaborationConfig?.shared ?? false,
+    url: collaborationConfig?.url ?? null,
+    initialText: note.content,
+    onTextChange: (text, source) => {
+      if (source !== "local") {
+        applyRemoteContent(text);
+      }
+    },
+  });
+  const draftSentRef = useRef(false);
+  const sendCollaborationText = collaboration.setText;
+
+  useEffect(() => {
+    if (!draftRestored || draftSentRef.current) {
+      return;
+    }
+
+    draftSentRef.current = true;
+    sendCollaborationText(content);
+  }, [draftRestored, content, sendCollaborationText]);
+
   const [pinned, setPinned] = useState(note.pinned);
   const [mode, setMode] = useState<"edit" | "preview">("edit");
   const [tagsOpen, setTagsOpen] = useState(false);
@@ -267,8 +305,8 @@ function NoteEditorForm({
           : t("notes.saved");
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-5 px-4 py-6 sm:px-6">
-      <div className="flex flex-wrap items-center justify-between gap-2">
+    <PageContainer className="max-w-5xl">
+      <Card className="flex flex-wrap items-center justify-between gap-3 p-3">
         <Link
           href="/notes"
           className="text-muted hover:text-foreground text-sm underline-offset-4 hover:underline"
@@ -276,26 +314,46 @@ function NoteEditorForm({
           {t("notes.back")}
         </Link>
         <div className="flex flex-wrap gap-2">
-          <Button variant="secondary" onClick={() => void togglePinned()}>
+          <Button
+            variant="secondary"
+            disabled={collaboration.readOnly}
+            onClick={() => void togglePinned()}
+          >
             {pinned ? t("notes.unpin") : t("notes.pin")}
           </Button>
-          <Button variant="secondary" onClick={() => setTagsOpen(true)}>
+          <Button
+            variant="secondary"
+            disabled={collaboration.readOnly}
+            onClick={() => setTagsOpen(true)}
+          >
             {t("file.tags")}
           </Button>
-          <Button variant="secondary" onClick={() => setLinksOpen(true)}>
+          <Button
+            variant="secondary"
+            disabled={collaboration.readOnly}
+            onClick={() => setLinksOpen(true)}
+          >
             {t("notes.links")}
           </Button>
           <Button variant="secondary" onClick={exportMarkdown}>
             {t("notes.exportMarkdown")}
           </Button>
-          <Button variant="secondary" onClick={() => setMoveOpen(true)}>
+          <Button
+            variant="secondary"
+            disabled={collaboration.readOnly}
+            onClick={() => setMoveOpen(true)}
+          >
             {t("common.move")}
           </Button>
-          <Button variant="danger" onClick={() => setDeleteOpen(true)}>
+          <Button
+            variant="danger"
+            disabled={collaboration.readOnly}
+            onClick={() => setDeleteOpen(true)}
+          >
             {t("common.delete")}
           </Button>
         </div>
-      </div>
+      </Card>
 
       {actionError === null ? null : (
         <p role="alert" className="text-sm text-red-700 dark:text-red-300">
@@ -315,6 +373,7 @@ function NoteEditorForm({
         <Input
           id="note-title"
           value={title}
+          readOnly={collaboration.readOnly}
           aria-invalid={titleMissing}
           aria-describedby={titleMissing ? titleErrorId : undefined}
           className="text-2xl font-semibold"
@@ -351,6 +410,22 @@ function NoteEditorForm({
           <span>{formatDateTime(locale, updatedAt)}</span>
           {pinned ? <span>{t("notes.pinned")}</span> : null}
         </div>
+        {collaborationConfig === null ? null : (
+          <div className="flex flex-wrap items-center gap-2 pt-1">
+            <LiveBadge status={collaboration.status} readOnly={collaboration.readOnly} />
+            <Presence participants={collaboration.participants} />
+          </div>
+        )}
+        {collaborationConfig === null ? null : collaboration.readOnly ? (
+          <p role="status" className="text-muted text-xs">
+            {t("collaboration.readOnlyNotice")}
+          </p>
+        ) : collaboration.status === "reconnecting" ||
+          collaboration.status === "offline" ? (
+          <p role="status" className="text-muted text-xs">
+            {t("collaboration.reconnectingNotice")}
+          </p>
+        ) : null}
         {noteTags.length === 0 ? null : (
           <ul className="flex flex-wrap gap-2 pt-1">
             {noteTags.map((tag) => (
@@ -373,7 +448,12 @@ function NoteEditorForm({
       <section className="space-y-2">
         <div className="flex items-center justify-between gap-2">
           <h2 className="text-sm font-semibold">{t("notes.linkedNotes")}</h2>
-          <Button variant="ghost" size="sm" onClick={() => setLinksOpen(true)}>
+          <Button
+            variant="ghost"
+            size="sm"
+            disabled={collaboration.readOnly}
+            onClick={() => setLinksOpen(true)}
+          >
             {t("notes.editLinks")}
           </Button>
         </div>
@@ -411,8 +491,8 @@ function NoteEditorForm({
           onClick={() => setMode("edit")}
           className={
             mode === "edit"
-              ? "bg-primary text-primary-foreground min-h-10 rounded-lg px-3 text-sm font-medium"
-              : "text-muted hover:bg-border/40 min-h-10 rounded-lg px-3 text-sm"
+              ? "bg-primary text-primary-foreground rounded-control min-h-10 px-3 text-sm font-medium"
+              : "text-muted hover:bg-border/40 rounded-control min-h-10 px-3 text-sm"
           }
         >
           {t("notes.editor")}
@@ -427,8 +507,8 @@ function NoteEditorForm({
           onClick={() => setMode("preview")}
           className={
             mode === "preview"
-              ? "bg-primary text-primary-foreground min-h-10 rounded-lg px-3 text-sm font-medium"
-              : "text-muted hover:bg-border/40 min-h-10 rounded-lg px-3 text-sm"
+              ? "bg-primary text-primary-foreground rounded-control min-h-10 px-3 text-sm font-medium"
+              : "text-muted hover:bg-border/40 rounded-control min-h-10 px-3 text-sm"
           }
         >
           {t("notes.preview")}
@@ -437,13 +517,17 @@ function NoteEditorForm({
 
       {mode === "edit" ? (
         <div role="tabpanel" id={editPanelId} aria-labelledby={editTabId}>
-          <Textarea
+          <MarkdownEditor
             value={content}
-            aria-label={t("notes.editor")}
+            ariaLabel={t("notes.editor")}
+            readOnly={collaboration.readOnly}
             rows={20}
             className="min-h-[55vh] font-mono"
             placeholder={t("notes.previewEmpty")}
-            onChange={(event) => autosave.setContent(event.target.value)}
+            onChange={(value) => {
+              autosave.setContent(value);
+              collaboration.setText(value);
+            }}
             onBlur={() => {
               if (dirty) {
                 void autosave.flush();
@@ -512,6 +596,6 @@ function NoteEditorForm({
         onConfirm={() => void remove()}
         onClose={() => setDeleteOpen(false)}
       />
-    </div>
+    </PageContainer>
   );
 }

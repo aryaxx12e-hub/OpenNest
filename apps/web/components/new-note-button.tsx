@@ -1,16 +1,34 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, type ReactNode } from "react";
 
 import type { FolderId } from "@opennest/core";
 import { useTranslations } from "@opennest/localization";
-import { Button } from "@opennest/ui";
+import { Button, cn, type ButtonSize, type ButtonVariant } from "@opennest/ui";
 
 import { useAppData } from "@/lib/data/app-data-provider";
 import { errorKey } from "@/lib/errors";
 
-export function NewNoteButton({ folderId = null }: { folderId?: FolderId | null }) {
+export interface NewNoteButtonProps {
+  folderId?: FolderId | null;
+  label?: string;
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  className?: string;
+  containerClassName?: string;
+  icon?: ReactNode;
+}
+
+export function NewNoteButton({
+  folderId = null,
+  label,
+  variant,
+  size,
+  className,
+  containerClassName,
+  icon,
+}: NewNoteButtonProps) {
   const t = useTranslations();
   const router = useRouter();
   const { services, workspace, invalidate } = useAppData();
@@ -37,9 +55,16 @@ export function NewNoteButton({ folderId = null }: { folderId?: FolderId | null 
   }
 
   return (
-    <span className="inline-flex flex-col items-start gap-1">
-      <Button onClick={() => void create()} loading={busy}>
-        {t("notes.newNote")}
+    <span className={cn("inline-flex flex-col items-start gap-1", containerClassName)}>
+      <Button
+        variant={variant}
+        size={size}
+        className={className}
+        onClick={() => void create()}
+        loading={busy}
+      >
+        {busy ? null : icon}
+        {label ?? t("notes.newNote")}
       </Button>
       {error === null ? null : (
         <span role="alert" className="text-sm text-red-700 dark:text-red-300">

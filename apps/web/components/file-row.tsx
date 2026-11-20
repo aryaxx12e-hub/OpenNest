@@ -14,11 +14,11 @@ export function FileRow({ file }: { file: StoredFile }) {
     <li>
       <Link
         href={`/files/${file.id}`}
-        className="hover:bg-border/30 flex min-h-14 items-center gap-3 px-3 py-2 transition-colors"
+        className="hover:bg-surface-muted flex min-h-14 items-center gap-3 px-5 py-3 transition-colors"
       >
         <span
           aria-hidden="true"
-          className="bg-primary/10 text-primary grid size-9 shrink-0 place-items-center rounded-lg text-[10px] font-bold"
+          className="bg-primary-soft text-primary rounded-control grid size-9 shrink-0 place-items-center text-[10px] font-bold"
         >
           {extension.length === 0 ? "FILE" : extension}
         </span>

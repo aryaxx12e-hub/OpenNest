@@ -3,6 +3,7 @@ import { z } from "zod";
 export const EXTENSION_CAPABILITIES = [
   "workspace.read.metadata",
   "workspace.read.content",
+  "ai.generate",
 ] as const;
 
 export type ExtensionCapability = (typeof EXTENSION_CAPABILITIES)[number];
@@ -37,7 +38,7 @@ export const extensionManifestSchema = z.strictObject({
   }),
   capabilities: z
     .array(z.enum(EXTENSION_CAPABILITIES))
-    .max(2)
+    .max(3)
     .refine(uniqueValues, { message: "Capabilities must be unique." }),
   dataScopes: z
     .array(z.enum(EXTENSION_DATA_SCOPES))

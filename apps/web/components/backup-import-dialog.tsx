@@ -102,7 +102,7 @@ export function BackupImportDialog({
           <legend className="text-sm font-medium">
             {t("backup.exportDialog.protection")}
           </legend>
-          <label className="border-border flex items-start gap-3 rounded-xl border p-3 text-sm">
+          <label className="border-border rounded-control flex items-start gap-3 border p-3 text-sm">
             <input
               type="radio"
               name="backup-import-protection"
@@ -112,7 +112,7 @@ export function BackupImportDialog({
             />
             <span className="font-medium">{t("backup.importKey.passphrase")}</span>
           </label>
-          <label className="border-border flex items-start gap-3 rounded-xl border p-3 text-sm">
+          <label className="border-border rounded-control flex items-start gap-3 border p-3 text-sm">
             <input
               type="radio"
               name="backup-import-protection"

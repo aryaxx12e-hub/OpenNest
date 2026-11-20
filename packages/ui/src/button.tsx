@@ -41,7 +41,7 @@ export function Button({
     <button
       type={type}
       className={cn(
-        "inline-flex items-center justify-center gap-2 rounded-xl font-medium transition-colors",
+        "rounded-control inline-flex items-center justify-center gap-2 font-medium transition-colors",
         "focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-60",
         variantClasses[variant],

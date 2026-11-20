@@ -8,12 +8,22 @@ Built around privacy-first and local-first principles, OpenNest aims to give use
 
 Status: Stage C delivered. Stage D internal work is complete; independent security
 and cryptographic review, the E2EE claim gate, and the first hosted CI run remain
-open. Independent review is still pending, so no E2EE, AI confidentiality, or
-extension sandbox security claim is made.
+open. Stage E server, sync, collaboration, AI Q&A, and read-only MCP implementations
+are in place, but the Stage E release gates are open. Independent review is still
+pending, so no E2EE, AI confidentiality, extension sandbox security, or MCP
+isolation claim is made.
 
 Library, notes, search, backup, and offline access work locally in the browser.
 Optional content encryption and optional BYOK AI providers are implemented. Local
-sideload extensions are implemented with a sandboxed, read-only host API.
+sideload extensions are implemented with a sandboxed, read-only host API. A
+single-user self-hosted API with optional sync, real-time collaboration, and a
+read-only MCP server is available as an implementation preview. See
+`docs/self-hosting.md` and `docs/stage-e-release-checklist.md`.
+
+Protocol-level E2E scripts cover sync conflicts, collaboration presence and
+reconnect, AI Q&A consent and citations, and MCP workspace isolation. Browser E2E
+for those journeys is blocked until the frontend exposes login, shared-workspace
+binding, Q&A source selection, and MCP token management.
 
 🌱 Our Vision
 
@@ -59,11 +69,13 @@ MVP capabilities:
 - [x] Offline-ready Progressive Web App (PWA)
 - [x] Indonesian and English interface
 
-Stage D capabilities implemented ahead of MVP:
+Stage D and Stage E capabilities implemented ahead of public release:
 
 - [x] Local sandboxed extensions with explicit read-only capabilities (review pending)
+- [x] Single-user server authentication, membership, sync, file versions, and collaboration transport (release gates pending)
+- [x] Document Q&A controller, host-mediated extension AI, and read-only MCP server (UI wiring and reviews pending)
 
-Optional AI providers are available behind explicit consent. Local sideload extensions are also available behind explicit capability consent. AI tools, MCP execution, document context, AI chat history, cloud synchronization, collaboration, extension registries, and extension marketplaces remain deferred until the core experience is stable.
+Optional AI providers are available behind explicit consent. Local sideload extensions are also available behind explicit capability consent. Real-time note collaboration is opt-in through deployment settings and the self-hosted server. The browser UI does not yet mount document Q&A source selection, MCP token management, or account and invite screens. Cloud synchronization, public accounts, extension registries, and extension marketplaces remain deferred until the core experience is stable.
 
 🧱 Technology Stack
 
@@ -110,9 +122,10 @@ encrypted with a separate passphrase. The vault has no recovery, workspace
 recovery and backup restore do not unlock it, and backups exclude provider
 settings, consents, session credentials, and vault records. Remote providers are
 subject to browser CORS rules, and OpenNest cannot make a provider allow browser
-origins. There are no automatic retries, tools, MCP execution, or document
-context. Model output is rendered as plain text, but XSS while the vault is
-unlocked remains a residual risk. See `SECURITY.md` and
+origins. The AI console sends only the prompt you review. The separate document
+Q&A controller is implemented but not mounted in the app yet, and OpenNest does
+not execute MCP tools. Model output is rendered as plain text, but XSS while the
+vault is unlocked remains a residual risk. See `SECURITY.md` and
 `docs/ai-security-review.md`; the AI and credential-vault security review is not
 complete.
 

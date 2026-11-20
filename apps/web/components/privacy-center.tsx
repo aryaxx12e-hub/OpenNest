@@ -6,6 +6,7 @@ import { useTranslations } from "@opennest/localization";
 import { Button, ConfirmDialog, Skeleton } from "@opennest/ui";
 
 import { BackupExportDialog } from "@/components/backup-export-dialog";
+import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { PrivacyAudit } from "@/components/privacy-audit";
 import { PrivacyConsents } from "@/components/privacy-consents";
@@ -125,29 +126,29 @@ export function PrivacyCenter() {
 
   if (state.loading && state.data === null) {
     return (
-      <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6 sm:px-6">
+      <PageContainer className="space-y-4">
         <Skeleton className="h-9 w-64" />
         <Skeleton className="h-40 w-full" />
         <Skeleton className="h-64 w-full" />
-      </div>
+      </PageContainer>
     );
   }
 
   if (state.error !== null || state.data === null) {
     return (
-      <div className="mx-auto w-full max-w-5xl px-4 py-10 sm:px-6">
+      <PageContainer>
         <div role="alert" className="space-y-3">
           <h1 className="text-xl font-semibold">{t("privacy.loadError")}</h1>
           <Button onClick={state.reload}>{t("common.retry")}</Button>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   const { overview, grants, audit, consents, providers, storage, now } = state.data;
 
   return (
-    <div className="mx-auto w-full max-w-5xl space-y-4 px-4 py-6 sm:px-6">
+    <PageContainer className="space-y-4">
       <PageHeader
         title={t("privacy.title")}
         description={t("privacy.subtitle")}
@@ -233,6 +234,6 @@ export function PrivacyCenter() {
           {t("privacy.delete.externalNotice")}
         </p>
       </ConfirmDialog>
-    </div>
+    </PageContainer>
   );
 }

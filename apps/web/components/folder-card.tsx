@@ -6,11 +6,11 @@ export function FolderCard({ folder }: { folder: Folder }) {
   return (
     <Link
       href={`/library/${folder.id}`}
-      className="border-border bg-surface hover:bg-border/20 flex min-h-16 items-center gap-3 rounded-xl border px-4 py-3 transition-colors"
+      className="border-border bg-surface hover:bg-surface-muted rounded-card flex min-h-16 items-center gap-3 border px-4 py-3 shadow-sm transition-colors"
     >
       <span
         aria-hidden="true"
-        className="bg-primary/10 text-primary grid size-9 shrink-0 place-items-center rounded-lg"
+        className="bg-primary-soft text-primary rounded-control grid size-9 shrink-0 place-items-center"
       >
         <svg viewBox="0 0 24 24" className="size-5" fill="none" stroke="currentColor">
           <path

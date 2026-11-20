@@ -2,13 +2,14 @@ OpenNest Roadmap 🪺
 
 This document outlines the planned development direction of OpenNest.
 
-Project status: MVP in progress; Stage D in progress
-Current milestone: Stage D. D2 local-only sync model, D3 encryption, D4A extension sandbox, and D4B AI provider are complete. Stage D security review, external cryptographic review, and the E2EE claim gate remain open.
+Project status: MVP in progress; Stage D in progress; Stage E implementation in progress
+Current milestone: Stage D gates. D2 local-only sync model, D3 encryption, D4A extension sandbox, and D4B AI provider are complete. Stage D security review, external cryptographic review, and the E2EE claim gate remain open. Stage E design was approved on 2026-11-18; server foundation and authentication implementation started on 2026-11-19.
 Last updated: November 2026
 
 Stage A foundation, Stage B core architecture, and Stage C are delivered. The
 remaining Stage C PRD gaps are explicitly deferred in the register below. Stage D
-is in progress. Stage E is not started.
+is in progress. Stage E design is approved, and Stage E implementation has
+started with the server foundation and authentication.
 
 OpenNest has five stages. Stage E is the final stage. There is no Stage F and no
 Phase 6. This restructure does not mark any work item complete.
@@ -156,21 +157,32 @@ Completion criteria: All Stage D items are delivered or explicitly deferred by a
 
 Stage E: AI, Sync, and Collaboration
 
-Status: not started.
+Status: in progress; architecture approved, implementation under way, release gates open.
 
 Goal: Deliver the final capability set identified for OpenNest.
 
 Stage E is the final stage. It covers the post-MVP final scope previously listed
 under Future Possibilities and Post-MVP. AI and Sync build on the Stage D
-provider and sync-compatible foundations. Collaboration requires a separate
-architecture and security approval before implementation. No item in this stage
-is complete.
+provider and sync-compatible foundations. Collaboration has a separate
+architecture and security decision, but its release is gated by a security
+review. Some implementation items are complete; every release gate remains open.
+
+Design and decision records:
+
+- Design: `docs/superpowers/specs/2026-11-18-stage-e-ai-sync-collaboration-design.md`
+- Plan: `docs/superpowers/plans/2026-11-18-stage-e-ai-sync-collaboration.md`
+- ADR 0016: server authentication and tenant boundary.
+- ADR 0017: server sync protocol.
+- ADR 0018: real-time collaboration.
+- ADR 0019: AI document Q&A and egress.
+- ADR 0020: read-only MCP server.
+- Gate register: `docs/stage-e-gate-register.md`. All gates are open.
 
 AI:
 
 - [ ] AI-powered extensions after D4B.
 - [ ] Optional local AI.
-- [ ] Document Q&A with citation-based responses.
+- [x] Document Q&A with citation-based responses.
 - [ ] MCP integration, gated by a separate security and consent design.
 
 Sync:
@@ -182,6 +194,22 @@ Sync:
 Collaboration:
 
 - [ ] Collaboration, gated by a separate multi-user architecture and security review.
+
+Implementation work:
+
+- [x] Server foundation, authentication, membership, and invite flow (release
+  review pending).
+- [x] Sync push and pull, offline retry, and conflict UI primitives (host wiring
+  pending).
+- [x] File versions and conflict copies.
+- [x] Real-time note editing and presence.
+- [x] AI document Q&A with citations.
+- [x] Host-mediated AI extension capability (off by default; host consent and
+  provider wiring are not enabled in the app yet).
+- [x] Read-only MCP server (off by default; production security review
+  pending).
+- [x] Protocol E2E coverage, deployment operations, and release-gate register
+  (browser E2E and external gates remain open).
 
 Completion criteria: The AI, Sync, and Collaboration designs are approved, their security gates pass, and the implemented behavior matches the approved scope. Stage E does not close while the Stage D security review, external cryptographic review, or E2EE claim gate is open.
 

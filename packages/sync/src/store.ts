@@ -1,4 +1,4 @@
-import type { StorageAdapter } from "@opennest/core";
+import type { CollaborationStore, StorageAdapter } from "@opennest/core";
 
 import type { SyncPolicy } from "./policy";
 import type {
@@ -109,4 +109,5 @@ export interface SyncStore {
 
 export interface SyncCapableStorage extends StorageAdapter {
   readonly sync: SyncStore;
+  readonly collaboration: CollaborationStore;
 }

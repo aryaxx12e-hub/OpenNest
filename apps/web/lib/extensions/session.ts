@@ -20,8 +20,13 @@ import {
   type CapabilityBroker,
   type GrantRegistry,
   type Principal,
+  type WorkspaceCapability,
 } from "@opennest/privacy";
 
+import {
+  EXTENSION_AI_REQUEST_TIMEOUT_MS,
+  type ExtensionAiCapability,
+} from "./ai-capability";
 import { createExtensionHostApi, type ExtensionHostApi } from "./host-api";
 import { isExtensionMessageWithinLimit, workerToHostSchema } from "./protocol";
 import type { ExtensionTransport } from "./transport";
@@ -55,6 +60,7 @@ export interface CreateExtensionSessionInput {
   readonly privacy: ExtensionSessionPrivacy;
   readonly services: AppServices;
   readonly storage: ExtensionStorageStore;
+  readonly ai?: ExtensionAiCapability | null;
   readonly transport: ExtensionTransport;
   readonly onUi: (tree: ExtensionWorkerUi["tree"]) => void;
   readonly onStatus: (event: ExtensionSessionStatusEvent) => void;
@@ -299,7 +305,9 @@ export function createExtensionSession(
       const timeout = new Promise<never>((_, reject) => {
         timer = setTimeout(
           () => reject(new ExtensionError("timeout", "The request timed out.")),
-          EXTENSION_REQUEST_TIMEOUT_MS
+          message.method === "ai.generate"
+            ? EXTENSION_AI_REQUEST_TIMEOUT_MS
+            : EXTENSION_REQUEST_TIMEOUT_MS
         );
       });
       if (hostApi === null) {
@@ -419,9 +427,13 @@ export function createExtensionSession(
 
       try {
         for (const capability of record.manifest.capabilities) {
+          if (!capability.startsWith("workspace.")) {
+            continue;
+          }
+
           await privacy.grants.create({
             principalId: principal.id,
-            capability,
+            capability: capability as WorkspaceCapability,
             scope: { kind: "workspace", workspaceId: workspace.id },
             purpose: `Run ${record.manifest.name}`,
             expiresAt,
@@ -445,6 +457,8 @@ export function createExtensionSession(
           services,
           broker,
           storage,
+          ai: input.ai ?? null,
+          capabilities: record.manifest.capabilities,
           now: input.now,
         });
 

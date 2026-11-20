@@ -19,6 +19,56 @@ releases begin.
 
 ### Added
 
+- Shared sync protocol request and response schemas with bounded batches,
+  canonical serialization, opaque cursors, conflicts, and stable rejection
+  codes.
+- A self-hosted Node server foundation with health endpoints, graceful
+  lifecycle, a separate auth SQLite database, bootstrap-owner CLI, scrypt
+  passwords, opaque sessions, invite-only membership, role checks, CSRF
+  protection, login rate limiting, and metadata-only audit records.
+- A server sync authority with transactional push and pull routes, replay-safe
+  operation IDs, canonical workspace revisions, role-gated access, conflict
+  records, tombstones, and opaque workspace-scoped cursors.
+- A client sync engine with outbox batching, bounded retry backoff, terminal
+  error handling, conflict persistence, a localized status indicator, and a
+  conflict dialog that leaves repository writes to its host.
+- Server file versioning with immutable versions, concurrent-upload conflict
+  copies, role-gated uploads, safe attachment downloads, MIME and size
+  validation, generated blob paths, and abandoned temp-file cleanup.
+- Real-time collaboration transport with an authenticated same-origin WebSocket
+  handshake, Yjs note rooms, viewer read-only enforcement, 256 KiB update and
+  per-connection rate limits, ephemeral presence, and 2-second and
+  last-disconnect snapshots that write note content and sync metadata without
+  outbox rows.
+- An opt-in browser collaboration provider with bounded reconnect backoff,
+  offline draft preservation, viewer read-only mode, localized connection and
+  presence indicators, and a shared Markdown editor. It stays disabled unless
+  the deployment sets both public collaboration environment variables.
+- Local in-memory retrieval for Markdown notes and text-readable files with
+  stable passage IDs, bounded chunk and byte budgets, existing full-text search
+  candidates, and citation validation that removes unknown sources and marks
+  uncited answers unsupported.
+- Document Q&A built on local retrieval with D2-only selected passages, a
+  five-minute payload-bound consent, 256 KiB request and 2 MiB response limits,
+  cancellation, and validated citations that link to notes or text files.
+- A host-mediated `ai.generate` extension capability with host-selected
+  providers, per-call consent, 32 KiB prompt and 48 KiB response limits,
+  metadata-only audit, generic disabled and failure errors, and off-by-default
+  app wiring.
+- An off-by-default read-only MCP server with owner-managed hashed workspace
+  tokens, five read-only tools, workspace-scoped reads, 64 KiB request and
+  output caps, per-token rate limiting, and metadata-only audit. A separate
+  security review is still required before production use.
+- Protocol-level E2E scripts for server sync conflicts, collaboration presence
+  and reconnect, AI Q&A consent and citations, and MCP workspace isolation,
+  with a shared server harness and SQLite seed helper.
+- A single-process Dockerfile and Compose service for the self-hosted API, plus
+  a self-hosting guide covering TLS, reverse proxy, data directory, backup,
+  restore, migration, rollback, delete-all, single-writer limits, and MCP
+  disablement.
+- A Stage E release checklist and gate-register evidence for protocol E2E and
+  non-browser gates. Browser E2E remains blocked by missing account, Q&A source
+  selection, and MCP token management surfaces.
 - Note-to-note links with a searchable picker, linked-note navigation, and a
   one-way link model.
 - Per-note Markdown export with safe filenames and clear success and error states.

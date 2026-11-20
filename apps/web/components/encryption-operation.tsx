@@ -42,10 +42,10 @@ export function EncryptionOperationScreen({
     <main className="bg-background grid min-h-dvh place-items-center px-5 py-10">
       <section
         aria-labelledby="encryption-operation-title"
-        className="border-border bg-surface w-full max-w-md rounded-3xl border p-6 shadow-sm sm:p-8"
+        className="border-border bg-surface rounded-panel w-full max-w-md border p-6 shadow-sm sm:p-8"
       >
         <div className="mb-6 space-y-2">
-          <div className="bg-primary text-primary-foreground mb-4 grid size-11 place-items-center rounded-2xl text-base font-bold">
+          <div className="bg-primary text-primary-foreground rounded-control mb-4 grid size-11 place-items-center text-base font-bold">
             O
           </div>
           <h1

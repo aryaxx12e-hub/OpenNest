@@ -69,7 +69,7 @@ describe("Button", () => {
 describe("Card", () => {
   it("renders a bordered surface", () => {
     const html = render(<Card>Body</Card>);
-    expect(html).toContain("rounded-2xl");
+    expect(html).toContain("rounded-card");
     expect(html).toContain("border-border");
     expect(html).toContain("Body");
   });

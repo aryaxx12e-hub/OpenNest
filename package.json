@@ -19,7 +19,7 @@
     "lint": "node scripts/eslint.mjs .",
     "format": "node scripts/prettier.mjs --write .",
     "format:check": "node scripts/prettier.mjs --check .",
-    "typecheck": "node scripts/next.mjs typegen && node scripts/tsc.mjs --noEmit && node scripts/tsc-packages.mjs",
+    "typecheck": "node scripts/next.mjs typegen && node scripts/tsc.mjs --noEmit && node scripts/tsc-packages.mjs && node scripts/tsc-server.mjs",
     "typecheck:packages": "node scripts/tsc-packages.mjs",
     "check:browser-graph": "node scripts/check-browser-graph.mjs",
     "test": "node scripts/check-browser-graph.mjs && node scripts/vitest.mjs run",
@@ -29,7 +29,10 @@
     "test:e2e:encryption": "node scripts/e2e-encryption.mjs",
     "test:e2e:extensions": "node scripts/e2e-extensions.mjs",
     "test:e2e:pwa": "node scripts/e2e-pwa.mjs",
-    "benchmark:library": "node scripts/vitest.mjs run --config vitest.benchmark.config.ts"
+    "benchmark:library": "node scripts/vitest.mjs run --config vitest.benchmark.config.ts",
+    "dev:server": "npm run dev --workspace @opennest/server",
+    "start:server": "npm run start --workspace @opennest/server",
+    "bootstrap-owner": "npm run bootstrap-owner --workspace @opennest/server"
   },
   "devDependencies": {
     "@types/node": "24.10.1",

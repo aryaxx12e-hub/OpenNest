@@ -58,6 +58,107 @@ not something a flag or configuration can work around.
 | `npm run format`              | Prettier write                                         |
 | `npm run format:check`        | Prettier check                                         |
 
+## Collaboration
+
+Real-time note collaboration stays off unless both variables are set at build
+time:
+
+```bash
+NEXT_PUBLIC_OPENNEST_SHARED_WORKSPACE=true
+NEXT_PUBLIC_OPENNEST_COLLABORATION_URL=https://opennest.example.com
+```
+
+The URL may be HTTP, HTTPS, WS, or WSS; the browser converts it to a WebSocket
+endpoint. The self-hosted server must be running with authentication and
+membership configured. Without both variables the editor remains local-only and
+opens no socket.
+
+## Document Q&A
+
+Document Q&A is off unless the deployment sets this public flag at build time:
+
+```bash
+NEXT_PUBLIC_OPENNEST_AI_QA=true
+```
+
+It also requires an enabled chat provider. The controller sends only selected
+passages, uses the D2 data class, caps requests at 256 KiB and responses at
+2 MiB, and requires a payload-bound consent that expires after five minutes.
+The embeddable panel stays source-agnostic: the host supplies the selected
+passages and opens cited notes or text files.
+
+## Extension AI access
+
+Extensions can request `ai.generate` only when their manifest declares the
+capability and the host injects an AI runtime plus a consent handler. The host
+selects the provider, model, endpoint, and credential. Extensions receive only
+the generated text, model, and finish reason.
+
+Each call asks the host to approve the exact prompt, provider label, model,
+origin, D2 data class, payload hash, byte size, and expiry. Prompts are capped
+at 32 KiB and responses at 48 KiB, below the existing 64 KiB extension message
+limit. Audit entries are metadata only. Disabled AI and provider failures both
+return generic errors without provider details.
+
+`AppDataProvider` does not pass an AI runtime or consent handler yet, so the
+capability is inactive in the app and calls return `ai_unavailable`. Enabling it
+needs a host consent surface and a provider/credential selection policy.
+
+## MCP server
+
+The read-only MCP server is off by default. Set both variables to expose it:
+
+```bash
+OPENNEST_DATA_DIR=/var/lib/opennest
+OPENNEST_MCP_ENABLED=true
+```
+
+MCP stays unavailable until the deployment has exactly one workspace and an
+owner has created a token. Token routes are owner-only, require the session and
+CSRF cookies, and return the secret once:
+
+- `GET /api/mcp/tokens` lists metadata and never the secret.
+- `POST /api/mcp/tokens` with `{"name":"Laptop"}` creates a 90-day token.
+- `DELETE /api/mcp/tokens/:id` revokes it.
+
+The MCP endpoint is stateless JSON-RPC 2.0 over `POST /api/mcp` with
+`Authorization: Bearer onmcp_...`. It pins protocol version `2025-06-18` and
+exposes `list_notes`, `read_note`, `search`, `list_files`, and `read_text_file`.
+There are no write tools. Every query is scoped to the token workspace; a cross-
+workspace ID is treated as missing.
+
+Requests and results are capped at 64 KiB, tool results are capped at 64 KiB of
+JSON text, and each token gets 120 requests per minute. Tokens are stored only
+as SHA-256 hashes with a short prefix. The audit table records token, workspace,
+tool, result, duration, and error code, never note content or the token secret.
+Files must be `text/plain` or `text/markdown` and valid UTF-8.
+
+Do not enable MCP in production until the separate security review in
+`docs/adr/0020-mcp-server.md` is complete.
+
+## Stage E protocol E2E
+
+These scripts start a temporary server, seed SQLite, and exercise server or
+controller flows without a browser:
+
+```bash
+node scripts/e2e-sync.mjs
+node scripts/e2e-collaboration.mjs
+node scripts/e2e-ai-qa.mjs
+node scripts/e2e-mcp.mjs
+```
+
+They cover viewer denial, sync and file conflict copies, collaboration presence,
+reconnect and offline updates, AI Q&A consent and citations, and MCP
+cross-workspace denial. They are not browser UI tests. Browser E2E remains
+blocked until the app exposes login, shared-workspace binding, Q&A source
+selection, and MCP token management.
+
+The shared harness lives in `scripts/e2e-harness.mjs`; the SQLite seed helper is
+`scripts/e2e-seed.ts`. Deployment operations are documented in
+`docs/self-hosting.md`, and release evidence is tracked in
+`docs/stage-e-release-checklist.md`.
+
 ## CI
 
 The workflow is `.github/workflows/ci.yml`. It runs lint, formatting, typecheck,
@@ -454,6 +555,12 @@ Anything inside `work` must be awaited inside the zone. Do not await `fetch`,
 `setTimeout`, or a promise from another Dexie instance inside it: the transaction
 commits early and later writes escape it, silently breaking atomicity. Nested
 transactions throw `nested_transaction`. The adapter README has the details.
+
+## Design system
+
+The visual language, token roles, layout rules, and component conventions are
+documented in [design-system.md](./design-system.md). Use that guide when adding
+a screen or component; the token mechanics remain below.
 
 ## Design tokens
 

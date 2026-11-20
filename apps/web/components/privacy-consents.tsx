@@ -95,7 +95,7 @@ export function PrivacyConsents({
                 <li
                   key={consent.id}
                   data-testid="privacy-consent-row"
-                  className="border-border space-y-3 rounded-xl border p-3"
+                  className="border-border bg-surface-muted/40 rounded-control space-y-3 border p-3"
                 >
                   <div className="flex flex-wrap items-start justify-between gap-2">
                     <div className="min-w-0 space-y-1">

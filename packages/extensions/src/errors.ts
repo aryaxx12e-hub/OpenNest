@@ -17,6 +17,8 @@ export const EXTENSION_ERROR_CODES = [
   "storage_quota",
   "storage_failed",
   "consent_required",
+  "ai_unavailable",
+  "ai_failed",
   "version_downgrade",
   "version_conflict",
   "already_installed",

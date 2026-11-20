@@ -12,6 +12,7 @@ import { useTranslations } from "@opennest/localization";
 import { Badge, Button, Card, Skeleton } from "@opennest/ui";
 
 import { ExtensionUiSurface } from "@/components/extension-ui";
+import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { useAppData } from "@/lib/data/app-data-provider";
 import type { ExtensionSession, ExtensionSessionStatus } from "@/lib/extensions/session";
@@ -143,15 +144,15 @@ export function ExtensionRunner({ extensionId, extensions }: ExtensionRunnerProp
 
   if (extension === null && error === null) {
     return (
-      <div className="mx-auto w-full max-w-3xl space-y-4 px-4 py-6 sm:px-6">
+      <PageContainer className="max-w-5xl space-y-4">
         <Skeleton className="h-9 w-56" />
         <Skeleton className="h-32 w-full" />
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl space-y-6 px-4 py-6 sm:px-6">
+    <PageContainer className="max-w-5xl">
       <PageHeader
         title={extension?.manifest.name ?? t("extensions.runner.title")}
         description={extension?.manifest.description}
@@ -209,6 +210,6 @@ export function ExtensionRunner({ extensionId, extensions }: ExtensionRunnerProp
       >
         {t("extensions.runner.back")}
       </Link>
-    </div>
+    </PageContainer>
   );
 }

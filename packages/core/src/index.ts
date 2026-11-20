@@ -39,6 +39,12 @@ export type {
 export { createIdGenerator, generateId, type RandomSource } from "./ids";
 export { limits, type Limits } from "./limits";
 export type {
+  CollaborationSnapshot,
+  CollaborationSnapshotMetadata,
+  CollaborationSnapshotState,
+  CollaborationStore,
+} from "./ports/collaboration-store";
+export type {
   BackupSnapshot,
   BlobStore,
   DexieStorageConfig,

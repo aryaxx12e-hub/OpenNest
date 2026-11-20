@@ -119,7 +119,7 @@ export function NoteLinksDialog({
           <ul className="max-h-64 space-y-1 overflow-auto">
             {filtered.map((note) => (
               <li key={note.id}>
-                <label className="hover:bg-border/30 flex min-h-11 cursor-pointer items-center gap-3 rounded-lg px-2">
+                <label className="hover:bg-border/30 rounded-control flex min-h-11 cursor-pointer items-center gap-3 px-2">
                   <input
                     type="checkbox"
                     checked={chosen.has(note.id)}

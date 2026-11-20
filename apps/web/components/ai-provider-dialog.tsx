@@ -357,7 +357,7 @@ export function AiProviderDialog({
         </div>
 
         {warningVisible ? (
-          <div className="border-border bg-border/20 space-y-2 rounded-xl border p-3">
+          <div className="border-border bg-border/20 rounded-control space-y-2 border p-3">
             <p className="text-sm font-medium">{t("ai.providers.localWarningTitle")}</p>
             <p className="text-muted text-xs leading-5">
               {t("ai.providers.localWarningBody")}

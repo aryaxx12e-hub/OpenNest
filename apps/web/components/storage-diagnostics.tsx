@@ -42,7 +42,7 @@ export function StorageDiagnostics({
       {status.supported ? (
         <>
           <dl className="grid gap-3 sm:grid-cols-3">
-            <div className="border-border rounded-xl border p-3">
+            <div className="border-border bg-surface-muted rounded-control border p-3">
               <dt className="text-muted text-xs font-medium tracking-wide uppercase">
                 {t("privacy.storage.usage")}
               </dt>
@@ -52,7 +52,7 @@ export function StorageDiagnostics({
                   : formatBytes(locale, status.usage)}
               </dd>
             </div>
-            <div className="border-border rounded-xl border p-3">
+            <div className="border-border bg-surface-muted rounded-control border p-3">
               <dt className="text-muted text-xs font-medium tracking-wide uppercase">
                 {t("privacy.storage.quota")}
               </dt>
@@ -63,7 +63,7 @@ export function StorageDiagnostics({
               </dd>
             </div>
             {percent === null ? null : (
-              <div className="border-border rounded-xl border p-3">
+              <div className="border-border bg-surface-muted rounded-control border p-3">
                 <dt className="text-muted text-xs font-medium tracking-wide uppercase">
                   {t("privacy.storage.percent")}
                 </dt>
@@ -92,7 +92,7 @@ export function StorageDiagnostics({
         <p className="text-muted text-sm leading-6">{t("privacy.storage.unsupported")}</p>
       )}
 
-      <p className="border-border text-muted rounded-xl border border-dashed p-3 text-xs leading-5">
+      <p className="border-border text-muted rounded-control border border-dashed p-3 text-xs leading-5">
         {t("privacy.storage.notice")}
       </p>
     </Card>

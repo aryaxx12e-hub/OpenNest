@@ -12,7 +12,7 @@ type Step = "form" | "recovery";
 
 const MIN_PASSPHRASE = 12;
 const FIELD_CLASS =
-  "border-border bg-surface text-foreground placeholder:text-muted focus-visible:outline-primary min-h-11 w-full rounded-xl border px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2";
+  "border-border bg-surface text-foreground placeholder:text-muted focus-visible:outline-primary min-h-11 w-full rounded-control border px-3 text-sm focus-visible:outline-2 focus-visible:outline-offset-2";
 
 export function EncryptionSetup() {
   const t = useTranslations();
@@ -96,14 +96,14 @@ export function EncryptionSetup() {
           </p>
         </div>
 
-        <div className="border-border bg-background/60 space-y-3 rounded-xl border p-3">
+        <div className="border-border bg-background/60 rounded-control space-y-3 border p-3">
           <div className="space-y-1">
             <p id={`${ids}-recovery`} className="text-sm font-medium">
               {t("encryption.setup.recoveryKeyLabel")}
             </p>
             <code
               aria-labelledby={`${ids}-recovery`}
-              className="border-border bg-surface text-foreground block min-h-11 rounded-xl border px-3 py-3 font-mono text-xs leading-5 break-all select-all"
+              className="border-border bg-surface text-foreground rounded-control block min-h-11 border px-3 py-3 font-mono text-xs leading-5 break-all select-all"
             >
               {recoveryKey}
             </code>

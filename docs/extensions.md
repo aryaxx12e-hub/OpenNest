@@ -1,8 +1,8 @@
 # Extensions
 
-OpenNest D4A implements local sideload extensions with a sandboxed runtime and a
-small, read-only host API. Extensions are optional. Core notes, files, search,
-backup, and offline behavior never depend on one.
+OpenNest implements local sideload extensions with a sandboxed runtime and a
+small host API. Workspace access stays read-only. Extensions are optional. Core
+notes, files, search, backup, and offline behavior never depend on one.
 
 D4A is intentionally limited:
 
@@ -11,6 +11,8 @@ D4A is intentionally limited:
 - No registry, marketplace, auto-update, or publisher signature.
 - No network access.
 - No workspace writes, file bytes, credentials, or raw storage.
+- AI access is off by default and only available through the host-mediated
+  `ai.generate` method.
 - Independent security review is not complete. See
   [extension-security-review.md](./extension-security-review.md) for the release
   gate. The Stage D internal audit and external sign-off record are in
@@ -63,7 +65,7 @@ runtime is a classic worker, so the file cannot use ES module imports or
 | `description`    | Up to 500 characters                                                                                   |
 | `tier`           | Must be `1`                                                                                            |
 | `entry`          | 1-128 characters, matches `^[A-Za-z0-9][A-Za-z0-9._-]*\.js$`                                           |
-| `capabilities`   | Unique values, maximum 2, from the D4A capability list                                                 |
+| `capabilities`   | Unique values, maximum 3, from the supported capability list                                           |
 | `dataScopes`     | Unique values, maximum 4, from `notes`, `files`, `folders`, `tags`; informational only                 |
 | `networkOrigins` | Must be empty                                                                                          |
 | `minHostVersion` | Numeric `major.minor.patch`; must not exceed the running host version                                  |
@@ -136,12 +138,13 @@ package is rejected without loading its text into memory.
 
 ## Capabilities
 
-D4A has two capabilities.
+The runtime supports three capabilities.
 
 | Capability                | What it allows                                                                                                                             |
 | ------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | `workspace.read.metadata` | Workspace information and counts, note metadata, file metadata, folder IDs, and timestamps. It does not include note bodies or file bytes. |
 | `workspace.read.content`  | Note bodies through `workspace.readNote`. The response also includes that note's metadata.                                                 |
+| `ai.generate`             | One host-approved prompt. The extension receives only text, model, and finish reason.                                                      |
 
 `dataScopes` describes the data classes in plain language in the consent
 dialog. It does not grant access by itself. The capability is the enforcement
@@ -194,17 +197,18 @@ opennest.onAction((actionId) => {
 All workspace methods are host-mediated and revalidate the current grant before
 access. `workspace.getInfo` and `workspace.summary` take `{}`.
 
-| Method                | Capability                | Parameters            | Result                               |
-| --------------------- | ------------------------- | --------------------- | ------------------------------------ |
-| `workspace.getInfo`   | `workspace.read.metadata` | `{}`                  | `{ id, name, createdAt, updatedAt }` |
-| `workspace.summary`   | `workspace.read.metadata` | `{}`                  | `{ notes, files, folders, tags }`    |
-| `workspace.listNotes` | `workspace.read.metadata` | `{ limit?, cursor? }` | Page of note metadata                |
-| `workspace.listFiles` | `workspace.read.metadata` | `{ limit?, cursor? }` | Page of file metadata                |
-| `workspace.readNote`  | `workspace.read.content`  | `{ noteId }`          | One note, including `content`        |
-| `storage.get`         | none                      | `{ key }`             | `string \| null`                     |
-| `storage.set`         | none                      | `{ key, value }`      | No value                             |
-| `storage.delete`      | none                      | `{ key }`             | No value                             |
-| `storage.keys`        | none                      | `{}`                  | `string[]`                           |
+| Method                | Capability                | Parameters                             | Result                               |
+| --------------------- | ------------------------- | -------------------------------------- | ------------------------------------ |
+| `workspace.getInfo`   | `workspace.read.metadata` | `{}`                                   | `{ id, name, createdAt, updatedAt }` |
+| `workspace.summary`   | `workspace.read.metadata` | `{}`                                   | `{ notes, files, folders, tags }`    |
+| `workspace.listNotes` | `workspace.read.metadata` | `{ limit?, cursor? }`                  | Page of note metadata                |
+| `workspace.listFiles` | `workspace.read.metadata` | `{ limit?, cursor? }`                  | Page of file metadata                |
+| `workspace.readNote`  | `workspace.read.content`  | `{ noteId }`                           | One note, including `content`        |
+| `ai.generate`         | `ai.generate`             | `{ prompt, maxTokens?, temperature? }` | `{ text, model, finishReason }`      |
+| `storage.get`         | none                      | `{ key }`                              | `string \| null`                     |
+| `storage.set`         | none                      | `{ key, value }`                       | No value                             |
+| `storage.delete`      | none                      | `{ key }`                              | No value                             |
+| `storage.keys`        | none                      | `{}`                                   | `string[]`                           |
 
 `limit` is an integer from 1 to 50 and defaults to 50. `cursor` is an opaque
 page cursor. A page is shaped as:
@@ -245,8 +249,28 @@ interface ExtensionFileMetadata {
 ```
 
 `workspace.readNote` returns the note metadata plus `content: string`. There
-is no method that returns file bytes, folder names, tag names, credentials, or
-another extension's data.
+is no method that returns file bytes, folder names, tag names, credentials,
+provider handles, endpoints, or another extension's data.
+
+### AI generation
+
+`ai.generate` is available only when the extension declares the capability and
+the host supplies an AI runtime plus a consent handler. The extension cannot
+choose a provider, model, endpoint, or credential. The host selects those and
+shows the exact prompt, provider label, model, origin, data classes, payload
+hash, byte size, and expiry before each call.
+
+- The request uses data class D2 and one user message.
+- Prompts are limited to 32 KiB. Responses are limited to 48 KiB.
+- Host consent is required for every call. A denied or failed call returns a
+  generic extension error without provider details.
+- The result contains only `text`, `model`, and `finishReason`.
+- Audit entries record the extension principal, event, capability, and outcome.
+  They never contain prompts, responses, credentials, or provider error text.
+
+The app does not pass an AI runtime or consent handler to extensions yet, so the
+capability is inactive in the current deployment even when an installed manifest
+declares it. The host returns `ai_unavailable` instead of attempting a call.
 
 ### UI tree
 

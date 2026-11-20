@@ -1,10 +1,10 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useRef, useState, type ReactNode } from "react";
 
 import { limits, type FolderId } from "@opennest/core";
 import { useTranslations } from "@opennest/localization";
-import { Button, type ButtonSize, type ButtonVariant } from "@opennest/ui";
+import { Button, cn, type ButtonSize, type ButtonVariant } from "@opennest/ui";
 
 import { useAppData } from "@/lib/data/app-data-provider";
 import { errorKey } from "@/lib/errors";
@@ -16,6 +16,8 @@ export interface UploadButtonProps {
   variant?: ButtonVariant;
   size?: ButtonSize;
   className?: string;
+  containerClassName?: string;
+  icon?: ReactNode;
 }
 
 export function UploadButton({
@@ -24,6 +26,8 @@ export function UploadButton({
   variant = "primary",
   size = "md",
   className,
+  containerClassName,
+  icon,
 }: UploadButtonProps) {
   const t = useTranslations();
   const { services, workspace, invalidate } = useAppData();
@@ -93,7 +97,7 @@ export function UploadButton({
   }
 
   return (
-    <div className="flex flex-col items-end gap-1">
+    <div className={cn("flex flex-col items-end gap-1", containerClassName)}>
       <input
         ref={inputRef}
         type="file"
@@ -114,6 +118,7 @@ export function UploadButton({
         loading={busy}
         onClick={() => inputRef.current?.click()}
       >
+        {busy ? null : icon}
         {busy ? t("upload.uploading") : (label ?? t("library.upload"))}
       </Button>
       {error === null ? null : (

@@ -63,6 +63,9 @@ export function extensionErrorKey(error: unknown): string {
       return "extensions.errors.hostVersion";
     case "consent_required":
       return "extensions.errors.consent";
+    case "ai_unavailable":
+    case "ai_failed":
+      return "extensions.errors.ai";
     case "extension_not_found":
       return "extensions.errors.notFound";
     case "extension_disabled":
@@ -99,6 +102,7 @@ export function extensionErrorKey(error: unknown): string {
 const CAPABILITY_KEYS: Record<ExtensionCapability, string> = {
   "workspace.read.metadata": "extensions.capabilities.metadata",
   "workspace.read.content": "extensions.capabilities.content",
+  "ai.generate": "extensions.capabilities.ai",
 };
 
 export function extensionCapabilityKey(capability: ExtensionCapability): string {

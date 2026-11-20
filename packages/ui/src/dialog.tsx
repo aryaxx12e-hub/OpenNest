@@ -53,7 +53,7 @@ export function Dialog({
         }
       }}
       className={cn(
-        "bg-surface text-foreground border-border m-auto w-[min(calc(100vw-2rem),32rem)] rounded-2xl border p-0 shadow-xl backdrop:bg-black/40",
+        "bg-surface text-foreground border-border rounded-panel m-auto w-[min(calc(100vw-2rem),32rem)] border p-0 shadow-xl backdrop:bg-black/40",
         className
       )}
     >

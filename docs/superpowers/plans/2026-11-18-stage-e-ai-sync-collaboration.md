@@ -56,7 +56,7 @@ Q&A, and a read-only MCP adapter.
 - SQLite WAL, `foreign_keys=ON`, `busy_timeout=5000`.
 - MCP output: 64 KiB per call.
 - Collaboration snapshot: every 2 seconds while dirty, and on last disconnect.
-- AI consent scope: `D3` only for document Q&A.
+- AI consent scope: `D2` document content only. `D3` is forbidden.
 
 ---
 
@@ -99,7 +99,7 @@ connection and that offline collaboration creates a conflict copy.
 **Step 4: Write ADR 0019**
 
 Record: local retrieval, no persistent plaintext index, Markdown and text-readable
-files only, per-request consent, `D3` scope, passage IDs, and citation validation.
+files only, per-request consent, `D2` scope, passage IDs, and citation validation.
 State that unsupported answers are marked unsupported.
 
 **Step 5: Write ADR 0020**
@@ -629,7 +629,7 @@ Cover:
 - Consent is required before any remote call.
 - Consent is bound to the exact payload selected for that request.
 - Consent expires after 5 minutes.
-- `D3` is the only data class used for document Q&A.
+- `D2` is the data class for selected document content. `D3` is forbidden.
 - Request is rejected above 256 KiB.
 - Response is rejected above 2 MiB.
 - Cancellation aborts the request.

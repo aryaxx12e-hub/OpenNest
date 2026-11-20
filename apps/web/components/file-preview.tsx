@@ -12,6 +12,7 @@ import { Button, Card, ConfirmDialog, Skeleton } from "@opennest/ui";
 import { EmptyState } from "@/components/empty-state";
 import { MoveDialog } from "@/components/move-dialog";
 import { NameDialog } from "@/components/name-dialog";
+import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { TagDialog } from "@/components/tag-dialog";
 import { useAppData } from "@/lib/data/app-data-provider";
@@ -77,21 +78,21 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
 
   if (state.loading && state.data === null) {
     return (
-      <div className="mx-auto w-full max-w-4xl space-y-4 px-4 py-6 sm:px-6">
+      <PageContainer className="space-y-4">
         <Skeleton className="h-9 w-64" />
         <Skeleton className="h-80 w-full" />
-      </div>
+      </PageContainer>
     );
   }
 
   if (state.error !== null) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
+      <PageContainer>
         <div role="alert" className="space-y-3">
           <h1 className="text-xl font-semibold">{t("errors.unexpected")}</h1>
           <Button onClick={state.reload}>{t("common.retry")}</Button>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
@@ -99,7 +100,7 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
 
   if (data === null || data.missing) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
+      <PageContainer>
         <EmptyState
           title={t("file.notFoundTitle")}
           description={t("file.notFoundBody")}
@@ -109,7 +110,7 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
             </Link>
           }
         />
-      </div>
+      </PageContainer>
     );
   }
 
@@ -159,7 +160,7 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-6">
+    <PageContainer>
       <div>
         <Link
           href={file.folderId === null ? "/library" : `/library/${file.folderId}`}
@@ -193,7 +194,7 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
               <a
                 href={data.url}
                 download={file.name}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 inline-flex min-h-11 items-center rounded-xl px-4 text-sm font-medium"
+                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-control inline-flex min-h-11 items-center px-4 text-sm font-medium"
               >
                 {t("file.download")}
               </a>
@@ -255,7 +256,7 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
         ) : hasText ? (
           <div className="space-y-2 p-4">
             <h2 className="text-sm font-semibold">{t("file.textPreview")}</h2>
-            <pre className="bg-background max-h-[70vh] overflow-auto rounded-xl p-4 text-sm leading-6 whitespace-pre-wrap">
+            <pre className="bg-background rounded-control max-h-[70vh] overflow-auto p-4 text-sm leading-6 whitespace-pre-wrap">
               {text}
             </pre>
           </div>
@@ -273,30 +274,34 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
         <h2 id="file-details" className="text-sm font-semibold">
           {t("file.details")}
         </h2>
-        <dl className="border-border bg-surface grid gap-3 rounded-xl border p-4 text-sm sm:grid-cols-2">
-          <div>
-            <dt className="text-muted text-xs">{t("file.size")}</dt>
-            <dd>{formatBytes(locale, file.sizeBytes)}</dd>
-          </div>
-          <div>
-            <dt className="text-muted text-xs">{t("file.type")}</dt>
-            <dd className="break-all">{file.mimeType ?? t("file.previewUnavailable")}</dd>
-          </div>
-          <div>
-            <dt className="text-muted text-xs">{t("file.created")}</dt>
-            <dd>{formatDateTime(locale, file.createdAt)}</dd>
-          </div>
-          <div>
-            <dt className="text-muted text-xs">{t("file.updated")}</dt>
-            <dd>{formatDateTime(locale, file.updatedAt)}</dd>
-          </div>
-          {file.checksum === null ? null : (
-            <div className="sm:col-span-2">
-              <dt className="text-muted text-xs">{t("file.checksum")}</dt>
-              <dd className="font-mono text-xs break-all">{file.checksum}</dd>
+        <Card className="p-4">
+          <dl className="grid gap-3 text-sm sm:grid-cols-2">
+            <div>
+              <dt className="text-muted text-xs">{t("file.size")}</dt>
+              <dd>{formatBytes(locale, file.sizeBytes)}</dd>
             </div>
-          )}
-        </dl>
+            <div>
+              <dt className="text-muted text-xs">{t("file.type")}</dt>
+              <dd className="break-all">
+                {file.mimeType ?? t("file.previewUnavailable")}
+              </dd>
+            </div>
+            <div>
+              <dt className="text-muted text-xs">{t("file.created")}</dt>
+              <dd>{formatDateTime(locale, file.createdAt)}</dd>
+            </div>
+            <div>
+              <dt className="text-muted text-xs">{t("file.updated")}</dt>
+              <dd>{formatDateTime(locale, file.updatedAt)}</dd>
+            </div>
+            {file.checksum === null ? null : (
+              <div className="sm:col-span-2">
+                <dt className="text-muted text-xs">{t("file.checksum")}</dt>
+                <dd className="font-mono text-xs break-all">{file.checksum}</dd>
+              </div>
+            )}
+          </dl>
+        </Card>
       </section>
 
       {renameOpen ? (
@@ -344,6 +349,6 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
         onConfirm={() => void remove()}
         onClose={() => setDeleteOpen(false)}
       />
-    </div>
+    </PageContainer>
   );
 }

@@ -9,7 +9,7 @@ export function Input({ className, type = "text", ...props }: InputProps) {
     <input
       type={type}
       className={cn(
-        "border-border bg-surface text-foreground min-h-11 w-full rounded-xl border px-3 text-sm",
+        "border-border bg-surface text-foreground rounded-control min-h-11 w-full border px-3 text-sm",
         "placeholder:text-muted",
         "focus-visible:outline-primary focus-visible:outline-2 focus-visible:outline-offset-2",
         "disabled:cursor-not-allowed disabled:opacity-60",

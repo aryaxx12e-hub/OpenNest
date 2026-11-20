@@ -12,10 +12,20 @@ import {
   type StoredExtension,
 } from "@opennest/extensions";
 import { useTranslations } from "@opennest/localization";
-import { Badge, Button, Card, ConfirmDialog, Input, Label, Skeleton } from "@opennest/ui";
+import {
+  ArchiveIcon,
+  Badge,
+  Button,
+  Card,
+  ConfirmDialog,
+  Input,
+  Label,
+  Skeleton,
+} from "@opennest/ui";
 
 import { ExtensionInstallDialog } from "@/components/extension-install-dialog";
 import { EmptyState } from "@/components/empty-state";
+import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { useAppData } from "@/lib/data/app-data-provider";
 import { extensionCapabilityKey, extensionErrorKey } from "@/lib/extensions/messages";
@@ -180,26 +190,26 @@ export function ExtensionsView({ extensions }: ExtensionsViewProps) {
 
   if (!loaded && loadError === null) {
     return (
-      <div className="mx-auto w-full max-w-4xl space-y-4 px-4 py-6 sm:px-6">
+      <PageContainer className="space-y-4">
         <Skeleton className="h-9 w-56" />
         <Skeleton className="h-40 w-full" />
-      </div>
+      </PageContainer>
     );
   }
 
   if (loadError !== null) {
     return (
-      <div className="mx-auto w-full max-w-4xl px-4 py-10 sm:px-6">
+      <PageContainer>
         <div role="alert" className="space-y-3">
           <h1 className="text-xl font-semibold">{t("extensions.loadError")}</h1>
           <Button onClick={() => void load()}>{t("common.retry")}</Button>
         </div>
-      </div>
+      </PageContainer>
     );
   }
 
   return (
-    <div className="mx-auto w-full max-w-4xl space-y-6 px-4 py-6 sm:px-6">
+    <PageContainer>
       <PageHeader title={t("extensions.title")} description={t("extensions.subtitle")} />
 
       {notice === null ? null : (
@@ -255,11 +265,12 @@ export function ExtensionsView({ extensions }: ExtensionsViewProps) {
 
       {records.length === 0 ? (
         <EmptyState
+          icon={<ArchiveIcon className="size-6" />}
           title={t("extensions.empty.title")}
           description={t("extensions.empty.description")}
         />
       ) : (
-        <ul className="space-y-3">
+        <ul className="grid gap-3 lg:grid-cols-2">
           {records.map((record) => (
             <li key={record.id}>
               <Card className="space-y-3">
@@ -351,6 +362,6 @@ export function ExtensionsView({ extensions }: ExtensionsViewProps) {
           onClose={() => setPreview(null)}
         />
       )}
-    </div>
+    </PageContainer>
   );
 }
