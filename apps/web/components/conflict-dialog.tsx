@@ -97,13 +97,13 @@ export function ConflictDialog({ conflict, onResolve, onClose }: ConflictDialogP
           </code>
         </p>
         <dl className="grid gap-3 sm:grid-cols-2">
-          <div className="border-border bg-background space-y-2 rounded-control border p-3">
+          <div className="border-border bg-background rounded-control space-y-2 border p-3">
             <dt className="text-muted text-xs font-medium">{t("sync.conflict.local")}</dt>
             <dd className="text-sm break-words whitespace-pre-wrap">
               {displayValue(conflict.localValue, t("sync.conflict.empty"))}
             </dd>
           </div>
-          <div className="border-border bg-background space-y-2 rounded-control border p-3">
+          <div className="border-border bg-background rounded-control space-y-2 border p-3">
             <dt className="text-muted text-xs font-medium">
               {t("sync.conflict.remote")}
             </dt>
