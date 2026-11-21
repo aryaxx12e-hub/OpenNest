@@ -21,7 +21,7 @@ git --version
 ## Get the source
 
 ```bash
-git clone https://github.com/aryaxx12e-hub/OpenNest.git
+git clone https://github.com/ryaa-Lz/OpenNest.git
 cd OpenNest
 git checkout v0.1.0-beta.1
 ```
