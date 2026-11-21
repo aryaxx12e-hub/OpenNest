@@ -4,6 +4,13 @@ All notable changes to OpenNest are documented in this file. The format follows
 Keep a Changelog, and the project intends to use semantic versioning once
 releases begin.
 
+## [Unreleased]
+
+### Changed
+
+- Encryption setup shows migration progress as soon as setup starts, before key
+  derivation completes.
+
 ## [0.1.0-beta.3] - 2026-11-21
 
 ### Fixed

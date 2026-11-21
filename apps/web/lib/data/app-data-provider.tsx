@@ -862,15 +862,32 @@ export function AppDataProvider({
 
         cancelSetupRequestedRef.current = false;
 
+        setNotice(null);
+        setOperation({
+          kind: "setup",
+          progress: operationProgress("start"),
+          error: null,
+          canDismiss: false,
+        });
+
         const keyring = createKeyring({
           store: current.session.keyringStore,
           workspaceId: current.session.workspace.id,
         });
-        const setup = await keyring.setup({
-          passphrase,
-          recoveryKey,
-          state: "preparing",
-        });
+        const setup = await keyring
+          .setup({
+            passphrase,
+            recoveryKey,
+            state: "preparing",
+          })
+          .catch((error: unknown) => {
+            setOperation((previous) =>
+              previous !== null && previous.kind === "setup"
+                ? { ...previous, error }
+                : previous
+            );
+            throw error;
+          });
         const drafts = migrationDrafts(setup.context);
         const setupSession: SetupSession = {
           base: current.session.base,
@@ -880,13 +897,6 @@ export function AppDataProvider({
           drafts,
         };
         setupRef.current = setupSession;
-        setNotice(null);
-        setOperation({
-          kind: "setup",
-          progress: operationProgress("start"),
-          error: null,
-          canDismiss: false,
-        });
 
         try {
           const record = await resumeEncryption({
