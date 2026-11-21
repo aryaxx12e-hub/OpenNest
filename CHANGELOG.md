@@ -4,12 +4,17 @@ All notable changes to OpenNest are documented in this file. The format follows
 Keep a Changelog, and the project intends to use semantic versioning once
 releases begin.
 
-## [Unreleased]
+## [0.1.0-beta.4] - 2026-11-21
 
 ### Changed
 
 - Encryption setup shows migration progress as soon as setup starts, before key
   derivation completes.
+
+### Fixed
+
+- The Android release workflow reads release notes from the checked-out
+  repository, so published releases include their notes.
 
 ## [0.1.0-beta.3] - 2026-11-21
 

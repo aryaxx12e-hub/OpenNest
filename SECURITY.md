@@ -3,7 +3,7 @@
 ## Supported versions
 
 OpenNest is pre-1.0. The public early access artifact is the source-only
-`v0.1.0-beta.1` preview. `v0.1.0-beta.3` adds an owner-personal Android APK. The
+`v0.1.0-beta.1` preview. `v0.1.0-beta.4` adds an owner-personal Android APK. The
 APK is an unsupported sideload build, not a Play Store release or a supported
 production surface. There is no security update commitment beyond fixes on
 `main`.

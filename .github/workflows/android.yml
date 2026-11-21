@@ -51,7 +51,7 @@ jobs:
           if [ "${GITHUB_REF_TYPE}" = "tag" ]; then
             VERSION_NAME="${GITHUB_REF_NAME#v}"
           else
-            VERSION_NAME="0.1.0-beta.3"
+            VERSION_NAME="0.1.0-beta.4"
           fi
           echo "OPENNEST_VERSION_NAME=${VERSION_NAME}" >> "$GITHUB_ENV"
           echo "OPENNEST_VERSION_CODE=${GITHUB_RUN_NUMBER}" >> "$GITHUB_ENV"
