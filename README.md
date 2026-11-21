@@ -1,4 +1,4 @@
-OpenNest 🪺
+![OpenNest](docs/assets/opennest-banner.png)
 
 Your personal digital space. Open, private, and built for everyone.
 
