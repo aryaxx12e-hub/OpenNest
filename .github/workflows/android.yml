@@ -33,6 +33,10 @@ jobs:
           java-version: "21"
 
       - uses: android-actions/setup-android@v3
+        with:
+          accept-android-sdk-licenses: true
+          log-accepted-android-sdk-licenses: false
+          packages: platform-tools
 
       - uses: gradle/actions/setup-gradle@v4
 
