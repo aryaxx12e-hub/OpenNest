@@ -1,10 +1,14 @@
 # Stage E release checklist
 
-Status: blocked. Do not publish a Stage E release while any external gate in
-`docs/stage-e-gate-register.md` is open. This checklist records evidence; it does
-not replace an independent review.
+Status: blocked for a Stage E release. Do not publish a Stage E release while any
+external gate in `docs/stage-e-gate-register.md` is open. This checklist records
+evidence; it does not replace an independent review.
 
-Last updated: 2026-11-19
+The source-only `v0.1.0-beta.1` early access preview is not a Stage E release. It
+may be published while this checklist remains blocked. It closes only E-GATE-06
+and does not approve a hosted beta, a production release, or a Stage E claim.
+
+Last updated: 2026-11-21
 Owner: Rya
 Gate register: `docs/stage-e-gate-register.md`
 Self-hosting guide: `docs/self-hosting.md`
@@ -22,12 +26,12 @@ Self-hosting guide: `docs/self-hosting.md`
 
 | Gate                       | Command                       | Result                                                                      | Evidence   |
 | -------------------------- | ----------------------------- | --------------------------------------------------------------------------- | ---------- |
-| Lint                       | `npm run lint`                | Passed                                                                      | 2026-11-19 |
-| Format check               | `npm run format:check`        | Passed                                                                      | 2026-11-19 |
-| Type check                 | `npm run typecheck`           | Passed                                                                      | 2026-11-19 |
-| Unit and integration tests | `npm test`                    | Passed: 185 files, 1666 tests                                               | 2026-11-19 |
-| Production build           | `npm run build`               | Passed: 16 routes (14 static pages), service worker with 60 precached paths | 2026-11-19 |
-| Browser graph              | `npm run check:browser-graph` | Passed: 113 reachable files                                                 | 2026-11-19 |
+| Lint                       | `npm run lint`                | Passed                                                                      | 2026-11-21 |
+| Format check               | `npm run format:check`        | Passed                                                                      | 2026-11-21 |
+| Type check                 | `npm run typecheck`           | Passed                                                                      | 2026-11-21 |
+| Unit and integration tests | `npm test`                    | Passed: 187 files, 1680 tests                                               | 2026-11-21 |
+| Production build           | `npm run build`               | Passed: 16 routes (14 static pages), service worker with 61 precached paths | 2026-11-21 |
+| Browser graph              | `npm run check:browser-graph` | Passed: 113 reachable files                                                 | 2026-11-21 |
 
 Record exact test file and test counts. Do not record a pass without the command
 output. The test run prints a Vite `configLoader` warning about ESM syntax in
@@ -50,6 +54,10 @@ substitute for browser UI journeys.
 
 Environment note: the protocol scripts above are headless server and controller
 tests. They do not exercise the Next.js UI.
+
+Source-preview evidence: `npm run test:e2e` passed on 2026-11-21 for the Stage C
+journeys, PWA offline and update flow, encryption, the AI console, and
+extensions. This does not satisfy the Stage E browser gates below.
 
 - [ ] Sync and collaboration journeys run in a browser against the production
       build.
@@ -100,7 +108,7 @@ daemon or TLS reverse proxy. The runbook is documented in
 - [ ] E-GATE-04 External cryptographic review signed.
 - [ ] E-GATE-05 E2EE claim gate closed, or sync explicitly excluded from the
       claim everywhere.
-- [ ] E-GATE-06 Hosted CI first run passed.
+- [x] E-GATE-06 Hosted CI first run passed: run `44847771841` on `6447401`.
 - [ ] E-GATE-07 Collaboration security review signed.
 - [ ] E-GATE-08 AI egress review signed.
 - [ ] E-GATE-09 MCP security review signed.
@@ -127,4 +135,4 @@ daemon or TLS reverse proxy. The runbook is documented in
 - [ ] Release approved.
 
 Approval is invalid if any blocking gate is open, even when all automated gates
-pass.
+pass. A source-only preview does not satisfy this release decision.

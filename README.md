@@ -6,12 +6,21 @@ OpenNest is an open-source personal digital workspace designed to help people or
 
 Built around privacy-first and local-first principles, OpenNest aims to give users control over their digital information without forcing them into subscriptions, accounts, or cloud-dependent workflows.
 
-Status: Stage C delivered. Stage D internal work is complete; independent security
-and cryptographic review, the E2EE claim gate, and the first hosted CI run remain
-open. Stage E server, sync, collaboration, AI Q&A, and read-only MCP implementations
-are in place, but the Stage E release gates are open. Independent review is still
-pending, so no E2EE, AI confidentiality, extension sandbox security, or MCP
-isolation claim is made.
+Status: Early access source preview v0.1.0-beta.1 is available. There is no hosted
+beta. Stage A to Stage C are delivered. Stage D internal work is complete;
+independent security and cryptographic review, the E2EE claim gate, and the
+remaining Stage E release gates are open. Hosted CI is green. Stage E server, sync,
+collaboration, AI Q&A, and read-only MCP implementations are in place, but they
+are implementation previews, not supported production surfaces. No E2EE, AI
+confidentiality, extension sandbox security, or MCP isolation claim is made.
+
+🚀 Early access
+
+The first preview is source-only. Clone or download the `v0.1.0-beta.1` tag, run it
+locally with Node 24, and keep your own backups. The preview has no account, cloud
+sync, collaboration flow, extension registry, or hosted OpenNest server. Read
+`docs/early-access.md` and `docs/run-locally.md` before testing. Use GitHub issues
+for reproducible bugs, and do not put private workspace content in an issue.
 
 Library, notes, search, backup, and offline access work locally in the browser.
 Optional content encryption and optional BYOK AI providers are implemented. Local
@@ -69,7 +78,7 @@ MVP capabilities:
 - [x] Offline-ready Progressive Web App (PWA)
 - [x] Indonesian and English interface
 
-Stage D and Stage E capabilities implemented ahead of public release:
+Stage D and Stage E capabilities implemented ahead of a supported public release:
 
 - [x] Local sandboxed extensions with explicit read-only capabilities (review pending)
 - [x] Single-user server authentication, membership, sync, file versions, and collaboration transport (release gates pending)
@@ -183,9 +192,12 @@ tools are needed for app development. Browser E2E tests require system Playwrigh
 1.65 and Chromium; see `docs/development.md`.
 
 ```bash
-npm install
+npm ci
 npm run dev        # http://localhost:3000
 ```
+
+For the source preview, use `npm ci` so the lockfile is respected. Use
+`npm install` only when you intentionally change dependencies.
 
 Quality gates, run in this order before a pull request:
 
@@ -200,6 +212,9 @@ npm run test:e2e
 `npm run test:e2e` requires system Playwright and Chromium; the other gates use
 repository-local dependencies. See `docs/development.md` for the full workflow,
 Android/Termux notes, and the known limitations of this environment.
+
+If you are testing the source preview rather than contributing, read
+`docs/early-access.md` and `docs/run-locally.md` first.
 
 Before contributing, read:
 
@@ -234,7 +249,9 @@ OpenNest adalah ruang kerja digital pribadi berbasis open-source yang dirancang 
 
 Dibangun dengan prinsip privacy-first dan local-first, OpenNest bertujuan memberikan kendali penuh kepada pengguna atas informasi digital mereka tanpa ketergantungan wajib pada langganan, akun, atau layanan cloud.
 
-Status: Stage C selesai, dengan penundaan eksplisit yang dicatat di ROADMAP.md. Stage D sedang berjalan.
+Status: Preview akses awal source-only v0.1.0-beta.1 tersedia. Tidak ada hosted beta. Stage A sampai Stage C selesai. Pekerjaan internal Stage D selesai; tinjauan keamanan dan kriptografi independen, gate klaim E2EE, serta gate rilis Stage E masih terbuka. CI hosted sudah hijau. Implementasi server, sync, kolaborasi, AI Q&A, dan MCP read-only adalah preview implementasi, bukan surface produksi yang didukung. Tidak ada klaim E2EE, kerahasiaan AI, keamanan sandbox ekstensi, atau isolasi MCP.
+
+Cara mencoba: clone tag `v0.1.0-beta.1`, jalankan dengan Node 24, dan simpan backup sendiri. Preview ini tidak punya akun, sync cloud, alur kolaborasi, registri ekstensi, atau server OpenNest hosted. Baca `docs/early-access.md` dan `docs/run-locally.md` sebelum menguji.
 
 Perpustakaan, catatan, pencarian, cadangan, dan akses offline sudah berjalan lokal di browser. Enkripsi konten opsional dan penyedia AI BYOK opsional sudah tersedia. Ekstensi lokal dengan sandbox dan API baca-saja sudah tersedia. Tinjauan keamanan independen belum dilakukan.
 
@@ -280,11 +297,13 @@ Fitur MVP:
 - [x] PWA yang siap digunakan secara offline.
 - [x] Antarmuka Bahasa Indonesia dan Inggris.
 
-Kemampuan Stage D yang sudah diimplementasikan lebih awal:
+Kemampuan Stage D dan Stage E yang sudah diimplementasikan lebih awal:
 
 - [x] Ekstensi lokal dengan sandbox dan izin baca-saja (tinjauan keamanan belum selesai).
+- [x] Autentikasi server single-user, membership, sync, file versions, dan transport kolaborasi (gate rilis masih terbuka).
+- [x] Controller Document Q&A, AI ekstensi, dan MCP read-only (wiring UI dan review masih tertunda).
 
-Fitur AI, sinkronisasi cloud, kolaborasi, registri ekstensi, dan marketplace ekstensi akan dikembangkan setelah fondasi utama stabil.
+Preview akses awal ini tidak memasang source picker Document Q&A, manajemen token MCP, atau layar akun dan invite. Sync cloud, akun publik, registri ekstensi, dan marketplace ekstensi tetap ditunda sampai pengalaman inti stabil.
 
 🔒 Privasi sebagai Prioritas
 

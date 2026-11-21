@@ -4,6 +4,25 @@ All notable changes to OpenNest are documented in this file. The format follows
 Keep a Changelog, and the project intends to use semantic versioning once
 releases begin.
 
+## [0.1.0-beta.1] - 2026-11-21
+
+### Added
+
+- The first source-only early access preview. There is no hosted beta, cloud
+  sync, collaboration flow, extension registry, or supported OpenNest server in
+  this release.
+- `docs/early-access.md` with the preview scope, data and privacy behavior,
+  limitations, and security status.
+- `docs/run-locally.md` with Node 24 requirements, install and build commands,
+  local storage notes, Termux guidance, and troubleshooting.
+- Release notes for `v0.1.0-beta.1` in `docs/releases/v0.1.0-beta.1.md`.
+
+### Security
+
+- The preview is unreviewed software. No E2EE, AI confidentiality, extension
+  sandbox security, or MCP isolation claim is made, and the Stage D and Stage E
+  gates remain open.
+
 ## [Unreleased]
 
 ### Pre-D4A milestones

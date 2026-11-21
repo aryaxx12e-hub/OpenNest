@@ -2,8 +2,21 @@
 
 ## Supported versions
 
-OpenNest is pre-1.0 and has no supported public release yet. Security fixes are
-applied to `main` only.
+OpenNest is pre-1.0. The only public early access artifact is the source-only
+`v0.1.0-beta.1` preview. It is not a supported production release and has no
+security update commitment beyond fixes on `main`.
+
+## Early access preview
+
+The source preview is for local evaluation and feedback. There is no hosted beta,
+no OpenNest account, and no OpenNest server deployment in this release. The
+preview is unreviewed software. Do not use it as the only copy of important data
+or for sensitive personal or business information.
+
+No E2EE, AI confidentiality, extension sandbox security, or MCP isolation claim
+is made for the preview. The Stage D security review, external cryptographic
+review, extension review, AI review, and Stage E gates remain open. See
+`docs/early-access.md` and `docs/stage-e-gate-register.md`.
 
 ## Reporting a vulnerability
 
@@ -37,8 +50,9 @@ The canonical internal dossier is
 [stage-d-security-review.md](./docs/stage-d-security-review.md). It records
 evidence and findings for privacy, backup, SQLite recovery, extensions, AI,
 encryption, PWA, CSP, and the self-hosting boundary. It is not an independent
-report and does not close the Stage D gate. No E2EE, AI confidentiality, or
-extension sandbox security claim is approved.
+report and does not close the Stage D gate. The source-only early access preview
+does not close any Stage D gate. No E2EE, AI confidentiality, or extension sandbox
+security claim is approved.
 
 ## Cryptography and E2EE status
 

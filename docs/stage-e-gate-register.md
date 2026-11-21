@@ -1,33 +1,37 @@
 # Stage E gate register
 
-Status: open. No gate in this register is closed.
+Status: open. E-GATE-06 is closed. No other gate in this register is closed.
 
 This register is the release gate for Stage E. It does not replace the Stage D
 security review. A gate closes only when the evidence is recorded, reviewed, and
 linked here. A design decision or an internal test run does not close an external
 review gate.
 
-Last updated: 2026-11-19
+The source-only `v0.1.0-beta.1` early access preview is not a Stage E release. It
+closes only E-GATE-06. Every other gate remains open, and the preview makes no
+Stage D or Stage E completion claim.
+
+Last updated: 2026-11-21
 Owner: Rya
 Design: `docs/superpowers/specs/2026-11-18-stage-e-ai-sync-collaboration-design.md`
 Plan: `docs/superpowers/plans/2026-11-18-stage-e-ai-sync-collaboration.md`
 
 ## Gate summary
 
-| ID        | Gate                                    | Status   | Blocks release | Evidence                                                                                                               | Close condition                                                                    |
-| --------- | --------------------------------------- | -------- | -------------- | ---------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------- |
-| E-GATE-01 | Stage D overall security review         | Open     | Yes            | `docs/stage-d-security-review.md`                                                                                      | Independent reviewer signs the extension, AI, E2EE, and overall records.           |
-| E-GATE-02 | Extension sandbox external review       | Open     | Yes            | `docs/extension-security-review.md`                                                                                    | Independent extension review signs the record with a commit and date.              |
-| E-GATE-03 | AI and credential vault external review | Open     | Yes            | `docs/ai-security-review.md`                                                                                           | Independent AI and vault review signs the record with a commit and date.           |
-| E-GATE-04 | External cryptographic review           | Open     | Yes            | `docs/e2ee-security-review.md`                                                                                         | Independent cryptography review signs the E2EE implementation record.              |
-| E-GATE-05 | E2EE claim gate, including R-13-7       | Open     | Yes            | `docs/adr/0013-e2ee-key-management-strategy.md`                                                                        | R-13-7 is closed or sync is explicitly excluded everywhere from the claim.         |
-| E-GATE-06 | Hosted CI first run                     | Open     | Yes            | `.github/workflows/ci.yml`                                                                                             | The workflow runs on a hosted runner and the required checks pass.                 |
-| E-GATE-07 | Collaboration security review           | Open     | Yes            | `docs/adr/0016-server-auth-and-tenant.md`, `docs/adr/0018-real-time-collaboration.md`, `scripts/e2e-collaboration.mjs` | Review covers auth, membership, WebSocket, room isolation, limits, snapshots.      |
-| E-GATE-08 | AI egress review for document Q&A       | Open     | Yes            | `docs/adr/0019-ai-document-qa-and-egress.md`, `scripts/e2e-ai-qa.mjs`                                                  | Review covers consent, data classes, payload minimization, logging, retention.     |
-| E-GATE-09 | MCP security review                     | Open     | Yes            | `docs/adr/0020-mcp-server.md`, `scripts/e2e-mcp.mjs`                                                                   | Review covers token scope, revocation, read-only tools, limits, audit.             |
-| E-GATE-10 | Self-hosted release operations review   | Open     | Yes            | `docs/self-hosting-evaluation.md`, `docs/self-hosting.md`                                                              | TLS, backup, restore, migration, rollback, delete-all, single-writer are verified. |
-| E-GATE-11 | Stage E release evidence                | Open     | Yes            | This register, `docs/stage-e-release-checklist.md`                                                                     | All blocking gates close and the full verification suite passes.                   |
-| E-GATE-12 | Cloud synchronization                   | Deferred | No, deferred   | `docs/adr/0015-self-hosting-boundary.md`                                                                               | A separate cloud ADR, operations plan, and security review are approved.           |
+| ID        | Gate                                    | Status   | Blocks release | Evidence                                                                                                                          | Close condition                                                                                             |
+| --------- | --------------------------------------- | -------- | -------------- | --------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
+| E-GATE-01 | Stage D overall security review         | Open     | Yes            | `docs/stage-d-security-review.md`                                                                                                 | Independent reviewer signs the extension, AI, E2EE, and overall records.                                    |
+| E-GATE-02 | Extension sandbox external review       | Open     | Yes            | `docs/extension-security-review.md`                                                                                               | Independent extension review signs the record with a commit and date.                                       |
+| E-GATE-03 | AI and credential vault external review | Open     | Yes            | `docs/ai-security-review.md`                                                                                                      | Independent AI and vault review signs the record with a commit and date.                                    |
+| E-GATE-04 | External cryptographic review           | Open     | Yes            | `docs/e2ee-security-review.md`                                                                                                    | Independent cryptography review signs the E2EE implementation record.                                       |
+| E-GATE-05 | E2EE claim gate, including R-13-7       | Open     | Yes            | `docs/adr/0013-e2ee-key-management-strategy.md`                                                                                   | R-13-7 is closed or sync is explicitly excluded everywhere from the claim.                                  |
+| E-GATE-06 | Hosted CI first run                     | Closed   | Yes            | [CI run 44847771841](https://github.com/aryaxx12e-hub/OpenNest/actions/runs/44847771841) on `6447401`; `.github/workflows/ci.yml` | Met: the hosted runner ran lint, format check, typecheck, tests, and build, and all required checks passed. |
+| E-GATE-07 | Collaboration security review           | Open     | Yes            | `docs/adr/0016-server-auth-and-tenant.md`, `docs/adr/0018-real-time-collaboration.md`, `scripts/e2e-collaboration.mjs`            | Review covers auth, membership, WebSocket, room isolation, limits, snapshots.                               |
+| E-GATE-08 | AI egress review for document Q&A       | Open     | Yes            | `docs/adr/0019-ai-document-qa-and-egress.md`, `scripts/e2e-ai-qa.mjs`                                                             | Review covers consent, data classes, payload minimization, logging, retention.                              |
+| E-GATE-09 | MCP security review                     | Open     | Yes            | `docs/adr/0020-mcp-server.md`, `scripts/e2e-mcp.mjs`                                                                              | Review covers token scope, revocation, read-only tools, limits, audit.                                      |
+| E-GATE-10 | Self-hosted release operations review   | Open     | Yes            | `docs/self-hosting-evaluation.md`, `docs/self-hosting.md`                                                                         | TLS, backup, restore, migration, rollback, delete-all, single-writer are verified.                          |
+| E-GATE-11 | Stage E release evidence                | Open     | Yes            | This register, `docs/stage-e-release-checklist.md`                                                                                | All blocking gates close and the full verification suite passes.                                            |
+| E-GATE-12 | Cloud synchronization                   | Deferred | No, deferred   | `docs/adr/0015-self-hosting-boundary.md`                                                                                          | A separate cloud ADR, operations plan, and security review are approved.                                    |
 
 ## Stage D dependencies
 
@@ -38,7 +42,9 @@ Stage E does not close while any of these remain open:
 - E-GATE-03: the AI and credential-vault review has no assigned external reviewer.
 - E-GATE-04: the cryptographic review has no assigned external reviewer.
 - E-GATE-05: R-13-7 remains open, so no E2EE claim is allowed.
-- E-GATE-06: the repository has no remote, so the hosted CI workflow has never run.
+
+E-GATE-06 is closed by hosted CI run `44847771841` on commit `6447401`. The
+workflow runs on a hosted runner and all required checks passed.
 
 The internal Stage D audit is complete. It is not an external sign-off.
 
@@ -85,16 +91,17 @@ linked release checklist:
 
 ## Internal evidence status
 
-Recorded on 2026-11-19 on the Termux reference environment (Node 24.22.3). This is
-internal automated evidence, not an external sign-off:
+Recorded on 2026-11-21 on the Termux reference environment (Node 24.22.3) from
+`6447401` plus the source-preview documentation change. This is internal
+automated evidence, not an external sign-off:
 
 - `npm run lint`: passed.
 - `npm run format:check`: passed.
 - `npm run typecheck`: passed.
-- `npm test`: 185 test files, 1666 tests passed; browser graph clean with 113
+- `npm test`: 187 test files, 1680 tests passed; browser graph clean with 113
   reachable files.
 - `npm run build`: passed with 16 routes (14 static pages) and a generated
-  service worker with 60 precached paths.
+  service worker with 61 precached paths.
 - `node scripts/e2e-sync.mjs`: passed.
 - `node scripts/e2e-collaboration.mjs`: passed.
 - `node scripts/e2e-ai-qa.mjs`: passed.
@@ -104,9 +111,11 @@ The test run prints a Vite `configLoader` warning about ESM syntax in
 `vitest.config.ts`, a mixed esbuild/oxc options warning, and a happy-dom
 environment-creation notice. None is a failure.
 
-Browser E2E was not run. The app has no login, invite, shared-workspace binding,
-Q&A source picker, or MCP token management surface yet. The release checklist
-records those blockers. No external gate is closed by this evidence.
+Browser E2E: `npm run test:e2e` passed on 2026-11-21 for the Stage C journeys,
+PWA offline and update flow, encryption, the AI console, and extensions. The
+Stage E browser journeys for sync, collaboration, Q&A source selection, and MCP
+token management were not run because those surfaces are not mounted. The release
+checklist records those blockers. No external gate is closed by this evidence.
 
 ## Claim status
 
