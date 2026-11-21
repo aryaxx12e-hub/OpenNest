@@ -4,6 +4,13 @@ All notable changes to OpenNest are documented in this file. The format follows
 Keep a Changelog, and the project intends to use semantic versioning once
 releases begin.
 
+## [0.1.0-beta.3] - 2026-11-21
+
+### Fixed
+
+- Android launch now dismisses the splash screen and switches to the app theme,
+  removing the cropped splash strip that could remain above the header.
+
 ## [0.1.0-beta.2] - 2026-11-21
 
 ### Added

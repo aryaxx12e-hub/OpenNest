@@ -14,8 +14,8 @@ collaboration, AI Q&A, and read-only MCP implementations are in place, but they
 are implementation previews, not supported production surfaces. No E2EE, AI
 confidentiality, extension sandbox security, or MCP isolation claim is made.
 
-The owner-personal Android package v0.1.0-beta.2 is published on the
-[GitHub release](https://github.com/ryaa-Lz/OpenNest/releases/tag/v0.1.0-beta.2).
+The owner-personal Android package v0.1.0-beta.3 is published on the
+[GitHub release](https://github.com/ryaa-Lz/OpenNest/releases/tag/v0.1.0-beta.3).
 It is an unsupported Capacitor sideload build, not a Play Store release and not a
 change to the supported platforms. See `docs/android.md`.
 
@@ -262,8 +262,8 @@ Q&A, dan MCP read-only adalah preview implementasi, bukan surface produksi yang
 didukung. Tidak ada klaim E2EE, kerahasiaan AI, keamanan sandbox ekstensi, atau
 isolasi MCP.
 
-Paket Android personal v0.1.0-beta.2 tersedia di
-[GitHub release](https://github.com/ryaa-Lz/OpenNest/releases/tag/v0.1.0-beta.2).
+Paket Android personal v0.1.0-beta.3 tersedia di
+[GitHub release](https://github.com/ryaa-Lz/OpenNest/releases/tag/v0.1.0-beta.3).
 Ini build sideload Capacitor yang tidak didukung, bukan rilis Play Store, dan tidak
 mengubah platform yang didukung. Lihat `docs/android.md`.
 

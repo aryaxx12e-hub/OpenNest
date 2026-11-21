@@ -1,7 +1,7 @@
 apply plugin: 'com.android.application'
 
 def openNestVersionCode = (System.getenv("OPENNEST_VERSION_CODE") ?: "1").toInteger()
-def openNestVersionName = System.getenv("OPENNEST_VERSION_NAME") ?: "0.1.0-beta.2"
+def openNestVersionName = System.getenv("OPENNEST_VERSION_NAME") ?: "0.1.0-beta.3"
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {

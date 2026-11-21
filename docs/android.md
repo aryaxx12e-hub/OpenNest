@@ -92,7 +92,7 @@ Install a release APK on the phone by opening it from the Downloads folder, or
 with ADB:
 
 ```bash
-adb install -r OpenNest-0.1.0-beta.2.apk
+adb install -r OpenNest-0.1.0-beta.3.apk
 ```
 
 Android may ask you to allow installs from the app that opens the APK. That
