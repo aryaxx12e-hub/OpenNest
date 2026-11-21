@@ -216,6 +216,21 @@ A production build takes roughly 1m45 on the reference device, so run quality
 gates deliberately rather than in a tight loop. `node_modules` is about 300 MB
 and `.next` about 100 MB; both are gitignored.
 
+## Android package
+
+The Capacitor wrapper lives in `apps/mobile` with a committed Android project.
+`npm run sync:android` performs the static export and then Capacitor sync. It
+requires a working static build and enough disk for `apps/web/out`.
+
+The Termux reference environment has JDK 21 but no Android SDK, so it cannot run
+Gradle or produce an APK. The GitHub Actions `Android` workflow builds debug and
+signed release APKs with SDK 36 and publishes them as workflow artifacts. Tags
+also publish the APKs to the GitHub release.
+
+Do not invoke `./gradlew` from Termux unless you have installed the Android SDK
+and build-tools there yourself. See `docs/android.md` for signing, installation,
+and limitations.
+
 ## Not available here
 
 - Turbopack.
@@ -347,9 +362,10 @@ storage connection and do not import Dexie or repositories directly in a
 component. Browser storage is the source of truth, so screens are client
 components; there is no server API in Stage C.
 
-Routes: `/`, `/library`, `/library/[folderId]`, `/files/[fileId]`, `/notes`,
-`/notes/[noteId]`, `/search`, `/extensions`, `/extensions/[extensionId]`,
-`/privacy`, `/settings`, and `/offline`. Search state lives in URL parameters.
+Routes: `/`, `/library`, `/files`, `/notes`, `/search`, `/extensions`,
+`/privacy`, `/settings`, and `/offline`. Detail views use query parameters
+(`/notes?noteId=...`, `/library?folderId=...`, `/files?fileId=...`,
+`/extensions?extensionId=...`). Search state lives in URL parameters.
 File previews use local blob URLs and revoke them on unmount. Markdown preview
 uses `react-markdown` with GFM, skips raw HTML, and blocks remote images.
 
@@ -462,9 +478,9 @@ Limitations:
 - A first visit cannot work offline: there is no worker or cache yet. The
   worker also requires HTTPS (or localhost), so a plain-HTTP LAN deployment
   cannot install it.
-- Static shell routes and previously visited data work offline. A dynamic
-  route such as `/files/[fileId]` is only available if it was visited or its
-  HTML was cached while online. The IndexedDB content itself stays local.
+- Static shell routes and previously visited data work offline. A detail view
+  such as `/files?fileId=...` uses the cached `/files` shell while the
+  IndexedDB content itself stays local.
 - Offline prefetch requests may log expected `net::ERR_FAILED` console entries.
   The PWA E2E filters those and still fails on application errors.
 - Browser storage remains evictable. The PWA does not make IndexedDB permanent;

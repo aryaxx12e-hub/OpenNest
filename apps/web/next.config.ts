@@ -1,23 +1,12 @@
 import type { NextConfig } from "next";
 
+import { buildContentSecurityPolicy } from "./lib/security/csp.mjs";
+
 const isDevelopment = process.env.NODE_ENV !== "production";
-const aiConnectSources = "https: http://localhost:* http://127.0.0.1:*";
-const contentSecurityPolicy = [
-  "default-src 'self'",
-  `script-src 'self' 'unsafe-inline'${isDevelopment ? " 'unsafe-eval'" : ""}`,
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
-  "font-src 'self'",
-  "media-src 'self' blob:",
-  `connect-src 'self' ${aiConnectSources}${isDevelopment ? " ws: wss:" : ""}`,
-  "worker-src 'self' blob:",
-  "manifest-src 'self'",
-  "object-src 'none'",
-  "base-uri 'self'",
-  "form-action 'self'",
-  "frame-src 'self'",
-  "frame-ancestors 'none'",
-].join("; ");
+
+const contentSecurityPolicy = buildContentSecurityPolicy({
+  development: isDevelopment,
+});
 
 const securityHeaders = [
   { key: "Content-Security-Policy", value: contentSecurityPolicy },
@@ -32,7 +21,7 @@ const securityHeaders = [
   { key: "Cross-Origin-Resource-Policy", value: "same-origin" },
 ];
 
-const nextConfig: NextConfig = {
+const sharedConfig = {
   reactStrictMode: true,
   transpilePackages: [
     "@opennest/ui",
@@ -46,36 +35,54 @@ const nextConfig: NextConfig = {
     "@opennest/ai",
     "@opennest/extensions",
   ],
-  async headers() {
-    return [
-      {
-        source: "/(.*)",
-        headers: securityHeaders,
-      },
-      {
-        source: "/extension-sandbox.js",
-        headers: [
-          {
-            key: "Cross-Origin-Resource-Policy",
-            value: "cross-origin",
-          },
-        ],
-      },
-      {
-        source: "/sw.js",
-        headers: [
-          {
-            key: "Cache-Control",
-            value: "no-cache, no-store, must-revalidate",
-          },
-          {
-            key: "Service-Worker-Allowed",
-            value: "/",
-          },
-        ],
-      },
-    ];
-  },
-};
+} satisfies NextConfig;
+
+export function createNextConfig(staticExport: boolean): NextConfig {
+  if (staticExport) {
+    return {
+      ...sharedConfig,
+      output: "export",
+      distDir: "out",
+      trailingSlash: false,
+      images: { unoptimized: true },
+    };
+  }
+
+  return {
+    ...sharedConfig,
+    async headers() {
+      return [
+        {
+          source: "/(.*)",
+          headers: securityHeaders,
+        },
+        {
+          source: "/extension-sandbox.js",
+          headers: [
+            {
+              key: "Cross-Origin-Resource-Policy",
+              value: "cross-origin",
+            },
+          ],
+        },
+        {
+          source: "/sw.js",
+          headers: [
+            {
+              key: "Cache-Control",
+              value: "no-cache, no-store, must-revalidate",
+            },
+            {
+              key: "Service-Worker-Allowed",
+              value: "/",
+            },
+          ],
+        },
+      ];
+    },
+  };
+}
+
+const nextConfig = createNextConfig(process.env.OPENNEST_STATIC_EXPORT === "1");
 
 export default nextConfig;

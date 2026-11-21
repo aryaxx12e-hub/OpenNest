@@ -40,6 +40,9 @@ export const en = {
     add: "Add",
     done: "Done",
     remove: "Remove",
+    notFoundTitle: "Page not found",
+    notFoundBody: "This page may have moved or no longer exists.",
+    backHome: "Back home",
   },
   data: {
     loading: "Opening your library...",
@@ -305,7 +308,7 @@ export const en = {
     exporting: "Preparing backup...",
     import: "Restore from backup",
     importing: "Checking backup...",
-    exportSuccess: "Backup downloaded.",
+    exportSuccess: "Backup exported.",
     lastBackup: "Last backup",
     neverBackedUp: "Never",
     reminder: {
@@ -316,10 +319,10 @@ export const en = {
         "Create a fresh backup so a device problem does not take your library with it.",
       action: "Open backup settings",
     },
-    exportTitle: "Download a backup?",
+    exportTitle: "Export a backup?",
     exportDescription:
       "The backup contains your files, notes, folders, and tags. It is created on this device.",
-    exportConfirm: "Download backup",
+    exportConfirm: "Export backup",
     exportExclusion:
       "Recovery drafts, permission grants, audit entries, search results, and sync metadata (including outbox and conflict records) are not included in the backup.",
     exportExclusionAi:
@@ -338,7 +341,7 @@ export const en = {
     folders: "folders",
     tags: "tags",
     exportDialog: {
-      title: "Download a backup?",
+      title: "Export a backup?",
       description: "Choose how this backup is protected before it leaves this device.",
       summary: "This backup contains:",
       protection: "Protection",
@@ -369,9 +372,9 @@ export const en = {
         "A plaintext backup is not encrypted. Anyone with the file can read every title, note, and file.",
       encryptedAtRestNotice:
         "Note bodies and file contents are encrypted at rest. This plaintext backup is not.",
-      download: "Download backup",
+      download: "Export backup",
       done: "Done",
-      success: "Backup downloaded. Store it somewhere safe.",
+      success: "Backup exported. Store it somewhere safe.",
     },
     importKey: {
       title: "Unlock this backup",
@@ -655,8 +658,8 @@ export const en = {
       title: "Export all data?",
       description:
         "The backup is created on this device. It includes files, notes, folders, and tags.",
-      confirm: "Download backup",
-      success: "Backup downloaded.",
+      confirm: "Export backup",
+      success: "Backup exported.",
       exclusion:
         "Recovery drafts, permission grants, audit entries, search results, and sync metadata (including outbox and conflict records) are not included.",
     },
@@ -700,17 +703,17 @@ export const en = {
     updateDraftUnverified:
       "Could not check drafts on this device. Try again before refreshing.",
     updateDraftUnverifiedNote:
-      "Some notes could not be verified. Download their drafts before discarding.",
+      "Some notes could not be verified. Export their drafts before discarding.",
     updateDraftExisting:
       "Open these notes to save or discard their recovery drafts before refreshing.",
     updateDraftOrphan:
-      "These drafts belong to notes that no longer exist. Download them or discard them before refreshing.",
+      "These drafts belong to notes that no longer exist. Export them or discard them before refreshing.",
     updateDraftOpen: "Open note",
-    updateDraftDownload: "Download",
+    updateDraftDownload: "Export",
     updateDraftDiscard: "Discard",
     updateDraftDiscardTitle: "Discard this draft?",
     updateDraftDiscardDescription:
-      "This removes the recovery draft for this note. Download it first if you want to keep a copy. This cannot be undone.",
+      "This removes the recovery draft for this note. Export it first if you want to keep a copy. This cannot be undone.",
     updateDraftDiscardConfirm: "Discard draft",
     updateDraftClearTitle: "Clear draft data?",
     updateDraftClearDescription:
@@ -719,7 +722,8 @@ export const en = {
     updateDraftClearConfirm: "Clear data",
     updateDraftClearFailed:
       "Draft data could not be cleared. Clear this site's storage in browser settings, then try again.",
-    updateDraftDownloaded: "Draft file downloaded.",
+    updateDraftDownloaded: "Draft file exported.",
+    updateDraftDownloadError: "The draft could not be exported. Try again.",
     updateDraftError: "Could not discard this draft. Try again.",
     offlineTitle: "You're offline.",
     offlineDescription:
@@ -874,10 +878,11 @@ export const en = {
   },
   file: {
     back: "Back to library",
-    download: "Download",
+    export: "Export",
+    exportError: "The file could not be exported. Try again.",
     previewUnavailable: "Preview is not available",
     previewUnavailableBody:
-      "This file type cannot be shown in the browser. Download it to open it.",
+      "This file type cannot be shown in the browser. Export it to open it.",
     details: "Details",
     size: "Size",
     type: "Type",
@@ -887,6 +892,8 @@ export const en = {
     textPreview: "Text preview",
     notFoundTitle: "File not found",
     notFoundBody: "This file may have been deleted.",
+    noSelectionTitle: "No file selected",
+    noSelectionBody: "Choose a file from your library to preview it.",
     name: "File name",
     renameTitle: "Rename file",
     renameDescription: "Change the display name. The file itself is unchanged.",
@@ -960,7 +967,7 @@ export const en = {
     linkLimit: "Showing the 500 most recent notes. Type to narrow the list.",
     linkUnavailable: "This linked note is unavailable.",
     exportMarkdown: "Export Markdown",
-    exportSuccess: "Markdown file downloaded.",
+    exportSuccess: "Markdown file exported.",
     exportError: "The note could not be exported. Try again.",
   },
   folderActions: {

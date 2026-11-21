@@ -250,7 +250,7 @@ async function run() {
 
     await navigate("Notes");
     await page.getByRole("button", { name: "New note" }).first().click();
-    await page.waitForURL(/\/notes\/[^/]+$/);
+    await page.waitForURL(/\/notes\?noteId=[^/]+$/);
     await page.getByRole("textbox", { name: "Note title" }).fill(noteTitle);
     await page.getByText("Unsaved changes", { exact: true }).waitFor({ timeout: 5000 });
     await page
@@ -269,7 +269,7 @@ async function run() {
     });
     await page.getByText("Upload complete.").waitFor();
     await page.getByRole("link", { name: new RegExp(`${unique}\\.txt`) }).click();
-    await page.waitForURL(/\/files\/[^/]+$/);
+    await page.waitForURL(/\/files\?fileId=[^/]+$/);
     await page.getByText(`hello from encrypted ${unique}`).waitFor();
     await assertPageStructure(page, "encrypted file preview");
 
@@ -287,7 +287,7 @@ async function run() {
       .getByRole("link", { name: new RegExp(noteTitle) })
       .first()
       .click();
-    await page.waitForURL(/\/notes\/[^/]+$/);
+    await page.waitForURL(/\/notes\?noteId=[^/]+$/);
     await page.waitForFunction(
       (marker) => {
         const textarea = document.querySelector('textarea[aria-label="Write"]');
@@ -327,7 +327,7 @@ async function run() {
     const backupKey = await exportDialog.locator("input[readonly]").inputValue();
     assert.match(backupKey, /^ONBK1-/);
     await exportDialog.getByLabel("I saved this backup key.").check();
-    await exportDialog.getByRole("button", { name: "Download backup" }).click();
+    await exportDialog.getByRole("button", { name: "Export backup" }).click();
     const download = await downloadPromise;
     const backupPath = await download.path();
     assert.ok(backupPath, "the encrypted backup should be saved to a temporary file");
@@ -338,7 +338,7 @@ async function run() {
     assert.ok(Array.isArray(envelope.chunks) && envelope.chunks.length > 0);
     assert.equal(backupText.includes(unique), false, "v2 must not leak plaintext titles");
     assert.equal(backupText.includes(noteTitle), false, "v2 must not leak note titles");
-    await page.getByText("Backup downloaded. Store it somewhere safe.").waitFor();
+    await page.getByText("Backup exported. Store it somewhere safe.").waitFor();
     await exportDialog.getByRole("button", { name: "Done" }).click();
 
     await navigate("Privacy");
@@ -383,7 +383,7 @@ async function run() {
       .waitFor();
     await navigate("Library");
     await page.getByRole("link", { name: new RegExp(`${unique}\\.txt`) }).click();
-    await page.waitForURL(/\/files\/[^/]+$/);
+    await page.waitForURL(/\/files\?fileId=[^/]+$/);
     await page.getByText(`hello from encrypted ${unique}`).waitFor();
     await assertPageStructure(page, "restored encrypted file");
 

@@ -163,6 +163,17 @@ describe("ServiceWorkerUpdate", () => {
     expect(host.textContent).not.toContain("A new version is ready.");
   });
 
+  it("does not register the service worker on native", async () => {
+    window.Capacitor = { isNativePlatform: () => true };
+    const container = new FakeContainer();
+    mount(<ServiceWorkerUpdate enabled container={container} reload={vi.fn()} />);
+
+    await settle();
+
+    expect(container.register).not.toHaveBeenCalled();
+    delete window.Capacitor;
+  });
+
   it("only activates a waiting update after the user confirms", async () => {
     const container = new FakeContainer();
     const reload = vi.fn();
@@ -413,7 +424,7 @@ describe("ServiceWorkerUpdate", () => {
       "These drafts belong to notes that no longer exist."
     );
 
-    act(() => buttonByText(host, "Download").click());
+    act(() => buttonByText(host, "Export").click());
     expect(download).toHaveBeenCalledTimes(1);
 
     act(() => buttonByText(host, "Discard").click());
@@ -644,7 +655,7 @@ describe("ServiceWorkerUpdate", () => {
     expect(host.textContent).toContain("Some notes could not be verified.");
     expect(
       Array.from(host.querySelectorAll("button")).some(
-        (button) => button.textContent === "Download"
+        (button) => button.textContent === "Export"
       )
     ).toBe(true);
 
@@ -788,7 +799,7 @@ describe("ServiceWorkerUpdate", () => {
     act(() => buttonByText(host, "Refresh").click());
     await settle();
 
-    expect(host.querySelector('a[href="/notes/note-1"]')?.textContent).toContain(
+    expect(host.querySelector('a[href="/notes?noteId=note-1"]')?.textContent).toContain(
       "Open note"
     );
     expect(

@@ -8,6 +8,10 @@
     "start": "node ../../scripts/next.mjs start"
   },
   "dependencies": {
+    "@capacitor/app": "8.1.2",
+    "@capacitor/core": "8.6.2",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3",
     "@opennest/collaboration": "0.1.0",
     "dexie": "4.4.7",
     "next": "16.4.6",

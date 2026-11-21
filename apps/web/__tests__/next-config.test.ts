@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 
-import nextConfig from "../next.config";
+import nextConfig, { createNextConfig } from "../next.config";
 
 function directive(csp: string, name: string): string[] | undefined {
   const line = csp
@@ -59,5 +59,24 @@ describe("Next.js security headers", () => {
 
   it("transpiles the extension package for the browser", () => {
     expect(nextConfig.transpilePackages).toContain("@opennest/extensions");
+  });
+
+  it("keeps the server build dynamic with security headers", () => {
+    const config = createNextConfig(false);
+
+    expect(config.output).toBeUndefined();
+    expect(config.distDir).toBeUndefined();
+    expect(typeof config.headers).toBe("function");
+  });
+
+  it("creates a static export without server-only headers", () => {
+    const config = createNextConfig(true);
+
+    expect(config.output).toBe("export");
+    expect(config.distDir).toBe("out");
+    expect(config.trailingSlash).toBe(false);
+    expect(config.images).toEqual({ unoptimized: true });
+    expect(config.headers).toBeUndefined();
+    expect(config.transpilePackages).toContain("@opennest/extensions");
   });
 });

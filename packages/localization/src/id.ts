@@ -42,6 +42,9 @@ export const id: typeof en = {
     add: "Tambah",
     done: "Selesai",
     remove: "Hapus",
+    notFoundTitle: "Halaman tidak ditemukan",
+    notFoundBody: "Halaman ini mungkin sudah dipindahkan atau tidak ada lagi.",
+    backHome: "Kembali ke beranda",
   },
   data: {
     loading: "Membuka perpustakaanmu...",
@@ -309,7 +312,7 @@ export const id: typeof en = {
     exporting: "Menyiapkan cadangan...",
     import: "Pulihkan dari cadangan",
     importing: "Memeriksa cadangan...",
-    exportSuccess: "Cadangan berhasil diunduh.",
+    exportSuccess: "Cadangan berhasil diekspor.",
     lastBackup: "Backup terakhir",
     neverBackedUp: "Belum pernah",
     reminder: {
@@ -320,10 +323,10 @@ export const id: typeof en = {
         "Buat backup baru supaya masalah perangkat tidak menghilangkan perpustakaanku.",
       action: "Buka pengaturan backup",
     },
-    exportTitle: "Unduh cadangan?",
+    exportTitle: "Ekspor cadangan?",
     exportDescription:
       "Cadangan berisi berkas, catatan, folder, dan tag milikmu. Cadangan dibuat di perangkat ini.",
-    exportConfirm: "Unduh cadangan",
+    exportConfirm: "Ekspor cadangan",
     exportExclusion:
       "Draf pemulihan, izin akses, catatan audit, hasil pencarian, dan metadata sinkronisasi (termasuk outbox dan catatan konflik) tidak termasuk dalam cadangan.",
     exportExclusionAi:
@@ -342,7 +345,7 @@ export const id: typeof en = {
     folders: "folder",
     tags: "tag",
     exportDialog: {
-      title: "Unduh cadangan?",
+      title: "Ekspor cadangan?",
       description: "Pilih cara melindungi cadangan ini sebelum keluar dari perangkat.",
       summary: "Isi cadangan:",
       protection: "Perlindungan",
@@ -374,9 +377,9 @@ export const id: typeof en = {
         "Cadangan teks biasa tidak dienkripsi. Siapa pun yang punya berkasnya bisa membaca semua judul, catatan, dan berkas.",
       encryptedAtRestNotice:
         "Isi catatan dan isi berkas dienkripsi saat disimpan. Cadangan teks biasa ini tidak.",
-      download: "Unduh cadangan",
+      download: "Ekspor cadangan",
       done: "Selesai",
-      success: "Cadangan berhasil diunduh. Simpan di tempat aman.",
+      success: "Cadangan berhasil diekspor. Simpan di tempat aman.",
     },
     importKey: {
       title: "Buka cadangan ini",
@@ -659,8 +662,8 @@ export const id: typeof en = {
       title: "Ekspor semua data?",
       description:
         "Cadangan dibuat di perangkat ini. Isinya berkas, catatan, folder, dan tag.",
-      confirm: "Unduh cadangan",
-      success: "Cadangan berhasil diunduh.",
+      confirm: "Ekspor cadangan",
+      success: "Cadangan berhasil diekspor.",
       exclusion:
         "Draf pemulihan, izin akses, entri audit, hasil pencarian, dan metadata sinkronisasi (termasuk outbox dan catatan konflik) tidak termasuk.",
     },
@@ -707,17 +710,17 @@ export const id: typeof en = {
     updateDraftUnverified:
       "Tidak bisa memeriksa draf di perangkat ini. Coba lagi sebelum memuat ulang.",
     updateDraftUnverifiedNote:
-      "Beberapa catatan tidak bisa diverifikasi. Unduh drafnya sebelum dibuang.",
+      "Beberapa catatan tidak bisa diverifikasi. Ekspor drafnya sebelum dibuang.",
     updateDraftExisting:
       "Buka catatan ini untuk menyimpan atau membuang draf pemulihannya sebelum memuat ulang.",
     updateDraftOrphan:
-      "Draf ini milik catatan yang sudah tidak ada. Unduh atau buang sebelum memuat ulang.",
+      "Draf ini milik catatan yang sudah tidak ada. Ekspor atau buang sebelum memuat ulang.",
     updateDraftOpen: "Buka catatan",
-    updateDraftDownload: "Unduh",
+    updateDraftDownload: "Ekspor",
     updateDraftDiscard: "Buang",
     updateDraftDiscardTitle: "Buang draf ini?",
     updateDraftDiscardDescription:
-      "Ini menghapus draf pemulihan untuk catatan ini. Unduh dulu kalau mau menyimpan salinannya. Tindakan ini tidak bisa dibatalkan.",
+      "Ini menghapus draf pemulihan untuk catatan ini. Ekspor dulu kalau mau menyimpan salinannya. Tindakan ini tidak bisa dibatalkan.",
     updateDraftDiscardConfirm: "Buang draf",
     updateDraftClearTitle: "Hapus data draf?",
     updateDraftClearDescription:
@@ -726,7 +729,8 @@ export const id: typeof en = {
     updateDraftClearConfirm: "Hapus data",
     updateDraftClearFailed:
       "Data draf tidak bisa dihapus. Hapus penyimpanan situs ini di pengaturan browser, lalu coba lagi.",
-    updateDraftDownloaded: "Berkas draf sudah diunduh.",
+    updateDraftDownloaded: "Berkas draf sudah diekspor.",
+    updateDraftDownloadError: "Draf tidak bisa diekspor. Coba lagi.",
     updateDraftError: "Gagal membuang draf ini. Coba lagi.",
     offlineTitle: "Kamu sedang offline.",
     offlineDescription:
@@ -880,10 +884,11 @@ export const id: typeof en = {
   },
   file: {
     back: "Kembali ke perpustakaan",
-    download: "Unduh",
+    export: "Ekspor",
+    exportError: "Berkas tidak bisa diekspor. Coba lagi.",
     previewUnavailable: "Pratinjau tidak tersedia",
     previewUnavailableBody:
-      "Jenis berkas ini tidak bisa ditampilkan di browser. Unduh untuk membukanya.",
+      "Jenis berkas ini tidak bisa ditampilkan di browser. Ekspor untuk membukanya.",
     details: "Detail",
     size: "Ukuran",
     type: "Jenis",
@@ -893,6 +898,8 @@ export const id: typeof en = {
     textPreview: "Pratinjau teks",
     notFoundTitle: "Berkas tidak ditemukan",
     notFoundBody: "Berkas ini mungkin sudah dihapus.",
+    noSelectionTitle: "Belum ada berkas dipilih",
+    noSelectionBody: "Pilih berkas dari perpustakaan untuk melihat pratinjaunya.",
     name: "Nama berkas",
     renameTitle: "Ganti nama berkas",
     renameDescription: "Ubah nama tampilan. Isi berkasnya tidak berubah.",
@@ -966,7 +973,7 @@ export const id: typeof en = {
     linkLimit: "Menampilkan 500 catatan terbaru. Ketik untuk mempersempit daftar.",
     linkUnavailable: "Catatan tertaut ini tidak tersedia.",
     exportMarkdown: "Ekspor Markdown",
-    exportSuccess: "Berkas Markdown diunduh.",
+    exportSuccess: "Berkas Markdown diekspor.",
     exportError: "Catatan tidak bisa diekspor. Coba lagi.",
   },
   folderActions: {

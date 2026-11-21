@@ -6,7 +6,9 @@ const config = [
     ignores: [
       "**/node_modules/**",
       "**/.next/**",
+      "**/.next-static/**",
       "**/out/**",
+      "**/android/**",
       "**/coverage/**",
       "**/dist/**",
       "**/playwright-report/**",

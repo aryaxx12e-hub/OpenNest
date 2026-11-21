@@ -6,6 +6,7 @@ import { AppShell } from "@/components/app-shell";
 import { EncryptionGate } from "@/lib/crypto/encryption-gate";
 import { AppDataProvider } from "@/lib/data/app-data-provider";
 import { SaveCoordinatorProvider } from "@/lib/data/save-coordinator";
+import { buildContentSecurityPolicy } from "@/lib/security/csp.mjs";
 import { themeColors, themeScript } from "@/lib/theme";
 
 import "./globals.css";
@@ -28,13 +29,17 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
+  viewportFit: "cover",
   themeColor: themeColors.light,
 };
+
+const contentSecurityPolicy = buildContentSecurityPolicy();
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
+        <meta httpEquiv="Content-Security-Policy" content={contentSecurityPolicy} />
         <script dangerouslySetInnerHTML={{ __html: themeScript }} />
       </head>
       <body>

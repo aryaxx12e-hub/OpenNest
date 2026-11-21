@@ -7,7 +7,8 @@ import { useTranslations } from "@opennest/localization";
 import { Button, ConfirmDialog } from "@opennest/ui";
 
 import type { NoteDraft } from "@/lib/autosave/draft-journal";
-import { downloadTextFile } from "@/lib/data/backup";
+import { exportTextFile } from "@/lib/export";
+import { noteHref } from "@/lib/routes";
 
 export interface DraftTarget {
   draft: NoteDraft;
@@ -20,7 +21,7 @@ export interface DraftRecoveryProps {
   unreadable: boolean;
   busy: boolean;
   error: string | null;
-  download?: (fileName: string, text: string) => void;
+  download?: (fileName: string, text: string) => void | Promise<void>;
   onDiscard: (draft: NoteDraft) => void;
   onClearAll: () => void;
 }
@@ -42,13 +43,15 @@ export function DraftRecovery({
   unreadable,
   busy,
   error,
-  download = downloadTextFile,
+  download = exportTextFile,
   onDiscard,
   onClearAll,
 }: DraftRecoveryProps) {
   const t = useTranslations();
   const [pending, setPending] = useState<PendingAction>(null);
   const [downloaded, setDownloaded] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
+  const [downloadError, setDownloadError] = useState<string | null>(null);
   const existingCount = targets.filter((target) => target.exists).length;
   const orphanCount = targets.length - existingCount;
   const unverifiedCount = targets.filter(
@@ -63,6 +66,22 @@ export function DraftRecovery({
       onDiscard(action.draft);
     } else if (action?.kind === "clear") {
       onClearAll();
+    }
+  }
+
+  async function exportDraft(draft: NoteDraft) {
+    const key = `${draft.workspaceId}:${draft.noteId}`;
+    setDownloading(key);
+    setDownloadError(null);
+    setDownloaded(false);
+
+    try {
+      await download(draftFileName(draft), draftFileText(draft));
+      setDownloaded(true);
+    } catch {
+      setDownloadError("pwa.updateDraftDownloadError");
+    } finally {
+      setDownloading(null);
     }
   }
 
@@ -113,7 +132,7 @@ export function DraftRecovery({
               {exists ? (
                 <Link
                   className="text-primary text-xs font-medium underline underline-offset-4"
-                  href={`/notes/${draft.noteId}`}
+                  href={noteHref(draft.noteId)}
                 >
                   {t("pwa.updateDraftOpen")}
                 </Link>
@@ -123,10 +142,8 @@ export function DraftRecovery({
                     variant="secondary"
                     size="sm"
                     disabled={busy}
-                    onClick={() => {
-                      download(draftFileName(draft), draftFileText(draft));
-                      setDownloaded(true);
-                    }}
+                    loading={downloading === `${draft.workspaceId}:${draft.noteId}`}
+                    onClick={() => void exportDraft(draft)}
                   >
                     {t("pwa.updateDraftDownload")}
                   </Button>
@@ -150,6 +167,12 @@ export function DraftRecovery({
           {t("pwa.updateDraftDownloaded")}
         </p>
       ) : null}
+
+      {downloadError === null ? null : (
+        <p role="alert" className="text-xs leading-5 text-red-700 dark:text-red-300">
+          {t(downloadError)}
+        </p>
+      )}
 
       <ConfirmDialog
         open={pending?.kind === "discard"}

@@ -9,6 +9,7 @@ import { Button, cn, type ButtonSize, type ButtonVariant } from "@opennest/ui";
 
 import { useAppData } from "@/lib/data/app-data-provider";
 import { errorKey } from "@/lib/errors";
+import { noteHref } from "@/lib/routes";
 
 export interface NewNoteButtonProps {
   folderId?: FolderId | null;
@@ -47,7 +48,7 @@ export function NewNoteButton({
         content: "",
       });
       invalidate();
-      router.push(`/notes/${note.id}`);
+      router.push(noteHref(note.id));
     } catch (caught) {
       setError(errorKey(caught));
       setBusy(false);

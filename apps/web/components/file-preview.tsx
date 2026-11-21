@@ -18,8 +18,11 @@ import { TagDialog } from "@/components/tag-dialog";
 import { useAppData } from "@/lib/data/app-data-provider";
 import { useAsyncData } from "@/lib/data/hooks";
 import { errorKey } from "@/lib/errors";
+import { exportBinaryFile } from "@/lib/export";
 import { isPreviewableMime } from "@/lib/files";
 import { formatBytes, formatDateTime } from "@/lib/format";
+import { useIsNativeApp } from "@/lib/native";
+import { folderHref } from "@/lib/routes";
 
 const TEXT_PREVIEW_LIMIT = 100_000;
 
@@ -28,11 +31,13 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
   const { locale } = useLocale();
   const router = useRouter();
   const { services, workspace, privacy, invalidate } = useAppData();
+  const native = useIsNativeApp();
   const [renameOpen, setRenameOpen] = useState(false);
   const [moveOpen, setMoveOpen] = useState(false);
   const [tagsOpen, setTagsOpen] = useState(false);
   const [deleteOpen, setDeleteOpen] = useState(false);
   const [deleteBusy, setDeleteBusy] = useState(false);
+  const [exporting, setExporting] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const state = useAsyncData(`file:${fileId}`, async () => {
     const file = await services.file.get(fileId);
@@ -58,6 +63,7 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
     return {
       missing: false as const,
       file,
+      blob,
       url,
       text,
       folders: folders.items,
@@ -114,7 +120,7 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
     );
   }
 
-  const { file, text, folders, allTags, fileTags } = data;
+  const { file, blob, text, folders, allTags, fileTags } = data;
   const isImage =
     file.mimeType === "image/png" ||
     file.mimeType === "image/jpeg" ||
@@ -137,7 +143,7 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
     setActionError(null);
 
     try {
-      const target = file.folderId === null ? "/library" : `/library/${file.folderId}`;
+      const target = folderHref(file.folderId);
       await services.file.delete(file.id);
       invalidate();
       setDeleteOpen(false);
@@ -154,6 +160,23 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
     return services.tag.create({ workspaceId: workspace.id, name });
   }
 
+  async function exportFile() {
+    if (blob === null) {
+      return;
+    }
+
+    setExporting(true);
+    setActionError(null);
+
+    try {
+      await exportBinaryFile(file.name, blob);
+    } catch {
+      setActionError("file.exportError");
+    } finally {
+      setExporting(false);
+    }
+  }
+
   async function saveTags(tagIds: TagId[]) {
     await services.file.setTags(file.id, tagIds);
     invalidate();
@@ -163,7 +186,7 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
     <PageContainer>
       <div>
         <Link
-          href={file.folderId === null ? "/library" : `/library/${file.folderId}`}
+          href={folderHref(file.folderId)}
           className="text-muted hover:text-foreground text-sm underline-offset-4 hover:underline"
         >
           {t("file.back")}
@@ -187,18 +210,17 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
             <Button variant="secondary" onClick={() => setTagsOpen(true)}>
               {t("file.tags")}
             </Button>
+            <Button
+              variant="secondary"
+              loading={exporting}
+              disabled={blob === null}
+              onClick={() => void exportFile()}
+            >
+              {t("file.export")}
+            </Button>
             <Button variant="danger" onClick={() => setDeleteOpen(true)}>
               {t("common.delete")}
             </Button>
-            {data.url === null ? null : (
-              <a
-                href={data.url}
-                download={file.name}
-                className="bg-primary text-primary-foreground hover:bg-primary/90 rounded-control inline-flex min-h-11 items-center px-4 text-sm font-medium"
-              >
-                {t("file.download")}
-              </a>
-            )}
           </div>
         }
       />
@@ -252,7 +274,18 @@ export function FilePreview({ fileId }: { fileId: FileId }) {
             />
           </div>
         ) : isPdf && data.url !== null ? (
-          <iframe title={file.name} src={data.url} className="h-[70vh] w-full border-0" />
+          native ? (
+            <div className="space-y-1 p-4">
+              <h2 className="text-sm font-semibold">{t("file.previewUnavailable")}</h2>
+              <p className="text-muted text-sm">{t("file.previewUnavailableBody")}</p>
+            </div>
+          ) : (
+            <iframe
+              title={file.name}
+              src={data.url}
+              className="h-[70vh] w-full border-0"
+            />
+          )
         ) : hasText ? (
           <div className="space-y-2 p-4">
             <h2 className="text-sm font-semibold">{t("file.textPreview")}</h2>

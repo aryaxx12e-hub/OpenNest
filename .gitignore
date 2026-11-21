@@ -5,6 +5,7 @@ node_modules/
 
 # Next.js
 .next/
+.next-static/
 out/
 build/
 *.tsbuildinfo
@@ -55,6 +56,10 @@ Thumbs.db
 
 # Generated service worker
 /apps/web/public/sw.js
+
+# Capacitor generated native assets
+/apps/mobile/android/app/src/main/assets/
+/apps/mobile/resources/
 
 # Local agent state
 /.superpowers/

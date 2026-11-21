@@ -14,6 +14,10 @@ collaboration, AI Q&A, and read-only MCP implementations are in place, but they
 are implementation previews, not supported production surfaces. No E2EE, AI
 confidentiality, extension sandbox security, or MCP isolation claim is made.
 
+The owner-personal Android package for v0.1.0-beta.2 is prepared in `apps/mobile`.
+It is an unsupported Capacitor sideload build, not a Play Store release and not a
+change to the supported platforms. See `docs/android.md`.
+
 🚀 Early access
 
 The first preview is source-only. Clone or download the `v0.1.0-beta.1` tag, run it
@@ -249,7 +253,17 @@ OpenNest adalah ruang kerja digital pribadi berbasis open-source yang dirancang 
 
 Dibangun dengan prinsip privacy-first dan local-first, OpenNest bertujuan memberikan kendali penuh kepada pengguna atas informasi digital mereka tanpa ketergantungan wajib pada langganan, akun, atau layanan cloud.
 
-Status: Preview akses awal source-only v0.1.0-beta.1 tersedia. Tidak ada hosted beta. Stage A sampai Stage C selesai. Pekerjaan internal Stage D selesai; tinjauan keamanan dan kriptografi independen, gate klaim E2EE, serta gate rilis Stage E masih terbuka. CI hosted sudah hijau. Implementasi server, sync, kolaborasi, AI Q&A, dan MCP read-only adalah preview implementasi, bukan surface produksi yang didukung. Tidak ada klaim E2EE, kerahasiaan AI, keamanan sandbox ekstensi, atau isolasi MCP.
+Status: Preview akses awal source-only v0.1.0-beta.1 tersedia. Tidak ada hosted
+beta. Stage A sampai Stage C selesai. Pekerjaan internal Stage D selesai; tinjauan
+keamanan dan kriptografi independen, gate klaim E2EE, serta gate rilis Stage E
+masih terbuka. CI hosted sudah hijau. Implementasi server, sync, kolaborasi, AI
+Q&A, dan MCP read-only adalah preview implementasi, bukan surface produksi yang
+didukung. Tidak ada klaim E2EE, kerahasiaan AI, keamanan sandbox ekstensi, atau
+isolasi MCP.
+
+Paket Android personal untuk v0.1.0-beta.2 disiapkan di `apps/mobile`. Ini build
+sideload Capacitor yang tidak didukung, bukan rilis Play Store, dan tidak mengubah
+platform yang didukung. Lihat `docs/android.md`.
 
 Cara mencoba: clone tag `v0.1.0-beta.1`, jalankan dengan Node 24, dan simpan backup sendiri. Preview ini tidak punya akun, sync cloud, alur kolaborasi, registri ekstensi, atau server OpenNest hosted. Baca `docs/early-access.md` dan `docs/run-locally.md` sebelum menguji.
 

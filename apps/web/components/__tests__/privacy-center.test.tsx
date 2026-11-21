@@ -189,11 +189,11 @@ describe("PrivacyCenter", () => {
     change(passwords[1] as HTMLInputElement, "correct horse battery staple");
 
     await act(async () => {
-      buttonByText(container!, "Download backup").click();
+      buttonByText(container!, "Export backup").click();
     });
-    await waitForText(container!, "Backup downloaded.");
+    await waitForText(container!, "Backup exported.");
 
     expect(downloaded).toMatch(/^opennest-backup-\d{4}-\d{2}-\d{2}\.json$/);
-    expect(container?.textContent).toContain("Backup downloaded.");
+    expect(container?.textContent).toContain("Backup exported.");
   }, 15000);
 });

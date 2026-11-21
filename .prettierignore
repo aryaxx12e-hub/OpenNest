@@ -7,9 +7,12 @@
 
 # Generated and vendored output
 .next/
+.next-static/
 node_modules/
 coverage/
 .playwright-mcp/
+apps/mobile/android/
+apps/mobile/resources/
 
 # Files without a Prettier parser
 /.dockerignore

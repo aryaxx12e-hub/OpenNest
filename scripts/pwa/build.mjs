@@ -13,6 +13,7 @@ const OUTPUT_PATH = path.join(PUBLIC_DIR, "sw.js");
 const ROUTES = [
   "/",
   "/library",
+  "/files",
   "/notes",
   "/search",
   "/settings",

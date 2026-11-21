@@ -276,24 +276,6 @@ export function mapBackupToWorkspace(
   return mapped;
 }
 
-export function downloadTextFile(
-  fileName: string,
-  text: string,
-  mimeType = "application/json"
-): void {
-  const blob = new Blob([text], { type: mimeType });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-
-  link.href = url;
-  link.download = fileName;
-  link.rel = "noopener";
-  document.body.append(link);
-  link.click();
-  link.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 0);
-}
-
 async function buildBackupSnapshot(
   storage: StorageAdapter,
   workspaceId: WorkspaceId,

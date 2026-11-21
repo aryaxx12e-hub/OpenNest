@@ -21,10 +21,13 @@ import { useTranslations } from "@opennest/localization";
 
 import type { NoteDraft } from "@/lib/autosave/draft-journal";
 import { useOptionalAppData } from "@/lib/data/app-data-provider";
+import { isNativeApp } from "@/lib/native";
 import { getConnectionSnapshot } from "@/lib/pwa";
 
 import { ConnectionStatus } from "./connection-status";
 import { LanguageSwitcher } from "./language-switcher";
+import { LegacyRouteRedirect } from "./legacy-route-redirect";
+import { NativeBridge } from "./native-bridge";
 import { ServiceWorkerUpdate } from "./service-worker-update";
 import { ThemeToggle } from "./theme-toggle";
 
@@ -95,7 +98,14 @@ function isActive(item: NavItem, pathname: string): boolean {
   );
 }
 
-function handleOfflineNavigation(event: MouseEvent<HTMLAnchorElement>, href: string) {
+export function handleOfflineNavigation(
+  event: Pick<MouseEvent<HTMLAnchorElement>, "preventDefault">,
+  href: string
+) {
+  if (isNativeApp()) {
+    return;
+  }
+
   if (!getConnectionSnapshot()) {
     event.preventDefault();
     window.location.assign(href);
@@ -129,7 +139,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
           );
 
   return (
-    <div className="bg-background min-h-dvh p-0 sm:p-3 lg:p-4">
+    <div className="bg-background app-shell-frame min-h-dvh">
+      <div
+        aria-hidden="true"
+        className="bg-background app-status-scrim fixed inset-x-0 top-0 z-40"
+      />
       <a
         href="#main-content"
         className="focus:bg-primary focus:text-primary-foreground focus:rounded-control sr-only focus:not-sr-only focus:fixed focus:top-3 focus:left-3 focus:z-50 focus:px-4 focus:py-2"
@@ -138,7 +152,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
       </a>
 
       <div className="border-border bg-surface sm:rounded-panel sm:shadow-float mx-auto flex min-h-dvh max-w-[1600px] flex-col overflow-hidden sm:min-h-[calc(100dvh-1.5rem)] sm:border lg:min-h-[calc(100dvh-2rem)]">
-        <header className="border-border flex min-h-16 items-center justify-between gap-2 border-b px-3 sm:gap-3 sm:px-6">
+        <header className="border-border app-header flex items-center justify-between gap-2 border-b px-3 sm:gap-3 sm:px-6">
           <Link
             href="/"
             aria-label={t("app.name")}
@@ -193,6 +207,8 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         </header>
 
         <ServiceWorkerUpdate classifyDrafts={classifyDrafts} />
+        <LegacyRouteRedirect />
+        <NativeBridge />
 
         <div className="flex flex-1">
           <nav
@@ -212,7 +228,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
             </ul>
           </nav>
 
-          <main id="main-content" tabIndex={-1} className="min-w-0 flex-1 pb-24 md:pb-0">
+          <main id="main-content" tabIndex={-1} className="app-main min-w-0 flex-1">
             {children}
           </main>
         </div>
@@ -220,7 +236,7 @@ export function AppShell({ children }: { children: React.ReactNode }) {
 
       <nav
         aria-label={t("nav.labelMobile")}
-        className="border-border bg-surface/95 fixed inset-x-0 bottom-0 z-30 border-t pb-[env(safe-area-inset-bottom)] backdrop-blur md:hidden"
+        className="border-border bg-surface/95 app-bottom-nav fixed inset-x-0 bottom-0 z-30 border-t backdrop-blur md:hidden"
       >
         <ul className="grid grid-cols-6">
           {items.map((item) => {

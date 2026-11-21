@@ -206,7 +206,7 @@ describe("NoteEditor", () => {
     await settle();
 
     expect(
-      container.querySelector(`a[href="/notes/${second.id}"]`)?.textContent
+      container.querySelector(`a[href="/notes?noteId=${second.id}"]`)?.textContent
     ).toContain("Second note");
   }, 15000);
 
@@ -262,9 +262,12 @@ describe("NoteEditor", () => {
     );
 
     expect(exportButton).not.toBeUndefined();
-    act(() => exportButton?.click());
+    await act(async () => {
+      exportButton?.click();
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
 
     expect(downloaded).toBe("Trip- Day 1.md");
-    expect(container.textContent).toContain("Markdown file downloaded.");
+    expect(container.textContent).toContain("Markdown file exported.");
   }, 15000);
 });

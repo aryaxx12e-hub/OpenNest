@@ -232,7 +232,7 @@ async function run() {
     assert.equal(firstFocus.text, "Skip to content");
 
     await page.getByRole("button", { name: "New note" }).first().click();
-    await page.waitForURL(/\/notes\/[^/]+$/);
+    await page.waitForURL(/\/notes\?noteId=[^/]+$/);
     const title = page.getByRole("textbox", { name: "Note title" });
     await title.fill(`E2E note ${unique}`);
     await page.getByText("Unsaved changes", { exact: true }).waitFor({ timeout: 5000 });
@@ -260,7 +260,7 @@ async function run() {
       .getByRole("link", { name: new RegExp(`E2E note ${unique}`) })
       .first()
       .click();
-    await page.waitForURL(/\/notes\/[^/]+$/);
+    await page.waitForURL(/\/notes\?noteId=[^/]+$/);
     await page.waitForFunction(
       (marker) => {
         const textarea = document.querySelector('textarea[aria-label="Write"]');
@@ -329,7 +329,7 @@ async function run() {
     await page.getByRole("button", { name: "Create folder" }).click();
     await page.getByRole("link", { name: new RegExp(`Folder ${unique}`) }).waitFor();
     await page.getByRole("link", { name: new RegExp(`Folder ${unique}`) }).click();
-    await page.waitForURL(/\/library\/[^/]+$/);
+    await page.waitForURL(/\/library\?folderId=[^/]+$/);
     await page.getByRole("heading", { name: `Folder ${unique}`, exact: true }).waitFor();
     await assertPageStructure(page, "library folder");
 
@@ -340,7 +340,7 @@ async function run() {
     });
     await page.getByText("Upload complete.").waitFor();
     await page.getByRole("link", { name: new RegExp(`${unique}\\.txt`) }).click();
-    await page.waitForURL(/\/files\/[^/]+$/);
+    await page.waitForURL(/\/files\?fileId=[^/]+$/);
     await page.getByText(`hello from ${unique}`).waitFor();
     await assertPageStructure(page, "file preview");
 
@@ -352,19 +352,19 @@ async function run() {
     await page.getByRole("button", { name: "Export backup" }).click();
     await page.getByRole("dialog").waitFor();
     await page.getByRole("radio", { name: /Plaintext \(v1\)/ }).check();
-    await page.getByRole("button", { name: "Download backup" }).click();
+    await page.getByRole("button", { name: "Export backup" }).click();
     const download = await downloadPromise;
     const backupPath = await download.path();
     assert.ok(backupPath, "the exported backup should be saved to a temporary file");
     const backupText = await readFile(backupPath, "utf8");
     assert.match(backupText, /"format": "opennest-backup"/);
     assert.match(backupText, new RegExp(unique));
-    await page.getByText("Backup downloaded.", { exact: true }).waitFor();
+    await page.getByText("Backup exported.", { exact: true }).waitFor();
     await page.getByRole("button", { name: "Done", exact: true }).click();
 
     await page.goto(`${server.base}/notes`, { waitUntil: "networkidle" });
     await page.getByRole("button", { name: "New note" }).first().click();
-    await page.waitForURL(/\/notes\/[^/]+$/);
+    await page.waitForURL(/\/notes\?noteId=[^/]+$/);
     await page
       .getByRole("textbox", { name: "Note title" })
       .fill(`After export ${unique}`);
@@ -400,9 +400,9 @@ async function run() {
     await page.getByRole("button", { name: "Export backup" }).click();
     await page.getByRole("dialog").waitFor();
     await page.getByRole("radio", { name: /Plaintext \(v1\)/ }).check();
-    await page.getByRole("button", { name: "Download backup" }).click();
+    await page.getByRole("button", { name: "Export backup" }).click();
     await privacyDownloadPromise;
-    await page.getByText("Backup downloaded.", { exact: true }).waitFor();
+    await page.getByText("Backup exported.", { exact: true }).waitFor();
     await page.getByRole("button", { name: "Done", exact: true }).click();
 
     await page.getByText("Built-in", { exact: true }).first().waitFor();

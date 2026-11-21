@@ -86,6 +86,10 @@ directory, for example:
 /data/data/com.termux/files/home/opennest
 ```
 
+The Termux reference environment can run the web application and can run
+`npm run build:static`, but it has no Android SDK and cannot build the APK. The
+personal Android package is built in GitHub Actions. See `docs/android.md`.
+
 See `docs/development.md` for the filesystem and native module limitations on
 Android.
 

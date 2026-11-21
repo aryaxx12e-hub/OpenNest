@@ -22,6 +22,7 @@ import { useAsyncData } from "@/lib/data/hooks";
 import { errorKey } from "@/lib/errors";
 import { collectFolderSubtree } from "@/lib/folders";
 import { libraryTypeMimeTypes, type LibraryFileType } from "@/lib/library";
+import { folderHref } from "@/lib/routes";
 
 const PAGE_STEP = 50;
 const PAGE_MAX = 500;
@@ -177,10 +178,7 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
     setActionError(null);
 
     try {
-      const target =
-        currentFolder.parentId === null
-          ? "/library"
-          : `/library/${currentFolder.parentId}`;
+      const target = folderHref(currentFolder.parentId);
       await services.folder.delete(currentFolder.id);
       invalidate();
       setDeleteOpen(false);
@@ -210,7 +208,7 @@ export function LibraryBrowser({ folderId }: { folderId: FolderId | null }) {
             <span aria-hidden="true">/</span>
             <Link
               className="hover:text-foreground underline-offset-4 hover:underline"
-              href={`/library/${folder.id}`}
+              href={folderHref(folder.id)}
             >
               {folder.name}
             </Link>

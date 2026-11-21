@@ -14,6 +14,10 @@ started with the server foundation and authentication.
 OpenNest has five stages. Stage E is the final stage. There is no Stage F and no
 Phase 6. This restructure does not mark any work item complete.
 
+Personal Android build: an unsupported, owner-requested sideload package is
+documented in ADR 0021. It is not a roadmap stage, does not add a supported
+platform, and does not complete Stage E or any open gate.
+
 Roadmap items represent development goals, not guaranteed release dates.
 
 Development Principles

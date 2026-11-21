@@ -14,6 +14,8 @@
   "scripts": {
     "dev": "node scripts/next.mjs dev --webpack",
     "build": "node scripts/next.mjs build --webpack && node scripts/pwa/build.mjs",
+    "build:static": "node scripts/build-static.mjs",
+    "sync:android": "node scripts/build-static.mjs && npm run sync --workspace @opennest/mobile",
     "build:pwa": "node scripts/pwa/build.mjs",
     "start": "node scripts/next.mjs start",
     "lint": "node scripts/eslint.mjs .",

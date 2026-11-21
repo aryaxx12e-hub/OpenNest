@@ -2,10 +2,12 @@ import Link from "next/link";
 
 import type { Folder } from "@opennest/core";
 
+import { folderHref } from "@/lib/routes";
+
 export function FolderCard({ folder }: { folder: Folder }) {
   return (
     <Link
-      href={`/library/${folder.id}`}
+      href={folderHref(folder.id)}
       className="border-border bg-surface hover:bg-surface-muted rounded-card flex min-h-16 items-center gap-3 border px-4 py-3 shadow-sm transition-colors"
     >
       <span

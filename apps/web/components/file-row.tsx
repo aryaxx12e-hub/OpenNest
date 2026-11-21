@@ -5,6 +5,7 @@ import { useLocale } from "@opennest/localization";
 
 import { extensionOf } from "@/lib/files";
 import { formatBytes, formatCalendarDate } from "@/lib/format";
+import { fileHref } from "@/lib/routes";
 
 export function FileRow({ file }: { file: StoredFile }) {
   const { locale } = useLocale();
@@ -13,7 +14,7 @@ export function FileRow({ file }: { file: StoredFile }) {
   return (
     <li>
       <Link
-        href={`/files/${file.id}`}
+        href={fileHref(file.id)}
         className="hover:bg-surface-muted flex min-h-14 items-center gap-3 px-5 py-3 transition-colors"
       >
         <span

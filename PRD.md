@@ -8,6 +8,9 @@ Version: 1.1
 Status: MVP 0.1 implementation in progress; Stage C delivered; Stage D in progress
 Last updated: November 2026
 Platforms: Web + Progressive Web App (PWA)
+Personal Android build: unsupported and owner-requested; see
+docs/adr/0021-capacitor-android-personal-build.md. It does not change the
+supported platform scope or the stage status.
 Languages: English and Bahasa Indonesia
 License: GNU AGPL-3.0 (see LICENSE)
 

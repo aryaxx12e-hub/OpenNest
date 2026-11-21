@@ -45,7 +45,7 @@ function choose(select: HTMLSelectElement, value: string) {
 }
 
 function fileNames() {
-  return [...(container?.querySelectorAll('a[href^="/files/"]') ?? [])].map(
+  return [...(container?.querySelectorAll('a[href^="/files?"]') ?? [])].map(
     (link) => link.textContent ?? ""
   );
 }

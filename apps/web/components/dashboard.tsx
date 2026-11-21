@@ -38,6 +38,7 @@ import { useAppData } from "@/lib/data/app-data-provider";
 import { readLastBackupAt } from "@/lib/data/backup-reminder";
 import { useAsyncData } from "@/lib/data/hooks";
 import { formatBytes, formatCalendarDate } from "@/lib/format";
+import { noteHref } from "@/lib/routes";
 import { noteExcerpt } from "@/lib/notes";
 import { readStorageStatus } from "@/lib/privacy/storage-status";
 
@@ -438,7 +439,7 @@ export function Dashboard() {
                         return (
                           <li key={note.id}>
                             <Link
-                              href={`/notes/${note.id}`}
+                              href={noteHref(note.id)}
                               className="hover:bg-surface-muted flex items-start gap-3 px-5 py-3 transition-colors"
                             >
                               <span className="bg-primary-soft text-primary rounded-control mt-0.5 grid size-9 shrink-0 place-items-center">

@@ -13,6 +13,7 @@ import { PageHeader } from "@/components/page-header";
 import { useAppData } from "@/lib/data/app-data-provider";
 import { useAsyncData } from "@/lib/data/hooks";
 import { folderOptions } from "@/lib/folders";
+import { fileHref, noteHref } from "@/lib/routes";
 
 type Kind = "file" | "note" | undefined;
 
@@ -218,7 +219,7 @@ export function SearchView() {
             {hits.map((hit) => (
               <li key={`${hit.kind}:${hit.id}`}>
                 <Link
-                  href={hit.kind === "file" ? `/files/${hit.id}` : `/notes/${hit.id}`}
+                  href={hit.kind === "file" ? fileHref(hit.id) : noteHref(hit.id)}
                   className="hover:bg-border/30 block px-4 py-3"
                 >
                   <div className="flex items-center gap-2">

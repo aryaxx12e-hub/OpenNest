@@ -18,18 +18,18 @@ import {
 } from "@/lib/data/backup-reminder";
 import {
   backupErrorKey,
-  downloadTextFile,
   inspectBackupFile,
   parseBackupFile,
   summarizeBackup,
   type BackupKeySource,
   type BackupSummary,
 } from "@/lib/data/backup";
+import { exportTextFile } from "@/lib/export";
 import { formatCalendarDate } from "@/lib/format";
 import { dataControlErrorKey } from "@/lib/privacy/errors";
 
 export interface BackupPanelProps {
-  download?: (fileName: string, text: string) => void;
+  download?: (fileName: string, text: string) => void | Promise<void>;
   encryptionActive?: boolean;
 }
 
@@ -45,7 +45,7 @@ interface EncryptedFile {
 }
 
 export function BackupPanel({
-  download = downloadTextFile,
+  download = exportTextFile,
   encryptionActive = false,
 }: BackupPanelProps) {
   const t = useTranslations();

@@ -196,3 +196,23 @@ export function getConnectionSnapshot(): boolean {
 export function getConnectionServerSnapshot(): boolean {
   return true;
 }
+
+export async function unregisterServiceWorkers(): Promise<void> {
+  if (
+    typeof navigator === "undefined" ||
+    !("serviceWorker" in navigator) ||
+    navigator.serviceWorker === undefined
+  ) {
+    return;
+  }
+
+  try {
+    const registrations = await navigator.serviceWorker.getRegistrations();
+
+    await Promise.all(
+      registrations.map((registration) => registration.unregister().catch(() => false))
+    );
+  } catch {
+    return;
+  }
+}

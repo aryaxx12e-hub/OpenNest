@@ -28,12 +28,13 @@ import { useNoteAutosave, type NoteSavePatch } from "@/lib/autosave/use-note-aut
 import { readBrowserCollaborationConfig } from "@/lib/collaboration/provider";
 import { useCollaboration } from "@/lib/collaboration/use-collaboration";
 import { useAppData } from "@/lib/data/app-data-provider";
-import { downloadTextFile } from "@/lib/data/backup";
+import { exportTextFile } from "@/lib/export";
 import { useAsyncData } from "@/lib/data/hooks";
 import { useSaveCoordinator } from "@/lib/data/save-coordinator";
 import { errorKey } from "@/lib/errors";
 import { formatDateTime } from "@/lib/format";
 import { noteMarkdownDocument, noteMarkdownFileName } from "@/lib/notes";
+import { noteHref } from "@/lib/routes";
 
 export function NoteEditor({ noteId }: { noteId: NoteId }) {
   const t = useTranslations();
@@ -239,12 +240,12 @@ function NoteEditorForm({
     invalidate();
   }
 
-  function exportMarkdown() {
+  async function exportMarkdown() {
     setActionError(null);
     setActionSuccess(null);
 
     try {
-      downloadTextFile(
+      await exportTextFile(
         noteMarkdownFileName(title),
         noteMarkdownDocument(title, content),
         "text/markdown"
@@ -335,7 +336,7 @@ function NoteEditorForm({
           >
             {t("notes.links")}
           </Button>
-          <Button variant="secondary" onClick={exportMarkdown}>
+          <Button variant="secondary" onClick={() => void exportMarkdown()}>
             {t("notes.exportMarkdown")}
           </Button>
           <Button
@@ -464,7 +465,7 @@ function NoteEditorForm({
             {linkedNotes.map((linked) => (
               <li key={linked.id}>
                 <Link
-                  href={`/notes/${linked.id}`}
+                  href={noteHref(linked.id)}
                   className="text-primary inline-flex min-h-11 items-center text-sm font-medium underline-offset-4 hover:underline"
                 >
                   {linked.title.trim().length === 0 ? t("notes.untitled") : linked.title}

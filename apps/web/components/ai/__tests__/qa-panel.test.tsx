@@ -191,9 +191,9 @@ describe("QaPanel", () => {
       credential: null,
     });
     expect(qa.send).toHaveBeenCalledTimes(1);
-    expect(document.body.querySelector('a[href="/notes/note-1"]')?.textContent).toContain(
-      "Belanja"
-    );
+    expect(
+      document.body.querySelector('a[href="/notes?noteId=note-1"]')?.textContent
+    ).toContain("Belanja");
   });
 
   it("shows the unsupported state when no citation is returned", async () => {

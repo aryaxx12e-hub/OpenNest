@@ -13,6 +13,7 @@ import { useAppData } from "@/lib/data/app-data-provider";
 import { useAsyncData } from "@/lib/data/hooks";
 import { formatDateTime } from "@/lib/format";
 import { noteExcerpt } from "@/lib/notes";
+import { noteHref } from "@/lib/routes";
 
 export function NotesList() {
   const t = useTranslations();
@@ -77,7 +78,7 @@ export function NotesList() {
               return (
                 <li key={note.id}>
                   <Link
-                    href={`/notes/${note.id}`}
+                    href={noteHref(note.id)}
                     className="hover:bg-border/30 block px-4 py-4"
                   >
                     <div className="flex items-start justify-between gap-3">

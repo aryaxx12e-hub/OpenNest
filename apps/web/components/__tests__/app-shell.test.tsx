@@ -6,12 +6,16 @@ import { LocaleProvider } from "@opennest/localization";
 
 import { SaveCoordinatorProvider } from "@/lib/data/save-coordinator";
 
-import { AppShell } from "../app-shell";
+import { AppShell, handleOfflineNavigation } from "../app-shell";
 
-const navigation = vi.hoisted(() => ({ pathname: "/" }));
+const navigation = vi.hoisted(() => ({
+  pathname: "/",
+  replace: vi.fn(),
+}));
 
 vi.mock("next/navigation", () => ({
   usePathname: () => navigation.pathname,
+  useRouter: () => ({ replace: navigation.replace }),
 }));
 
 (globalThis as { IS_REACT_ACT_ENVIRONMENT?: boolean }).IS_REACT_ACT_ENVIRONMENT = true;
@@ -52,6 +56,7 @@ function navByName(host: HTMLElement, name: string): HTMLElement {
 
 beforeEach(() => {
   navigation.pathname = "/";
+  navigation.replace.mockClear();
   window.localStorage.clear();
 });
 
@@ -97,7 +102,7 @@ describe("AppShell navigation", () => {
   });
 
   it("marks the library as current on file routes", () => {
-    navigation.pathname = "/files/abc";
+    navigation.pathname = "/files";
     const host = renderShell();
 
     for (const name of ["Primary navigation", "Quick navigation"]) {
@@ -109,7 +114,7 @@ describe("AppShell navigation", () => {
   });
 
   it("marks notes as current on note routes", () => {
-    navigation.pathname = "/notes/abc";
+    navigation.pathname = "/notes";
     const host = renderShell();
 
     for (const name of ["Primary navigation", "Quick navigation"]) {
@@ -118,6 +123,19 @@ describe("AppShell navigation", () => {
 
       expect(notes?.getAttribute("aria-current")).toBe("page");
     }
+  });
+
+  it("redirects legacy dynamic paths to query routes", () => {
+    navigation.pathname = "/notes/abc";
+    renderShell();
+
+    expect(navigation.replace).toHaveBeenCalledWith("/notes?noteId=abc");
+  });
+
+  it("does not redirect current routes", () => {
+    renderShell();
+
+    expect(navigation.replace).not.toHaveBeenCalled();
   });
 
   it("adds Privacy Center to desktop and mobile navigation", () => {
@@ -153,6 +171,20 @@ describe("AppShell navigation", () => {
 
       expect(search?.getAttribute("aria-current")).toBe("page");
     }
+  });
+
+  it("keeps client navigation offline instead of reloading on native", () => {
+    window.Capacitor = { isNativePlatform: () => true };
+    vi.spyOn(navigator, "onLine", "get").mockReturnValue(false);
+    const event = { preventDefault: vi.fn() } as unknown as Parameters<
+      typeof handleOfflineNavigation
+    >[0];
+
+    handleOfflineNavigation(event, "/library");
+
+    expect(event.preventDefault).not.toHaveBeenCalled();
+    vi.restoreAllMocks();
+    delete window.Capacitor;
   });
 
   it("renders every navigation item as an enabled link", () => {

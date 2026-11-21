@@ -4,6 +4,36 @@ All notable changes to OpenNest are documented in this file. The format follows
 Keep a Changelog, and the project intends to use semantic versioning once
 releases begin.
 
+## [0.1.0-beta.2] - 2026-11-21
+
+### Added
+
+- A personal, unsupported Capacitor Android package in `apps/mobile`, with a
+  committed Gradle project, Android assets, and a GitHub Actions build and
+  release workflow. The supported platforms remain the web application and PWA.
+- Static export builds through `npm run build:static`, with a bundled offline
+  shell and no service worker inside the APK.
+- Native export and share through the Android share sheet, native back
+  handling, SystemBars theme synchronization, and safe-area layout classes.
+- `docs/android.md` and release notes for the Android personal build.
+
+### Changed
+
+- Entity detail routes use query parameters so the static export works without
+  server rewrites. Legacy dynamic URLs redirect to the new form.
+- Export actions use async export helpers and report failures in the UI.
+- User-facing download labels become export labels where the share sheet is
+  used.
+
+### Security
+
+- The Android manifest disables cleartext traffic and Android backup, and
+  requests only the INTERNET permission.
+- Release signing uses an owner-generated keystore stored outside the repository
+  and repository secrets in CI. The keystore is not committed.
+- No E2EE, AI confidentiality, extension sandbox security, or MCP isolation
+  claim is made. The Stage D and Stage E gates remain open.
+
 ## [0.1.0-beta.1] - 2026-11-21
 
 ### Added

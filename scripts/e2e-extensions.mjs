@@ -291,7 +291,9 @@ opennest.register(async () => {
 `;
 
 async function openRunner(page, base) {
-  await page.goto(`${base}/extensions/${extensionId}`, { waitUntil: "networkidle" });
+  await page.goto(`${base}/extensions?extensionId=${encodeURIComponent(extensionId)}`, {
+    waitUntil: "networkidle",
+  });
   await page.getByRole("heading", { name: extensionName, exact: true }).waitFor();
 }
 
@@ -357,7 +359,7 @@ async function run() {
     await page.goto(server.base, { waitUntil: "networkidle" });
     await page.getByRole("heading", { name: "Your library", exact: true }).waitFor();
     await page.getByRole("button", { name: "New note" }).first().click();
-    await page.waitForURL(/\/notes\/[^/]+$/);
+    await page.waitForURL(/\/notes\?noteId=[^/]+$/);
     await page.getByRole("textbox", { name: "Note title" }).fill(noteTitle);
     await page.getByRole("textbox", { name: "Write" }).fill(noteBody);
     await page.getByText("Saved", { exact: true }).waitFor({ timeout: 5000 });
@@ -392,7 +394,11 @@ async function run() {
     checks.push("the metadata-only package requires consent before install");
 
     await page.getByRole("link", { name: "Open", exact: true }).click();
-    await page.waitForURL(new RegExp(`/extensions/${extensionId}$`));
+    await page.waitForURL(
+      (url) =>
+        url.pathname === "/extensions" &&
+        url.searchParams.get("extensionId") === extensionId
+    );
     await page.getByRole("heading", { name: extensionName, exact: true }).waitFor();
     await page.getByText("Running", { exact: true }).waitFor();
     await page.getByText("Runs: 1", { exact: true }).waitFor();

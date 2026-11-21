@@ -29,6 +29,7 @@ import { PageContainer } from "@/components/page-container";
 import { PageHeader } from "@/components/page-header";
 import { useAppData } from "@/lib/data/app-data-provider";
 import { extensionCapabilityKey, extensionErrorKey } from "@/lib/extensions/messages";
+import { extensionHref } from "@/lib/routes";
 
 export interface ExtensionsViewRuntime {
   readonly registry: Pick<ExtensionRegistry, "list" | "prepareInstall" | "install">;
@@ -317,7 +318,7 @@ export function ExtensionsView({ extensions }: ExtensionsViewProps) {
                     {t("extensions.card.enable")}
                   </label>
                   <Link
-                    href={`/extensions/${encodeURIComponent(record.id)}`}
+                    href={extensionHref(record.id)}
                     className="text-primary inline-flex min-h-11 items-center text-sm font-medium underline"
                   >
                     {t("extensions.card.open")}

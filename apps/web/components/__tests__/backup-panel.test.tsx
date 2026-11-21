@@ -168,7 +168,7 @@ describe("BackupPanel", () => {
     await settle();
 
     const dialog = openDialog(mounted.container);
-    expect(dialog?.textContent).toContain("Download a backup?");
+    expect(dialog?.textContent).toContain("Export a backup?");
     expect(dialog?.textContent).toContain(
       "sync metadata (including outbox and conflict records) are not included"
     );
@@ -178,7 +178,7 @@ describe("BackupPanel", () => {
     change(passwords[1] as HTMLInputElement, "correct horse battery staple");
 
     await act(async () => {
-      buttonByText(mounted.container, "Download backup").click();
+      buttonByText(mounted.container, "Export backup").click();
     });
     await settle(240);
 
@@ -189,7 +189,7 @@ describe("BackupPanel", () => {
     expect(text).toContain('"formatVersion": 2');
     expect(text).not.toContain(workspace.id);
     expect(text).not.toContain("Before export");
-    expect(mounted.container.textContent).toContain("Backup downloaded.");
+    expect(mounted.container.textContent).toContain("Backup exported.");
     expect(String(window.localStorage.getItem("opennest:backup:last-export"))).toMatch(
       /^\d{4}-\d{2}-\d{2}T/
     );
@@ -228,7 +228,7 @@ describe("BackupPanel", () => {
     expect(exportDialog?.textContent).toContain("Backup key copied.");
 
     await act(async () => {
-      buttonByText(mounted.container, "Download backup").click();
+      buttonByText(mounted.container, "Export backup").click();
     });
     await settle();
     expect(openDialog(mounted.container)?.textContent).toContain(
@@ -243,7 +243,7 @@ describe("BackupPanel", () => {
     });
 
     await act(async () => {
-      buttonByText(mounted.container, "Download backup").click();
+      buttonByText(mounted.container, "Export backup").click();
     });
     await settle(240);
     const [, text] = mounted.download.mock.calls[0] as [string, string];

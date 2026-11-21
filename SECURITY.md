@@ -2,9 +2,11 @@
 
 ## Supported versions
 
-OpenNest is pre-1.0. The only public early access artifact is the source-only
-`v0.1.0-beta.1` preview. It is not a supported production release and has no
-security update commitment beyond fixes on `main`.
+OpenNest is pre-1.0. The public early access artifact is the source-only
+`v0.1.0-beta.1` preview. `v0.1.0-beta.2` adds an owner-personal Android APK. The
+APK is an unsupported sideload build, not a Play Store release or a supported
+production surface. There is no security update commitment beyond fixes on
+`main`.
 
 ## Early access preview
 
@@ -12,6 +14,12 @@ The source preview is for local evaluation and feedback. There is no hosted beta
 no OpenNest account, and no OpenNest server deployment in this release. The
 preview is unreviewed software. Do not use it as the only copy of important data
 or for sensitive personal or business information.
+
+The Android personal build packages the same web application inside a Capacitor
+WebView. It disables cleartext traffic and Android backup and requests only the
+INTERNET permission. It does not add a security review, a sandbox guarantee, or a
+confidentiality claim. Release APKs are signed outside the repository and
+published as unsupported personal artifacts.
 
 No E2EE, AI confidentiality, extension sandbox security, or MCP isolation claim
 is made for the preview. The Stage D security review, external cryptographic

@@ -6,6 +6,7 @@ import { useTranslations } from "@opennest/localization";
 import { Badge } from "@opennest/ui";
 
 import type { Passage } from "@/lib/ai/retrieval/types";
+import { fileHref, noteHref } from "@/lib/routes";
 
 export interface CitationListProps {
   citations: readonly Passage[];
@@ -28,8 +29,8 @@ export function CitationList({ citations, title }: CitationListProps) {
             <Link
               href={
                 citation.kind === "note"
-                  ? `/notes/${citation.sourceId}`
-                  : `/files/${citation.sourceId}`
+                  ? noteHref(citation.sourceId)
+                  : fileHref(citation.sourceId)
               }
               className="border-border hover:bg-border/30 rounded-control flex min-h-11 items-center gap-2 border px-3 py-2 transition-colors"
             >

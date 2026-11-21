@@ -8,11 +8,11 @@ import { Button, Dialog, Input, Label } from "@opennest/ui";
 import {
   backupErrorKey,
   createBackupKey,
-  downloadTextFile,
   type BackupExportOptions,
   type BackupSummary,
   type BuiltBackup,
 } from "@/lib/data/backup";
+import { exportTextFile } from "@/lib/export";
 
 type Protection = "passphrase" | "backupKey" | "plaintext";
 
@@ -20,7 +20,7 @@ export interface BackupExportDialogProps {
   open: boolean;
   summary?: BackupSummary | null;
   encryptionActive?: boolean;
-  download?: (fileName: string, text: string) => void;
+  download?: (fileName: string, text: string) => void | Promise<void>;
   onExport: (options: BackupExportOptions) => Promise<BuiltBackup>;
   onClose: () => void;
   onExported?: (backup: BuiltBackup) => void;
@@ -30,7 +30,7 @@ export function BackupExportDialog({
   open,
   summary = null,
   encryptionActive = false,
-  download = downloadTextFile,
+  download = exportTextFile,
   onExport,
   onClose,
   onExported,
@@ -121,7 +121,7 @@ export function BackupExportDialog({
 
     try {
       const built = await onExport(options);
-      download(built.fileName, built.text);
+      await download(built.fileName, built.text);
       setCompleted(true);
       onExported?.(built);
     } catch (caught) {

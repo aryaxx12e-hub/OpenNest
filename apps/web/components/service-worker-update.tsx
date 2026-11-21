@@ -12,9 +12,11 @@ import {
 } from "@/lib/autosave/draft-store";
 import { useOptionalAppData, useOptionalAppRevision } from "@/lib/data/app-data-provider";
 import { useSaveCoordinator } from "@/lib/data/save-coordinator";
+import { useIsNativeApp } from "@/lib/native";
 import {
   browserPwaContainer,
   startPwa,
+  unregisterServiceWorkers,
   type PwaContainer,
   type PwaHandle,
 } from "@/lib/pwa";
@@ -91,7 +93,7 @@ export interface ServiceWorkerUpdateProps {
   classifyDrafts?: (drafts: NoteDraft[]) => Promise<DraftTarget[]>;
   clearDraft?: (workspaceId: string, noteId: string) => Promise<boolean>;
   clearDrafts?: () => Promise<{ removed: number; failed: number }>;
-  download?: (fileName: string, text: string) => void;
+  download?: (fileName: string, text: string) => void | Promise<void>;
 }
 
 async function classifyAsUnverified(drafts: NoteDraft[]): Promise<DraftTarget[]> {
@@ -123,6 +125,8 @@ export function ServiceWorkerUpdate({
   const t = useTranslations();
   const coordinator = useSaveCoordinator();
   const appData = useOptionalAppData();
+  const native = useIsNativeApp();
+  const pwaEnabled = enabled && !native;
   const activeDrafts = appData?.drafts;
   const readRecoveryDrafts = readDrafts ?? (() => readBrowserDrafts(activeDrafts));
   const clearRecoveryDraft =
@@ -195,7 +199,15 @@ export function ServiceWorkerUpdate({
   }, [ready, revision]);
 
   useEffect(() => {
-    if (!enabled) {
+    if (!native) {
+      return;
+    }
+
+    void unregisterServiceWorkers();
+  }, [native]);
+
+  useEffect(() => {
+    if (!pwaEnabled) {
       return;
     }
 
@@ -237,7 +249,7 @@ export function ServiceWorkerUpdate({
       handleRef.current?.dispose();
       handleRef.current = null;
     };
-  }, [container, enabled, reload]);
+  }, [container, pwaEnabled, reload]);
 
   async function activateUpdate() {
     const handle = handleRef.current;

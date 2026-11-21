@@ -1,0 +1,19 @@
+{
+  "name": "@opennest/mobile",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Capacitor Android shell for the personal OpenNest build.",
+  "scripts": {
+    "sync": "node ../../node_modules/@capacitor/cli/bin/capacitor sync android",
+    "open": "node ../../node_modules/@capacitor/cli/bin/capacitor open android",
+    "add:android": "node ../../node_modules/@capacitor/cli/bin/capacitor add android"
+  },
+  "dependencies": {
+    "@capacitor/android": "8.6.2",
+    "@capacitor/app": "8.1.2",
+    "@capacitor/cli": "8.6.2",
+    "@capacitor/core": "8.6.2",
+    "@capacitor/filesystem": "8.1.5",
+    "@capacitor/share": "8.0.3"
+  }
+}

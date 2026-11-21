@@ -416,9 +416,10 @@ Local sideload is a user trust decision. Packages are unsigned in D4A.
 
 The service worker precaches `/extensions` and `/extension-sandbox.js` along
 with the rest of the shell. Installed extension records and extension storage
-live in IndexedDB. The `/extensions/[extensionId]` runner route is dynamic and
-follows the normal navigation fallback when offline. Extension install requires
-a local file picker and works without a network.
+live in IndexedDB. The `/extensions?extensionId=...` runner is served by the
+static `/extensions` shell and follows the normal navigation fallback when
+offline. Extension install requires a local file picker and works without a
+network.
 
 ## Out of scope for D4A
 

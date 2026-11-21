@@ -300,7 +300,7 @@ async function run() {
     const noteTitle = `Offline note ${unique}`;
 
     await page.getByRole("button", { name: "New note" }).first().click();
-    await page.waitForURL(/\/notes\/[^/]+$/);
+    await page.waitForURL(/\/notes\?noteId=[^/]+$/);
     await page.getByRole("textbox", { name: "Note title" }).fill(noteTitle);
     await page
       .getByRole("textbox", { name: "Write" })
@@ -334,6 +334,11 @@ async function run() {
     await page.getByRole("heading", { name: "My Library", exact: true }).waitFor();
     await page.getByText("Offline", { exact: true }).waitFor();
     await assertPageStructure(page, "offline library");
+
+    await page.goto(`${server.base}/files`, { waitUntil: "domcontentloaded" });
+    await page.getByRole("heading", { name: "No file selected" }).waitFor();
+    await page.getByText("Offline", { exact: true }).waitFor();
+    await assertPageStructure(page, "offline files");
 
     await page.goto(`${server.base}/missing-${unique}`, {
       waitUntil: "domcontentloaded",
@@ -420,7 +425,7 @@ async function run() {
     const unsavedContent = `Unsaved before update ${unique}`;
 
     await page.getByRole("button", { name: "New note" }).first().click();
-    await page.waitForURL(/\/notes\/[^/]+$/);
+    await page.waitForURL(/\/notes\?noteId=[^/]+$/);
     await page.getByRole("textbox", { name: "Note title" }).fill(updateNoteTitle);
     await page
       .getByRole("textbox", { name: "Write" })
